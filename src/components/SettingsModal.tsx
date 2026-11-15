@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Language } from '../types'
 import { supportedLanguages } from '../data/languages'
-import { loadSettings, saveSettings, AppSettings } from '../services/storage'
+import { loadSettings, saveSettings, AppSettings, TTSEngineType } from '../services/storage'
 import {
   getConnectedDevices,
   requestMediaPermissions,
   playHeadphoneTestTone,
   DeviceCatalog,
 } from '../services/deviceManager'
+import { playTextToSpeech, stopTextToSpeech } from '../services/speech'
 import {
   Settings,
   FolderOpen,
@@ -20,10 +21,13 @@ import {
   Headphones,
   X,
   Check,
-  BookOpen,
   Play,
   RefreshCw,
   Sparkles,
+  Server,
+  Radio,
+  CheckCircle2,
+  AlertCircle,
 } from 'lucide-react'
 
 interface SettingsModalProps {
@@ -57,6 +61,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const micStreamRef = useRef<MediaStream | null>(null)
   const animFrameRef = useRef<number | null>(null)
 
+  // VoiceStudio status
+  const [isCheckingVs, setIsCheckingVs] = useState(false)
+  const [vsStatus, setVsStatus] = useState<'idle' | 'online' | 'offline'>('idle')
+
+  // Sample audio testing state
+  const [isPlayingTestVoice, setIsPlayingTestVoice] = useState(false)
+
   useEffect(() => {
     if (window.electronAPI?.getRecordingsDir) {
       window.electronAPI.getRecordingsDir().then(setLocalDir).catch(() => {})
@@ -65,6 +76,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
     return () => {
       stopMicTest()
+      stopTextToSpeech()
     }
   }, [])
 
@@ -148,9 +160,70 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     playHeadphoneTestTone(settings.selectedAudioOutputId)
   }
 
+  // Check VoiceStudio Connection
+  const handleCheckVoiceStudio = async () => {
+    if (!window.electronAPI?.checkVoiceStudioStatus) {
+      alert('Tính năng kiểm tra chỉ hỗ trợ trong ứng dụng Desktop!')
+      return
+    }
+    setIsCheckingVs(true)
+    try {
+      const res = await window.electronAPI.checkVoiceStudioStatus(
+        settings.voiceStudioEndpoint || 'http://127.0.0.1:3900'
+      )
+      setVsStatus(res.online ? 'online' : 'offline')
+    } catch {
+      setVsStatus('offline')
+    } finally {
+      setIsCheckingVs(false)
+    }
+  }
+
+  // Test speaking current voice
+  const handleTestSpeaking = () => {
+    if (isPlayingTestVoice) {
+      stopTextToSpeech()
+      setIsPlayingTestVoice(false)
+      return
+    }
+
+    const testPhrases: Record<Language, { text: string; langCode: string }> = {
+      ja: {
+        text: 'こんにちは！iTalkの音声テストです。日本語の発音はとても自然ですね。',
+        langCode: 'ja-JP',
+      },
+      zh: {
+        text: '你好！这是iTalk的发音测试，声音听起来非常纯正自然。',
+        langCode: 'zh-CN',
+      },
+      vi: {
+        text: 'Xin chào! Đây là bài kiểm tra giọng đọc tự nhiên chuẩn của ứng dụng iTalk.',
+        langCode: 'vi-VN',
+      },
+    }
+
+    const sample = testPhrases[settings.defaultLanguage] || testPhrases.ja
+    setIsPlayingTestVoice(true)
+
+    playTextToSpeech({
+      text: sample.text,
+      lang: sample.langCode,
+      rate: settings.speechRate || 1.0,
+      sinkId: settings.selectedAudioOutputId,
+      onStart: () => setIsPlayingTestVoice(true),
+      onEnd: () => setIsPlayingTestVoice(false),
+      onError: (err) => {
+        setIsPlayingTestVoice(false)
+        console.error('Test speak error:', err)
+      },
+    })
+  }
+
+  const currentEngine = settings.ttsEngine || 'edge'
+
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl relative my-8">
+    <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl relative my-8">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-slate-800">
           <div className="flex items-center gap-2.5">
@@ -158,13 +231,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <Settings className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white">Cài đặt thiết bị & Ứng dụng</h3>
-              <p className="text-xs text-slate-400">Chọn Microphone, Tai nghe / Loa và Thư mục lưu</p>
+              <h3 className="text-lg font-bold text-white">Cài đặt Giọng đọc & Thiết bị</h3>
+              <p className="text-xs text-slate-400">Tối ưu phát âm ngoại ngữ chuẩn tự nhiên & phần cứng thu âm</p>
             </div>
           </div>
           <button
             onClick={() => {
               stopMicTest()
+              stopTextToSpeech()
               onClose()
             }}
             className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
@@ -173,8 +247,265 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </button>
         </div>
 
-        <div className="space-y-5 my-6">
-          {/* Audio Devices Section (Mic & Headphone) */}
+        <div className="space-y-6 my-6 max-h-[72vh] overflow-y-auto pr-1">
+          {/* SECTION 1: VOICE ENGINE & HIGH-QUALITY TTS */}
+          <div className="p-4 sm:p-5 rounded-2xl bg-slate-950 border border-slate-800 space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                <Volume2 className="w-4 h-4 text-amber-400" />
+                Bộ phát âm mẫu (Voice Engine)
+              </span>
+              <button
+                onClick={handleTestSpeaking}
+                className={`text-xs px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all shadow-sm ${
+                  isPlayingTestVoice
+                    ? 'bg-rose-500 text-white animate-pulse'
+                    : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30'
+                }`}
+              >
+                <Play className={`w-3.5 h-3.5 ${isPlayingTestVoice ? 'fill-white' : 'fill-amber-300'}`} />
+                <span>{isPlayingTestVoice ? 'Đang đọc... (Bấm dừng)' : 'Nghe thử giọng đọc'}</span>
+              </button>
+            </div>
+
+            {/* Engine Selection Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {/* Option 1: Edge Neural (Default Recommended) */}
+              <button
+                type="button"
+                onClick={() => handleUpdate({ ttsEngine: 'edge' })}
+                className={`p-3 rounded-2xl border text-left flex flex-col gap-1 transition-all ${
+                  currentEngine === 'edge'
+                    ? 'bg-emerald-500/15 border-emerald-500/50 ring-1 ring-emerald-500/30'
+                    : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-xs flex items-center gap-1.5 text-slate-100">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    Microsoft Natural Neural
+                  </span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-semibold">
+                    Khuyên dùng
+                  </span>
+                </div>
+                <span className="text-[11px] text-slate-400 leading-relaxed">
+                  Giọng người thật phòng thu (Nanami, Keita), tự nhiên 100%, miễn phí, không cần GPU/Python.
+                </span>
+              </button>
+
+              {/* Option 2: VoiceStudio Local AI Engine */}
+              <button
+                type="button"
+                onClick={() => handleUpdate({ ttsEngine: 'voicestudio' })}
+                className={`p-3 rounded-2xl border text-left flex flex-col gap-1 transition-all ${
+                  currentEngine === 'voicestudio'
+                    ? 'bg-purple-500/15 border-purple-500/50 ring-1 ring-purple-500/30'
+                    : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-xs flex items-center gap-1.5 text-slate-100">
+                    <Radio className="w-3.5 h-3.5 text-purple-400" />
+                    VoiceStudio AI Server
+                  </span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 font-semibold">
+                    Local Engine
+                  </span>
+                </div>
+                <span className="text-[11px] text-slate-400 leading-relaxed">
+                  Kết nối CosyVoice, IndexTTS & Clone giọng từ VoiceStudio chạy tại máy bạn (port 3900).
+                </span>
+              </button>
+
+              {/* Option 3: OpenAI Cloud TTS */}
+              <button
+                type="button"
+                onClick={() => handleUpdate({ ttsEngine: 'openai' })}
+                className={`p-3 rounded-2xl border text-left flex flex-col gap-1 transition-all ${
+                  currentEngine === 'openai'
+                    ? 'bg-blue-500/15 border-blue-500/50 ring-1 ring-blue-500/30'
+                    : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <span className="font-bold text-xs flex items-center gap-1.5 text-slate-100">
+                  <Server className="w-3.5 h-3.5 text-blue-400" />
+                  OpenAI Cloud TTS
+                </span>
+                <span className="text-[11px] text-slate-400 leading-relaxed">
+                  Sử dụng mô hình tts-1 (Nova, Alloy) qua OpenAI API Key của bạn.
+                </span>
+              </button>
+
+              {/* Option 4: Local System Offline */}
+              <button
+                type="button"
+                onClick={() => handleUpdate({ ttsEngine: 'system' })}
+                className={`p-3 rounded-2xl border text-left flex flex-col gap-1 transition-all ${
+                  currentEngine === 'system'
+                    ? 'bg-slate-700/30 border-slate-600 ring-1 ring-slate-500/30'
+                    : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <span className="font-bold text-xs flex items-center gap-1.5 text-slate-100">
+                  <Laptop className="w-3.5 h-3.5 text-slate-400" />
+                  Giọng máy Windows (Offline)
+                </span>
+                <span className="text-[11px] text-slate-400 leading-relaxed">
+                  Sử dụng SAPI5 mặc định khi hoàn toàn không có kết nối internet.
+                </span>
+              </button>
+            </div>
+
+            {/* Dynamic Engine Settings Detail */}
+            {currentEngine === 'edge' && (
+              <div className="pt-3 border-t border-slate-900 space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+                      Giọng đọc Tiếng Nhật (ja-JP):
+                    </label>
+                    <select
+                      value={settings.edgeVoiceJa || 'ja-JP-NanamiNeural'}
+                      onChange={(e) => handleUpdate({ edgeVoiceJa: e.target.value })}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+                    >
+                      <option value="ja-JP-NanamiNeural">Nanami (Nữ - Tự nhiên Tokyo NHK, Khuyên dùng)</option>
+                      <option value="ja-JP-KeitaNeural">Keita (Nam - Rõ ràng, chuẩn mực tin tức)</option>
+                      <option value="ja-JP-AoiNeural">Aoi (Nữ - Hội thoại đời thường tự nhiên)</option>
+                      <option value="ja-JP-DaichiNeural">Daichi (Nam - Trầm ấm, truyền cảm)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+                      Giọng đọc Tiếng Trung (zh-CN):
+                    </label>
+                    <select
+                      value={settings.edgeVoiceZh || 'zh-CN-XiaoxiaoNeural'}
+                      onChange={(e) => handleUpdate({ edgeVoiceZh: e.target.value })}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+                    >
+                      <option value="zh-CN-XiaoxiaoNeural">Xiaoxiao (Nữ - Chuẩn Bắc Kinh truyền hình)</option>
+                      <option value="zh-CN-YunxiNeural">Yunxi (Nam - Trẻ trung, tự nhiên)</option>
+                      <option value="zh-CN-YunjianNeural">Yunjian (Nam - Trầm ấm, tin tức)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {currentEngine === 'voicestudio' && (
+              <div className="pt-3 border-t border-slate-900 space-y-3">
+                <div className="p-3 rounded-xl bg-purple-950/30 border border-purple-500/20 text-xs text-purple-200 flex items-start gap-2">
+                  <Radio className="w-4 h-4 text-purple-400 mt-0.5 shrink-0" />
+                  <div className="leading-relaxed">
+                    VoiceStudio cung cấp các mô hình AI TTS hàng đầu (CosyVoice 3, IndexTTS) qua chuẩn OpenAI API.
+                    Đảm bảo bạn đã chạy VoiceStudio tại máy để iTalk kết nối.
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                  <div className="sm:col-span-2">
+                    <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+                      Địa chỉ VoiceStudio Endpoint:
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={settings.voiceStudioEndpoint || 'http://127.0.0.1:3900'}
+                        onChange={(e) => handleUpdate({ voiceStudioEndpoint: e.target.value })}
+                        placeholder="http://127.0.0.1:3900"
+                        className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono text-xs"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleCheckVoiceStudio}
+                        disabled={isCheckingVs}
+                        className="px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-semibold text-xs whitespace-nowrap transition-colors"
+                      >
+                        {isCheckingVs ? 'Đang test...' : 'Kiểm tra'}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+                      Mô hình AI (Model):
+                    </label>
+                    <input
+                      type="text"
+                      value={settings.voiceStudioModel || 'cosyvoice'}
+                      onChange={(e) => handleUpdate({ voiceStudioModel: e.target.value })}
+                      placeholder="cosyvoice"
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono text-xs"
+                    />
+                  </div>
+                </div>
+
+                {vsStatus !== 'idle' && (
+                  <div
+                    className={`flex items-center gap-2 p-2 rounded-xl text-xs font-semibold ${
+                      vsStatus === 'online'
+                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                        : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                    }`}
+                  >
+                    {vsStatus === 'online' ? (
+                      <>
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                        <span>Kết nối VoiceStudio thành công! Đã sẵn sàng phát âm thanh AI.</span>
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle className="w-4 h-4 text-rose-400" />
+                        <span>Chưa kết nối được. Hãy đảm bảo bạn đã khởi chạy VoiceStudio ở cổng 3900.</span>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {currentEngine === 'openai' && (
+              <div className="pt-3 border-t border-slate-900 space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+                      OpenAI API Key:
+                    </label>
+                    <input
+                      type="password"
+                      value={settings.openaiApiKey || ''}
+                      onChange={(e) => handleUpdate({ openaiApiKey: e.target.value })}
+                      placeholder="sk-..."
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+                      Giọng đọc OpenAI:
+                    </label>
+                    <select
+                      value={settings.openaiVoice || 'nova'}
+                      onChange={(e) => handleUpdate({ openaiVoice: e.target.value })}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                    >
+                      <option value="nova">Nova (Nữ - Truyền cảm)</option>
+                      <option value="alloy">Alloy (Trung tính)</option>
+                      <option value="echo">Echo (Nam)</option>
+                      <option value="fable">Fable (Anh ngữ)</option>
+                      <option value="onyx">Onyx (Nam trầm)</option>
+                      <option value="shimmer">Shimmer (Nữ nhẹ nhàng)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* SECTION 2: AUDIO DEVICES (MIC & HEADPHONE) */}
           <div className="p-4 sm:p-5 rounded-2xl bg-slate-950 border border-slate-800 space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
@@ -191,11 +522,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </button>
             </div>
 
-            {/* 1. Microphone Selector */}
+            {/* Microphone Selector */}
             <div className="space-y-2">
               <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
                 <Mic className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Microphone (Thu âm giọng nói)</span>
+                <span>Microphone (Thu âm giọng nói của bạn)</span>
               </label>
               <select
                 value={settings.selectedAudioInputId || ''}
@@ -235,12 +566,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
             </div>
 
-            {/* 2. Headphone / Audio Output Selector */}
+            {/* Headphone / Audio Output Selector */}
             <div className="space-y-2 pt-2 border-t border-slate-900">
               <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
                 <span className="flex items-center gap-1.5">
                   <Headphones className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>Tai nghe / Loa (Phát âm mẫu)</span>
+                  <span>Tai nghe / Loa (Phát âm bài mẫu)</span>
                 </span>
                 <button
                   onClick={handleTestHeadphone}
@@ -265,11 +596,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </select>
             </div>
 
-            {/* 3. Camera / Webcam Selector */}
+            {/* Camera / Webcam Selector */}
             <div className="space-y-2 pt-2 border-t border-slate-900">
               <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
                 <Video className="w-3.5 h-3.5 text-teal-400" />
-                <span>Camera / Webcam (Quan sát khẩu hình)</span>
+                <span>Camera / Webcam (Quan sát khẩu hình miệng)</span>
               </label>
               <select
                 value={settings.selectedVideoInputId || ''}
@@ -284,65 +615,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 ))}
               </select>
             </div>
-
-            {/* 4. Voice Engine Quality (Google Neural Studio vs Windows SAPI) */}
-            <div className="space-y-2 pt-2 border-t border-slate-900">
-              <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
-                <span className="flex items-center gap-1.5">
-                  <Volume2 className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Chất lượng giọng đọc mẫu (Voice Engine)</span>
-                </span>
-                <span className="text-[10px] text-emerald-400 font-bold">
-                  {settings.ttsMode === 'local' ? 'Giọng máy Windows' : 'Google Neural Studio'}
-                </span>
-              </label>
-
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <button
-                  type="button"
-                  onClick={() => handleUpdate({ ttsMode: 'neural' })}
-                  className={`p-2.5 rounded-xl border text-left flex flex-col gap-0.5 transition-colors ${
-                    settings.ttsMode !== 'local'
-                      ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
-                      : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  <span className="font-bold flex items-center gap-1 text-slate-100">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                    Google Neural Voice
-                  </span>
-                  <span className="text-[10px] text-slate-400">
-                    Phát âm cực chuẩn tự nhiên như trên Web
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleUpdate({ ttsMode: 'local' })}
-                  className={`p-2.5 rounded-xl border text-left flex flex-col gap-0.5 transition-colors ${
-                    settings.ttsMode === 'local'
-                      ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
-                      : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  <span className="font-bold flex items-center gap-1 text-slate-100">
-                    <Laptop className="w-3.5 h-3.5 text-indigo-400" />
-                    Giọng máy Windows
-                  </span>
-                  <span className="text-[10px] text-slate-400">
-                    Sử dụng voice offline cài sẵn trên máy
-                  </span>
-                </button>
-              </div>
-            </div>
           </div>
 
-          {/* Storage folder section */}
+          {/* SECTION 3: STORAGE FOLDER */}
           <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                 <FolderOpen className="w-4 h-4 text-emerald-400" />
-                Thư mục lưu Video & Audio
+                Thư mục lưu Video & Audio luyện tập
               </span>
               {isElectron ? (
                 <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
@@ -365,17 +645,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   className="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-colors flex items-center justify-center gap-1.5"
                 >
                   <FolderOpen className="w-3.5 h-3.5" />
-                  <span>Chọn thư mục khác trên máy</span>
+                  <span>Chọn thư mục lưu khác trên máy</span>
                 </button>
               </div>
             ) : (
               <p className="text-xs text-slate-400 leading-relaxed">
-                Khi chạy trên Web, video/audio lưu trong bộ nhớ tạm của trang. Để lưu thẳng vào ổ đĩa không cần hỏi, hãy khởi chạy bản Electron Desktop!
+                Trên bản Web, video/audio lưu trong bộ nhớ tạm của trang. Khi chạy bản Electron Desktop trên Windows, tệp sẽ lưu trực tiếp vào ổ đĩa máy tính.
               </p>
             )}
           </div>
 
-          {/* Default Language Selector */}
+          {/* SECTION 4: DEFAULT LANGUAGE */}
           <div>
             <label className="text-xs font-semibold text-slate-300 block mb-1.5">
               Ngôn ngữ ưu tiên mặc định
@@ -399,10 +679,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </div>
         </div>
 
+        {/* Footer */}
         <div className="pt-4 border-t border-slate-800 flex justify-end">
           <button
             onClick={() => {
               stopMicTest()
+              stopTextToSpeech()
               onClose()
             }}
             className="px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm shadow-md transition-colors"

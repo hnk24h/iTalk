@@ -5,6 +5,8 @@ const RECORDINGS_KEY = 'italk_recordings_v1'
 const CUSTOM_LESSONS_KEY = 'italk_custom_lessons_v1'
 const SETTINGS_KEY = 'italk_settings_v1'
 
+export type TTSEngineType = 'edge' | 'voicestudio' | 'openai' | 'system'
+
 export interface AppSettings {
   defaultLanguage: Language
   speechRate: number
@@ -14,6 +16,17 @@ export interface AppSettings {
   selectedAudioOutputId?: string
   selectedVideoInputId?: string
   ttsMode?: 'neural' | 'local'
+  ttsEngine?: TTSEngineType
+  edgeVoiceJa?: string
+  edgeVoiceZh?: string
+  edgeVoiceVi?: string
+  voiceStudioEndpoint?: string
+  voiceStudioModel?: string
+  voiceStudioVoice?: string
+  openaiEndpoint?: string
+  openaiApiKey?: string
+  openaiModel?: string
+  openaiVoice?: string
   preferredVoiceUri?: string
 }
 
@@ -26,6 +39,17 @@ export const defaultSettings: AppSettings = {
   selectedAudioOutputId: '',
   selectedVideoInputId: '',
   ttsMode: 'neural',
+  ttsEngine: 'edge',
+  edgeVoiceJa: 'ja-JP-NanamiNeural',
+  edgeVoiceZh: 'zh-CN-XiaoxiaoNeural',
+  edgeVoiceVi: 'vi-VN-HoaiMyNeural',
+  voiceStudioEndpoint: 'http://127.0.0.1:3900',
+  voiceStudioModel: 'cosyvoice',
+  voiceStudioVoice: 'ja_female',
+  openaiEndpoint: 'https://api.openai.com/v1',
+  openaiApiKey: '',
+  openaiModel: 'tts-1',
+  openaiVoice: 'nova',
   preferredVoiceUri: '',
 }
 

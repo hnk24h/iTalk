@@ -111,6 +111,28 @@ export interface ElectronAPI {
     createdAt: string
     type: 'audio' | 'video'
   }>>
+  synthesizeEdgeSpeech: (params: {
+    text: string
+    voice?: string
+    rate?: number
+    pitch?: number
+  }) => Promise<{ success: boolean; audioDataUrl?: string; error?: string }>
+  synthesizeVoiceStudioSpeech: (params: {
+    endpoint?: string
+    text: string
+    voice?: string
+    model?: string
+    speed?: number
+  }) => Promise<{ success: boolean; audioDataUrl?: string; error?: string }>
+  synthesizeOpenAISpeech: (params: {
+    endpoint?: string
+    apiKey?: string
+    text: string
+    voice?: string
+    model?: string
+    speed?: number
+  }) => Promise<{ success: boolean; audioDataUrl?: string; error?: string }>
+  checkVoiceStudioStatus: (endpoint?: string) => Promise<{ online: boolean; endpoint: string; error?: string }>
 }
 
 declare global {

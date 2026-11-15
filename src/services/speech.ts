@@ -1,5 +1,6 @@
-// Web Speech & High-Quality Neural Cloud TTS Engine
+// Multi-Engine High-Quality Neural TTS & Speech Recognition Service
 import { setAudioOutputDevice } from './deviceManager'
+import { loadSettings } from './storage'
 
 export interface SpeechVoiceOption {
   voice: SpeechSynthesisVoice
@@ -15,7 +16,7 @@ export function getAvailableVoices(langCode?: string): SpeechSynthesisVoice[] {
   const allVoices = window.speechSynthesis.getVoices()
   if (!langCode) return allVoices
   const prefix = langCode.split('-')[0].toLowerCase()
-  return allVoices.filter(v => v.lang.toLowerCase().startsWith(prefix))
+  return allVoices.filter((v) => v.lang.toLowerCase().startsWith(prefix))
 }
 
 function getShortLang(lang: string): string {
@@ -40,10 +41,61 @@ export function stopTextToSpeech() {
   }
 }
 
+function playAudioDataUrl({
+  dataUrl,
+  rate = 1.0,
+  sinkId,
+  onStart,
+  onEnd,
+  onError,
+}: {
+  dataUrl: string
+  rate?: number
+  sinkId?: string
+  onStart?: () => void
+  onEnd?: () => void
+  onError?: (err: any) => void
+}) {
+  try {
+    const audio = new Audio(dataUrl)
+    audio.playbackRate = rate
+
+    if (sinkId) {
+      setAudioOutputDevice(audio, sinkId)
+    }
+
+    audio.onplay = () => {
+      onStart?.()
+    }
+
+    audio.onended = () => {
+      activeAudio = null
+      onEnd?.()
+    }
+
+    audio.onerror = (e) => {
+      activeAudio = null
+      onError?.(e)
+    }
+
+    activeAudio = audio
+    audio.play().catch((err) => {
+      activeAudio = null
+      onError?.(err)
+    })
+  } catch (err) {
+    onError?.(err)
+  }
+}
+
 /**
- * Play Speech with High-Quality Google Studio Voice or Local System Voice Fallback
+ * Play Speech with Multi-Engine Support:
+ * 1. Microsoft Edge Natural Neural (Default for desktop & web)
+ * 2. VoiceStudio AI Engine (http://localhost:3900 - CosyVoice / IndexTTS)
+ * 3. OpenAI Cloud TTS
+ * 4. Local System Speech Fallback
  */
-export function playTextToSpeech({
+export async function playTextToSpeech({
   text,
   lang,
   rate = 1.0,
@@ -68,50 +120,178 @@ export function playTextToSpeech({
 }) {
   stopTextToSpeech()
 
-  // 1. PRIMARY: High-Quality Google Neural Studio Voice (Same voice as Web Chrome!)
-  if (useNeuralCloud && text.length <= 250) {
+  const settings = loadSettings()
+  const engine = settings.ttsEngine || 'edge'
+
+  // 1. VoiceStudio Local AI Engine (CosyVoice / IndexTTS)
+  if (engine === 'voicestudio' && window.electronAPI?.synthesizeVoiceStudioSpeech) {
+    try {
+      const res = await window.electronAPI.synthesizeVoiceStudioSpeech({
+        endpoint: settings.voiceStudioEndpoint || 'http://127.0.0.1:3900',
+        text,
+        model: settings.voiceStudioModel || 'cosyvoice',
+        voice: settings.voiceStudioVoice || 'ja_female',
+        speed: rate,
+      })
+
+      if (res.success && res.audioDataUrl) {
+        playAudioDataUrl({
+          dataUrl: res.audioDataUrl,
+          rate,
+          sinkId,
+          onStart,
+          onEnd,
+          onError: () => {
+            // Fallback to Edge Neural if playback failed
+            fallbackToEdgeOrSystem({ text, lang, rate, pitch, voiceUri, sinkId, onStart, onEnd, onError })
+          },
+        })
+        return
+      } else {
+        console.warn('VoiceStudio synthesis failed, falling back:', res.error)
+      }
+    } catch (err) {
+      console.warn('VoiceStudio request error:', err)
+    }
+  }
+
+  // 2. OpenAI Cloud TTS
+  if (engine === 'openai' && window.electronAPI?.synthesizeOpenAISpeech) {
+    try {
+      const res = await window.electronAPI.synthesizeOpenAISpeech({
+        endpoint: settings.openaiEndpoint || 'https://api.openai.com/v1',
+        apiKey: settings.openaiApiKey,
+        text,
+        model: settings.openaiModel || 'tts-1',
+        voice: settings.openaiVoice || 'nova',
+        speed: rate,
+      })
+
+      if (res.success && res.audioDataUrl) {
+        playAudioDataUrl({
+          dataUrl: res.audioDataUrl,
+          rate,
+          sinkId,
+          onStart,
+          onEnd,
+          onError: () => {
+            fallbackToEdgeOrSystem({ text, lang, rate, pitch, voiceUri, sinkId, onStart, onEnd, onError })
+          },
+        })
+        return
+      }
+    } catch (err) {
+      console.warn('OpenAI TTS error:', err)
+    }
+  }
+
+  // 3. Microsoft Edge Natural Neural (Default & High-Accuracy studio pronunciation)
+  if (useNeuralCloud && engine !== 'system' && window.electronAPI?.synthesizeEdgeSpeech) {
+    try {
+      let voice = settings.edgeVoiceJa || 'ja-JP-NanamiNeural'
+      if (lang.toLowerCase().startsWith('zh')) {
+        voice = settings.edgeVoiceZh || 'zh-CN-XiaoxiaoNeural'
+      } else if (lang.toLowerCase().startsWith('vi')) {
+        voice = settings.edgeVoiceVi || 'vi-VN-HoaiMyNeural'
+      }
+
+      const res = await window.electronAPI.synthesizeEdgeSpeech({
+        text,
+        voice,
+        rate,
+        pitch: 0,
+      })
+
+      if (res.success && res.audioDataUrl) {
+        playAudioDataUrl({
+          dataUrl: res.audioDataUrl,
+          rate,
+          sinkId,
+          onStart,
+          onEnd,
+          onError: () => {
+            playLocalSpeechSynthesis({ text, lang, rate, pitch, voiceUri, onStart, onEnd, onError })
+          },
+        })
+        return
+      } else {
+        console.warn('Edge TTS synthesis failed in main process:', res.error)
+      }
+    } catch (err) {
+      console.warn('Edge TTS invocation error:', err)
+    }
+  }
+
+  // 4. Web browser fallback: Google Translate TTS if in web mode
+  if (useNeuralCloud && engine !== 'system' && !window.electronAPI?.isElectron && text.length <= 250) {
     try {
       const shortLang = getShortLang(lang)
       const cloudUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(
         text
       )}&tl=${shortLang}&client=tw-ob`
 
-      const audio = new Audio(cloudUrl)
-      audio.playbackRate = rate
-
-      if (sinkId) {
-        setAudioOutputDevice(audio, sinkId)
-      }
-
-      audio.onplay = () => {
-        onStart?.()
-      }
-
-      audio.onended = () => {
-        activeAudio = null
-        onEnd?.()
-      }
-
-      audio.onerror = (e) => {
-        console.warn('Cloud TTS error, falling back to local system speech synthesis:', e)
-        activeAudio = null
-        playLocalSpeechSynthesis({ text, lang, rate, pitch, voiceUri, onStart, onEnd, onError })
-      }
-
-      activeAudio = audio
-      audio.play().catch((err) => {
-        console.warn('Audio play prevented or offline, falling back to local voice:', err)
-        activeAudio = null
-        playLocalSpeechSynthesis({ text, lang, rate, pitch, voiceUri, onStart, onEnd, onError })
+      playAudioDataUrl({
+        dataUrl: cloudUrl,
+        rate,
+        sinkId,
+        onStart,
+        onEnd,
+        onError: () => {
+          playLocalSpeechSynthesis({ text, lang, rate, pitch, voiceUri, onStart, onEnd, onError })
+        },
       })
       return
     } catch (err) {
-      console.warn('Cloud audio initialization error:', err)
+      console.warn('Web Cloud TTS error:', err)
     }
   }
 
-  // 2. FALLBACK: Local System Speech Synthesis
+  // 5. Final Fallback: Local System Speech Synthesis
   playLocalSpeechSynthesis({ text, lang, rate, pitch, voiceUri, onStart, onEnd, onError })
+}
+
+function fallbackToEdgeOrSystem({
+  text,
+  lang,
+  rate,
+  pitch,
+  voiceUri,
+  sinkId,
+  onStart,
+  onEnd,
+  onError,
+}: {
+  text: string
+  lang: string
+  rate: number
+  pitch?: number
+  voiceUri?: string
+  sinkId?: string
+  onStart?: () => void
+  onEnd?: () => void
+  onError?: (err: any) => void
+}) {
+  if (window.electronAPI?.synthesizeEdgeSpeech) {
+    const settings = loadSettings()
+    let voice = settings.edgeVoiceJa || 'ja-JP-NanamiNeural'
+    if (lang.toLowerCase().startsWith('zh')) voice = settings.edgeVoiceZh || 'zh-CN-XiaoxiaoNeural'
+    if (lang.toLowerCase().startsWith('vi')) voice = settings.edgeVoiceVi || 'vi-VN-HoaiMyNeural'
+
+    window.electronAPI
+      .synthesizeEdgeSpeech({ text, voice, rate })
+      .then((res) => {
+        if (res.success && res.audioDataUrl) {
+          playAudioDataUrl({ dataUrl: res.audioDataUrl, rate, sinkId, onStart, onEnd, onError })
+        } else {
+          playLocalSpeechSynthesis({ text, lang, rate, pitch: pitch || 1.0, voiceUri, onStart, onEnd, onError })
+        }
+      })
+      .catch(() => {
+        playLocalSpeechSynthesis({ text, lang, rate, pitch: pitch || 1.0, voiceUri, onStart, onEnd, onError })
+      })
+  } else {
+    playLocalSpeechSynthesis({ text, lang, rate, pitch: pitch || 1.0, voiceUri, onStart, onEnd, onError })
+  }
 }
 
 function playLocalSpeechSynthesis({
@@ -148,7 +328,6 @@ function playLocalSpeechSynthesis({
     const selectedVoice = allVoices.find((v) => v.voiceURI === voiceUri)
     if (selectedVoice) utterance.voice = selectedVoice
   } else {
-    // Pick best natural voice matching language
     const matching = getAvailableVoices(lang)
     if (matching.length > 0) {
       const best = matching.find(

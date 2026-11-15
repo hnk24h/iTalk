@@ -9,4 +9,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveRecording: (data) => ipcRenderer.invoke('save-recording', data),
   openRecordingFolder: (customPath) => ipcRenderer.invoke('open-recording-folder', customPath),
   listLocalRecordings: () => ipcRenderer.invoke('list-local-recordings'),
+  synthesizeEdgeSpeech: (params) => ipcRenderer.invoke('synthesize-edge-speech', params),
+  synthesizeVoiceStudioSpeech: (params) => ipcRenderer.invoke('synthesize-voicestudio-speech', params),
+  synthesizeOpenAISpeech: (params) => ipcRenderer.invoke('synthesize-openai-speech', params),
+  checkVoiceStudioStatus: (endpoint) => ipcRenderer.invoke('check-voicestudio-status', endpoint),
 })

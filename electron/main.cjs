@@ -2,6 +2,12 @@ const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron')
 const path = require('path')
 const fs = require('fs')
 const os = require('os')
+const {
+  synthesizeEdgeTTS,
+  synthesizeVoiceStudioTTS,
+  checkVoiceStudioStatus,
+  synthesizeOpenAITTS,
+} = require('./ttsEngine.cjs')
 
 // Default recording directory: ~/iTalk-Recordings
 let recordingsDir = path.join(os.homedir(), 'iTalk-Recordings')
@@ -194,6 +200,38 @@ ipcMain.handle('list-local-recordings', async () => {
     console.error('Failed to list recordings:', err)
     return []
   }
+})
+
+// High-Quality Multi-Engine TTS IPC Handlers
+ipcMain.handle('synthesize-edge-speech', async (event, params) => {
+  try {
+    return await synthesizeEdgeTTS(params)
+  } catch (err) {
+    console.error('Edge TTS error:', err)
+    return { success: false, error: err.message || 'Edge TTS failed' }
+  }
+})
+
+ipcMain.handle('synthesize-voicestudio-speech', async (event, params) => {
+  try {
+    return await synthesizeVoiceStudioTTS(params)
+  } catch (err) {
+    console.error('VoiceStudio TTS error:', err)
+    return { success: false, error: err.message || 'VoiceStudio TTS failed' }
+  }
+})
+
+ipcMain.handle('synthesize-openai-speech', async (event, params) => {
+  try {
+    return await synthesizeOpenAITTS(params)
+  } catch (err) {
+    console.error('OpenAI TTS error:', err)
+    return { success: false, error: err.message || 'OpenAI TTS failed' }
+  }
+})
+
+ipcMain.handle('check-voicestudio-status', async (event, endpoint) => {
+  return await checkVoiceStudioStatus(endpoint)
 })
 
 app.whenReady().then(() => {
