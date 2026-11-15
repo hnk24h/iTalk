@@ -6,23 +6,24 @@ import { playTextToSpeech, stopTextToSpeech, SpeechRecognizer } from '../service
 import { MediaRecordingManager } from '../services/mediaRecorder'
 import { evaluatePronunciation } from '../services/scoring'
 import { saveRecordingEntry, loadCustomLessons, saveCustomLesson } from '../services/storage'
+import { getAudioBlob } from '../services/audioDb'
+import { AudioImporterModal } from './AudioImporterModal'
 import {
   Volume2,
   Square,
   Mic,
   Video,
-  VideoOff,
   ChevronLeft,
   ChevronRight,
   RotateCcw,
-  Sparkles,
   PlusCircle,
   HelpCircle,
-  Save,
   CheckCircle,
-  Clock,
   Radio,
   FileText,
+  FileAudio,
+  Headphones,
+  Sparkles,
 } from 'lucide-react'
 
 interface ShadowingStudioProps {
@@ -41,10 +42,12 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
   const [activeLessonId, setActiveLessonId] = useState<string>('')
   const [currentSentenceIdx, setCurrentSentenceIdx] = useState<number>(0)
 
-  // Audio/TTS state
-  const [isPlayingTTS, setIsPlayingTTS] = useState(false)
+  // Audio/Playback state
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false)
   const [speechRate, setSpeechRate] = useState<number>(1.0)
   const [autoLoop, setAutoLoop] = useState(false)
+  const [audioSourceMode, setAudioSourceMode] = useState<'native' | 'tts'>('tts')
+  const [nativeAudioCurrentTime, setNativeAudioCurrentTime] = useState<number>(0)
 
   // Recording state
   const [recordMode, setRecordMode] = useState<'video' | 'audio'>('video')
@@ -53,17 +56,20 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
   const [audioLevel, setAudioLevel] = useState(0)
   const [realtimeTranscript, setRealtimeTranscript] = useState('')
 
-  // Custom lesson modal
+  // Modals state
   const [showAddCustom, setShowAddCustom] = useState(false)
+  const [showAudioImporter, setShowAudioImporter] = useState(false)
   const [customTitle, setCustomTitle] = useState('')
   const [customText, setCustomText] = useState('')
   const [customTranslation, setCustomTranslation] = useState('')
 
   // Refs
   const videoRef = useRef<HTMLVideoElement>(null)
+  const nativeAudioRef = useRef<HTMLAudioElement | null>(null)
   const mediaRecorderRef = useRef<MediaRecordingManager>(new MediaRecordingManager())
   const speechRecognizerRef = useRef<SpeechRecognizer>(new SpeechRecognizer())
   const timerIntervalRef = useRef<any>(null)
+  const audioCheckIntervalRef = useRef<any>(null)
 
   // Load lessons for current language
   useEffect(() => {
@@ -80,45 +86,119 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
   const activeLesson = lessons.find((l) => l.id === activeLessonId) || lessons[0]
   const currentSentence: LessonSentence | undefined = activeLesson?.sentences[currentSentenceIdx]
 
-  // Stop TTS when sentence changes or unmounts
+  // Load original audio blob from IndexedDB if needed
   useEffect(() => {
-    stopTextToSpeech()
-    setIsPlayingTTS(false)
+    if (activeLesson) {
+      if (activeLesson.originalAudioUrl) {
+        setAudioSourceMode('native')
+      } else if (activeLesson.audioBlobId) {
+        getAudioBlob(activeLesson.audioBlobId).then((res) => {
+          if (res) {
+            const url = URL.createObjectURL(res.blob)
+            activeLesson.originalAudioUrl = url
+            setAudioSourceMode('native')
+          } else {
+            setAudioSourceMode('tts')
+          }
+        }).catch(() => setAudioSourceMode('tts'))
+      } else {
+        setAudioSourceMode('tts')
+      }
+    }
+  }, [activeLessonId])
+
+  // Stop playback when sentence changes or unmounts
+  useEffect(() => {
+    stopPlayback()
     setRealtimeTranscript('')
   }, [activeLessonId, currentSentenceIdx])
 
   useEffect(() => {
     return () => {
-      stopTextToSpeech()
+      stopPlayback()
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current)
+      if (audioCheckIntervalRef.current) clearInterval(audioCheckIntervalRef.current)
     }
   }, [])
 
-  // Handle Play Model TTS
+  const stopPlayback = () => {
+    stopTextToSpeech()
+    if (nativeAudioRef.current) {
+      nativeAudioRef.current.pause()
+    }
+    if (audioCheckIntervalRef.current) {
+      clearInterval(audioCheckIntervalRef.current)
+      audioCheckIntervalRef.current = null
+    }
+    setIsPlayingAudio(false)
+  }
+
+  // Handle Play Model (Native Audio or TTS)
   const handlePlayModel = () => {
     if (!currentSentence) return
 
-    if (isPlayingTTS) {
-      stopTextToSpeech()
-      setIsPlayingTTS(false)
+    if (isPlayingAudio) {
+      stopPlayback()
       return
     }
 
-    setIsPlayingTTS(true)
+    // MODE 1: Play Original Native Audio File
+    if (audioSourceMode === 'native' && activeLesson?.originalAudioUrl && nativeAudioRef.current) {
+      const audioEl = nativeAudioRef.current
+      audioEl.playbackRate = speechRate
+
+      const startTime = typeof currentSentence.startTime === 'number' ? currentSentence.startTime : 0
+      const endTime = typeof currentSentence.endTime === 'number' ? currentSentence.endTime : null
+
+      audioEl.currentTime = startTime
+      audioEl.play().then(() => {
+        setIsPlayingAudio(true)
+
+        // Check when to stop if sentence has endTime
+        if (endTime !== null && endTime > startTime) {
+          if (audioCheckIntervalRef.current) clearInterval(audioCheckIntervalRef.current)
+          audioCheckIntervalRef.current = setInterval(() => {
+            if (audioEl.currentTime >= endTime) {
+              audioEl.pause()
+              setIsPlayingAudio(false)
+              clearInterval(audioCheckIntervalRef.current)
+              audioCheckIntervalRef.current = null
+
+              if (autoLoop) {
+                setTimeout(handlePlayModel, 600)
+              }
+            }
+          }, 50)
+        }
+      }).catch((e) => {
+        console.warn('Native audio play error, falling back to TTS:', e)
+        setAudioSourceMode('tts')
+        playTTS()
+      })
+      return
+    }
+
+    // MODE 2: Play Text-to-Speech
+    playTTS()
+  }
+
+  const playTTS = () => {
+    if (!currentSentence) return
+    setIsPlayingAudio(true)
     playTextToSpeech({
       text: currentSentence.text,
       lang: langMeta.speechCode,
       rate: speechRate,
-      onStart: () => setIsPlayingTTS(true),
+      onStart: () => setIsPlayingAudio(true),
       onEnd: () => {
-        setIsPlayingTTS(false)
+        setIsPlayingAudio(false)
         if (autoLoop) {
           setTimeout(handlePlayModel, 600)
         }
       },
       onError: (err) => {
         console.error('TTS error', err)
-        setIsPlayingTTS(false)
+        setIsPlayingAudio(false)
       },
     })
   }
@@ -153,9 +233,7 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
           onError: (e) => {
             console.warn('Speech recognition warning:', e)
           },
-          onEnd: () => {
-            // keep listening until manual stop
-          },
+          onEnd: () => {},
         })
       }
     } catch (err: any) {
@@ -207,11 +285,17 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
     }
   }
 
-  // Create Custom User Lesson
+  // Callback when a new lesson with native audio is created
+  const handleLessonCreated = (newLesson: Lesson) => {
+    setLessons((prev) => [newLesson, ...prev])
+    setActiveLessonId(newLesson.id)
+    setCurrentSentenceIdx(0)
+  }
+
+  // Create Quick Custom Text Lesson
   const handleCreateCustomLesson = () => {
     if (!customTitle.trim() || !customText.trim()) return
 
-    // Split text into sentences by common delimiters (. ! ? 。)
     const rawSentences = customText
       .split(/([.!?。\n]+)/)
       .map((s) => s.trim())
@@ -221,7 +305,7 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
       id: `custom-s-${idx + 1}`,
       text: stx,
       translation: idx === 0 ? customTranslation : '',
-      grammarNote: 'Bài đọc tự nhập bởi người dùng',
+      grammarNote: 'Bài đọc tự nhập',
     }))
 
     const newLesson: Lesson = {
@@ -252,17 +336,41 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Top Bar: Lesson Selector & Mode Controls */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+      {/* Hidden audio element for Native Audio File */}
+      {activeLesson?.originalAudioUrl && (
+        <audio
+          ref={nativeAudioRef}
+          src={activeLesson.originalAudioUrl}
+          onTimeUpdate={(e) => setNativeAudioCurrentTime(e.currentTarget.currentTime)}
+          onEnded={() => {
+            setIsPlayingAudio(false)
+            if (autoLoop) setTimeout(handlePlayModel, 600)
+          }}
+        />
+      )}
+
+      {/* Top Bar: Lesson Selector, Native Audio Importer & Mode Controls */}
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 shadow-xl">
         {/* Lesson Picker */}
         <div className="flex-1 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 flex-shrink-0">
-            <FileText className="w-5 h-5" />
+          <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 flex-shrink-0">
+            {activeLesson?.originalAudioUrl ? (
+              <FileAudio className="w-5 h-5 text-indigo-400" />
+            ) : (
+              <FileText className="w-5 h-5" />
+            )}
           </div>
           <div className="flex-1 min-w-0">
-            <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block mb-0.5">
-              Chọn bài đọc ({langMeta.name})
-            </label>
+            <div className="flex items-center gap-2 mb-0.5">
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                Bài đọc ({langMeta.name})
+              </label>
+              {activeLesson?.originalAudioUrl && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.2 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                  <Headphones className="w-3 h-3" /> File gốc
+                </span>
+              )}
+            </div>
             <select
               value={activeLessonId}
               onChange={(e) => {
@@ -273,21 +381,31 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
             >
               {lessons.map((l) => (
                 <option key={l.id} value={l.id}>
-                  [{l.level}] {l.title} ({l.sentences.length} câu)
+                  {l.originalAudioUrl ? '🎧 [Audio Gốc] ' : ''}[{l.level}] {l.title} ({l.sentences.length} câu)
                 </option>
               ))}
             </select>
           </div>
         </div>
 
-        {/* Action: Add Custom Text & Video/Audio Mode */}
+        {/* Action Buttons: Import Audio, Custom Text & Record Mode */}
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Dedicated Button: Import Original Audio */}
+          <button
+            onClick={() => setShowAudioImporter(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold shadow-md shadow-indigo-500/20 transition-all active:scale-95"
+            title="Nạp file nghe MP3/WAV gốc và phụ đề"
+          >
+            <FileAudio className="w-4 h-4" />
+            <span>Nạp File Nghe Gốc</span>
+          </button>
+
           <button
             onClick={() => setShowAddCustom(true)}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition-colors"
           >
             <PlusCircle className="w-4 h-4 text-emerald-400" />
-            <span>Thêm bài tự do</span>
+            <span>Thêm chữ</span>
           </button>
 
           {/* Record Mode Switch */}
@@ -301,7 +419,7 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
               }`}
             >
               <Video className="w-3.5 h-3.5" />
-              <span>Video Webcam</span>
+              <span>Webcam</span>
             </button>
             <button
               onClick={() => setRecordMode('audio')}
@@ -312,13 +430,13 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
               }`}
             >
               <Mic className="w-3.5 h-3.5" />
-              <span>Chỉ Mic</span>
+              <span>Mic</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Main Studio Grid: Left (Target Text & Model) | Right (Webcam & Recording) */}
+      {/* Main Studio Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Target Sentence & Model Voice */}
         <div className="lg:col-span-7 space-y-4">
@@ -330,6 +448,12 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
                   Câu {currentSentenceIdx + 1} / {activeLesson?.sentences.length || 1}
                 </span>
                 <span className="text-xs text-slate-400">{activeLesson?.category}</span>
+                {typeof currentSentence?.startTime === 'number' && (
+                  <span className="text-[11px] font-mono text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md border border-indigo-500/20">
+                    ⏱ {currentSentence.startTime.toFixed(1)}s
+                    {currentSentence.endTime ? ` - ${currentSentence.endTime.toFixed(1)}s` : ''}
+                  </span>
+                )}
               </div>
 
               {/* Prev / Next Sentence Navigation */}
@@ -386,67 +510,110 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
               <div className="mt-3 p-3 rounded-xl bg-amber-500/5 border border-amber-500/15 flex items-start gap-2.5 text-xs text-amber-300/90">
                 <HelpCircle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-semibold text-amber-300">Điểm ngữ pháp & Ngữ điệu: </span>
+                  <span className="font-semibold text-amber-300">Ghi chú: </span>
                   {currentSentence.grammarNote}
                 </div>
               </div>
             )}
 
-            {/* Audio Model Controls (TTS) */}
-            <div className="mt-6 pt-4 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handlePlayModel}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm shadow-md transition-all ${
-                    isPlayingTTS
-                      ? 'bg-rose-500 hover:bg-rose-600 text-white animate-pulse'
-                      : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950'
-                  }`}
-                >
-                  {isPlayingTTS ? (
-                    <>
-                      <Square className="w-4 h-4 fill-white" />
-                      <span>Dừng nghe</span>
-                    </>
-                  ) : (
-                    <>
-                      <Volume2 className="w-4 h-4" />
-                      <span>Nghe người bản xứ</span>
-                    </>
-                  )}
-                </button>
+            {/* Audio Model Controls: Native Audio vs TTS Switch */}
+            <div className="mt-6 pt-4 border-t border-slate-800 space-y-3">
+              {/* Audio Source Switcher if Native Audio exists */}
+              {activeLesson?.originalAudioUrl && (
+                <div className="flex items-center justify-between text-xs p-2 rounded-xl bg-slate-950 border border-slate-800">
+                  <span className="text-slate-400 font-medium">Nguồn phát mẫu:</span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setAudioSourceMode('native')}
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-lg font-bold transition-colors ${
+                        audioSourceMode === 'native'
+                          ? 'bg-indigo-600 text-white shadow-sm'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      <Headphones className="w-3.5 h-3.5" />
+                      <span>File gốc</span>
+                    </button>
+                    <button
+                      onClick={() => setAudioSourceMode('tts')}
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-lg font-bold transition-colors ${
+                        audioSourceMode === 'tts'
+                          ? 'bg-emerald-600 text-white shadow-sm'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      <Volume2 className="w-3.5 h-3.5" />
+                      <span>Giọng AI (TTS)</span>
+                    </button>
+                  </div>
+                </div>
+              )}
 
-                {/* Auto loop toggle */}
-                <button
-                  onClick={() => setAutoLoop(!autoLoop)}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border transition-colors ${
-                    autoLoop
-                      ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
-                      : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-slate-200'
-                  }`}
-                  title="Lặp lại tự động để ngấm ngữ điệu"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Lặp lại: {autoLoop ? 'Bật' : 'Tắt'}</span>
-                </button>
-              </div>
-
-              {/* Speed rate selector */}
-              <div className="flex items-center gap-1 text-xs bg-slate-950 p-1 rounded-xl border border-slate-800">
-                <span className="text-slate-400 px-2 font-medium">Tốc độ:</span>
-                {[0.75, 1.0, 1.25].map((rate) => (
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
                   <button
-                    key={rate}
-                    onClick={() => setSpeechRate(rate)}
-                    className={`px-2 py-1 rounded-lg font-semibold transition-colors ${
-                      speechRate === rate
-                        ? 'bg-slate-800 text-emerald-400'
-                        : 'text-slate-400 hover:text-slate-200'
+                    onClick={handlePlayModel}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm shadow-md transition-all ${
+                      isPlayingAudio
+                        ? 'bg-rose-500 hover:bg-rose-600 text-white animate-pulse'
+                        : audioSourceMode === 'native' && activeLesson?.originalAudioUrl
+                        ? 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:opacity-95 text-white'
+                        : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950'
                     }`}
                   >
-                    {rate}x
+                    {isPlayingAudio ? (
+                      <>
+                        <Square className="w-4 h-4 fill-white" />
+                        <span>Dừng nghe</span>
+                      </>
+                    ) : (
+                      <>
+                        {audioSourceMode === 'native' && activeLesson?.originalAudioUrl ? (
+                          <Headphones className="w-4 h-4" />
+                        ) : (
+                          <Volume2 className="w-4 h-4" />
+                        )}
+                        <span>
+                          {audioSourceMode === 'native' && activeLesson?.originalAudioUrl
+                            ? 'Nghe file gốc'
+                            : 'Nghe người bản xứ'}
+                        </span>
+                      </>
+                    )}
                   </button>
-                ))}
+
+                  {/* Auto loop toggle */}
+                  <button
+                    onClick={() => setAutoLoop(!autoLoop)}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border transition-colors ${
+                      autoLoop
+                        ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
+                        : 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-slate-200'
+                    }`}
+                    title="Lặp lại tự động để ngấm ngữ điệu"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Lặp lại: {autoLoop ? 'Bật' : 'Tắt'}</span>
+                  </button>
+                </div>
+
+                {/* Speed rate selector */}
+                <div className="flex items-center gap-1 text-xs bg-slate-950 p-1 rounded-xl border border-slate-800">
+                  <span className="text-slate-400 px-2 font-medium">Tốc độ:</span>
+                  {[0.75, 1.0, 1.25].map((rate) => (
+                    <button
+                      key={rate}
+                      onClick={() => setSpeechRate(rate)}
+                      className={`px-2 py-1 rounded-lg font-semibold transition-colors ${
+                        speechRate === rate
+                          ? 'bg-slate-800 text-emerald-400'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      {rate}x
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -562,13 +729,21 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
         </div>
       </div>
 
-      {/* Modal: Add Custom User Reading Text */}
+      {/* Modal: Add Native Audio & Data Source */}
+      <AudioImporterModal
+        isOpen={showAudioImporter}
+        onClose={() => setShowAudioImporter(false)}
+        currentLang={currentLang}
+        onLessonCreated={handleLessonCreated}
+      />
+
+      {/* Modal: Add Quick Custom Text */}
       {showAddCustom && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-lg w-full shadow-2xl">
             <h3 className="text-lg font-bold text-white mb-1 flex items-center gap-2">
               <PlusCircle className="w-5 h-5 text-emerald-400" />
-              Thêm bài đọc tự do ({langMeta.name})
+              Thêm bài đọc chữ ({langMeta.name})
             </h3>
             <p className="text-xs text-slate-400 mb-4">
               Bạn có thể dán bất kỳ bài báo, đoạn hội thoại hoặc lời bài hát nào để luyện đọc.

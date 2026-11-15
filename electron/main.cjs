@@ -71,6 +71,64 @@ ipcMain.handle('select-recording-folder', async () => {
   return null
 })
 
+ipcMain.handle('select-audio-file', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: 'Chọn file nghe gốc (MP3, WAV, M4A, OGG, WebM)',
+    properties: ['openFile'],
+    filters: [
+      { name: 'Audio Files', extensions: ['mp3', 'wav', 'm4a', 'aac', 'ogg', 'webm', 'flac'] },
+      { name: 'All Files', extensions: ['*'] }
+    ]
+  })
+  if (!result.canceled && result.filePaths.length > 0) {
+    const filePath = result.filePaths[0]
+    const fileName = path.basename(filePath)
+    const fileBuffer = await fs.promises.readFile(filePath)
+    const ext = path.extname(filePath).slice(1).toLowerCase()
+    const mimeMap = {
+      mp3: 'audio/mpeg',
+      wav: 'audio/wav',
+      m4a: 'audio/mp4',
+      aac: 'audio/aac',
+      ogg: 'audio/ogg',
+      webm: 'audio/webm',
+      flac: 'audio/flac'
+    }
+    const mime = mimeMap[ext] || 'audio/mpeg'
+    const base64 = fileBuffer.toString('base64')
+    const dataUrl = `data:${mime};base64,${base64}`
+
+    return {
+      filePath,
+      fileName,
+      dataUrl,
+      size: fileBuffer.length
+    }
+  }
+  return null
+})
+
+ipcMain.handle('select-text-file', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: 'Chọn file phụ đề / bài đọc (.lrc, .srt, .txt, .json)',
+    properties: ['openFile'],
+    filters: [
+      { name: 'Subtitles & Text', extensions: ['lrc', 'srt', 'txt', 'json'] },
+      { name: 'All Files', extensions: ['*'] }
+    ]
+  })
+  if (!result.canceled && result.filePaths.length > 0) {
+    const filePath = result.filePaths[0]
+    const content = await fs.promises.readFile(filePath, 'utf-8')
+    return {
+      filePath,
+      fileName: path.basename(filePath),
+      content
+    }
+  }
+  return null
+})
+
 ipcMain.handle('save-recording', async (event, { fileName, buffer, mimeType }) => {
   try {
     if (!fs.existsSync(recordingsDir)) {

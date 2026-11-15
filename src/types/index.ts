@@ -15,6 +15,8 @@ export interface LessonSentence {
   phonetic?: string // Furigana/Romaji for Japanese, Pinyin for Chinese
   translation: string
   grammarNote?: string
+  startTime?: number // Seconds in original audio file
+  endTime?: number   // Seconds in original audio file
 }
 
 export interface Lesson {
@@ -25,6 +27,11 @@ export interface Lesson {
   category: string
   description?: string
   sentences: LessonSentence[]
+  audioSourceType?: 'tts' | 'audio-file'
+  originalAudioUrl?: string     // base64 data URL or blob URL
+  originalAudioFileName?: string
+  audioBlobId?: string           // Key in IndexedDB
+  audioDuration?: number        // Total seconds
 }
 
 export interface WordTokenComparison {
@@ -79,6 +86,17 @@ export interface ElectronAPI {
   isElectron: boolean
   getRecordingsDir: () => Promise<string>
   selectRecordingFolder: () => Promise<string | null>
+  selectAudioFile: () => Promise<{
+    filePath: string
+    fileName: string
+    dataUrl: string
+    size: number
+  } | null>
+  selectTextFile: () => Promise<{
+    filePath: string
+    fileName: string
+    content: string
+  } | null>
   saveRecording: (data: { fileName: string; buffer: ArrayBuffer; mimeType: string }) => Promise<{
     success: boolean
     filePath?: string
