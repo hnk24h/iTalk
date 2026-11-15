@@ -13,6 +13,8 @@ export interface AppSettings {
   selectedAudioInputId?: string
   selectedAudioOutputId?: string
   selectedVideoInputId?: string
+  ttsMode?: 'neural' | 'local'
+  preferredVoiceUri?: string
 }
 
 export const defaultSettings: AppSettings = {
@@ -23,6 +25,8 @@ export const defaultSettings: AppSettings = {
   selectedAudioInputId: '',
   selectedAudioOutputId: '',
   selectedVideoInputId: '',
+  ttsMode: 'neural',
+  preferredVoiceUri: '',
 }
 
 export function loadSettings(): AppSettings {

@@ -189,11 +189,15 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
 
   const playTTS = () => {
     if (!currentSentence) return
+    const currentSettings = loadSettings()
     setIsPlayingAudio(true)
     playTextToSpeech({
       text: currentSentence.text,
       lang: langMeta.speechCode,
       rate: speechRate,
+      useNeuralCloud: currentSettings.ttsMode !== 'local',
+      voiceUri: currentSettings.preferredVoiceUri || undefined,
+      sinkId: currentSettings.selectedAudioOutputId || undefined,
       onStart: () => setIsPlayingAudio(true),
       onEnd: () => {
         setIsPlayingAudio(false)

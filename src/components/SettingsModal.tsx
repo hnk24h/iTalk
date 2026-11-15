@@ -23,6 +23,7 @@ import {
   BookOpen,
   Play,
   RefreshCw,
+  Sparkles,
 } from 'lucide-react'
 
 interface SettingsModalProps {
@@ -282,6 +283,57 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* 4. Voice Engine Quality (Google Neural Studio vs Windows SAPI) */}
+            <div className="space-y-2 pt-2 border-t border-slate-900">
+              <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Volume2 className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Chất lượng giọng đọc mẫu (Voice Engine)</span>
+                </span>
+                <span className="text-[10px] text-emerald-400 font-bold">
+                  {settings.ttsMode === 'local' ? 'Giọng máy Windows' : 'Google Neural Studio'}
+                </span>
+              </label>
+
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <button
+                  type="button"
+                  onClick={() => handleUpdate({ ttsMode: 'neural' })}
+                  className={`p-2.5 rounded-xl border text-left flex flex-col gap-0.5 transition-colors ${
+                    settings.ttsMode !== 'local'
+                      ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
+                      : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <span className="font-bold flex items-center gap-1 text-slate-100">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    Google Neural Voice
+                  </span>
+                  <span className="text-[10px] text-slate-400">
+                    Phát âm cực chuẩn tự nhiên như trên Web
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleUpdate({ ttsMode: 'local' })}
+                  className={`p-2.5 rounded-xl border text-left flex flex-col gap-0.5 transition-colors ${
+                    settings.ttsMode === 'local'
+                      ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
+                      : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <span className="font-bold flex items-center gap-1 text-slate-100">
+                    <Laptop className="w-3.5 h-3.5 text-indigo-400" />
+                    Giọng máy Windows
+                  </span>
+                  <span className="text-[10px] text-slate-400">
+                    Sử dụng voice offline cài sẵn trên máy
+                  </span>
+                </button>
+              </div>
             </div>
           </div>
 
