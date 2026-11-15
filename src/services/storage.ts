@@ -10,6 +10,9 @@ export interface AppSettings {
   speechRate: number
   recordVideo: boolean
   localRecordingsDir: string
+  selectedAudioInputId?: string
+  selectedAudioOutputId?: string
+  selectedVideoInputId?: string
 }
 
 export const defaultSettings: AppSettings = {
@@ -17,6 +20,9 @@ export const defaultSettings: AppSettings = {
   speechRate: 1.0,
   recordVideo: true,
   localRecordingsDir: '',
+  selectedAudioInputId: '',
+  selectedAudioOutputId: '',
+  selectedVideoInputId: '',
 }
 
 export function loadSettings(): AppSettings {

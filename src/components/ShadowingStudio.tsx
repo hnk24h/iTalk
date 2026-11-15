@@ -5,8 +5,9 @@ import { defaultLessonsByLanguage } from '../data/languages'
 import { playTextToSpeech, stopTextToSpeech, SpeechRecognizer } from '../services/speech'
 import { MediaRecordingManager } from '../services/mediaRecorder'
 import { evaluatePronunciation } from '../services/scoring'
-import { saveRecordingEntry, loadCustomLessons, saveCustomLesson } from '../services/storage'
+import { saveRecordingEntry, loadCustomLessons, saveCustomLesson, loadSettings } from '../services/storage'
 import { getAudioBlob } from '../services/audioDb'
+import { setAudioOutputDevice } from '../services/deviceManager'
 import { AudioImporterModal } from './AudioImporterModal'
 import {
   Volume2,
@@ -145,6 +146,10 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
     // MODE 1: Play Original Native Audio File
     if (audioSourceMode === 'native' && activeLesson?.originalAudioUrl && nativeAudioRef.current) {
       const audioEl = nativeAudioRef.current
+      const currentSettings = loadSettings()
+      if (currentSettings.selectedAudioOutputId) {
+        setAudioOutputDevice(audioEl, currentSettings.selectedAudioOutputId)
+      }
       audioEl.playbackRate = speechRate
 
       const startTime = typeof currentSentence.startTime === 'number' ? currentSentence.startTime : 0
@@ -209,11 +214,15 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
     setRealtimeTranscript('')
     setRecordingSeconds(0)
 
+    const currentSettings = loadSettings()
+
     try {
       await mediaRecorderRef.current.start({
         type: recordMode,
         videoElement: recordMode === 'video' ? videoRef.current : null,
         onAudioLevel: (lvl) => setAudioLevel(lvl),
+        audioDeviceId: currentSettings.selectedAudioInputId || undefined,
+        videoDeviceId: currentSettings.selectedVideoInputId || undefined,
       })
 
       setIsRecording(true)

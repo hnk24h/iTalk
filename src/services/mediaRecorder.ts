@@ -20,21 +20,27 @@ export class MediaRecordingManager {
     type,
     videoElement,
     onAudioLevel,
+    audioDeviceId,
+    videoDeviceId,
   }: {
     type: 'audio' | 'video'
     videoElement?: HTMLVideoElement | null
     onAudioLevel?: (level: number) => void
+    audioDeviceId?: string
+    videoDeviceId?: string
   }): Promise<void> {
     this.recordedChunks = []
     this.startTime = Date.now()
 
     const constraints: MediaStreamConstraints = {
       audio: {
+        deviceId: audioDeviceId ? { exact: audioDeviceId } : undefined,
         echoCancellation: true,
         noiseSuppression: true,
         autoGainControl: true,
       },
       video: type === 'video' ? {
+        deviceId: videoDeviceId ? { exact: videoDeviceId } : undefined,
         width: { ideal: 640 },
         height: { ideal: 480 },
         facingMode: 'user',
