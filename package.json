@@ -9,8 +9,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "electron:dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && electron electron/main.cjs\"",
-    "electron:start": "electron electron/main.cjs"
+    "electron:dev": "node scripts/electron-dev.mjs",
+    "electron:start": "electron electron/main.cjs --no-sandbox"
   },
   "dependencies": {
     "canvas-confetti": "^1.9.4",
