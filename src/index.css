@@ -20,50 +20,52 @@ body {
 }
 
 /* ==========================================================================
-   LIGHT MODE OVERRIDES
+   LIGHT MODE OVERRIDES - HIGH CONTRAST & READABILITY
    ========================================================================== */
 html.light body {
   background-color: #f8fafc;
   color: #0f172a;
 }
 
-/* Base page background */
+/* 1. Page Backgrounds & Containers */
 html.light .bg-slate-950 {
-  background-color: #f8fafc !important;
+  background-color: #f1f5f9 !important;
 }
 
 html.light .bg-slate-950\/85,
 html.light .bg-slate-950\/80,
+html.light .bg-slate-950\/70,
 html.light .bg-slate-950\/60,
 html.light .bg-slate-950\/50,
 html.light .bg-slate-950\/40 {
-  background-color: rgba(248, 250, 252, 0.85) !important;
+  background-color: rgba(241, 245, 249, 0.9) !important;
 }
 
-/* Cards & Modals */
+/* 2. Cards & Modals */
 html.light .bg-slate-900 {
   background-color: #ffffff !important;
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.06);
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.05);
 }
 
 html.light .bg-slate-900\/90,
 html.light .bg-slate-900\/80,
 html.light .bg-slate-900\/60 {
-  background-color: rgba(255, 255, 255, 0.9) !important;
+  background-color: rgba(255, 255, 255, 0.95) !important;
 }
 
-/* Nested surfaces & Secondary buttons */
+/* 3. Neutral Sub-surfaces & Secondary Buttons */
 html.light .bg-slate-800 {
-  background-color: #f1f5f9 !important;
-  color: #334155;
+  background-color: #e2e8f0 !important;
+  color: #1e293b !important;
 }
 
 html.light .hover\:bg-slate-800:hover,
 html.light .hover\:bg-slate-700:hover {
-  background-color: #e2e8f0 !important;
+  background-color: #cbd5e1 !important;
+  color: #0f172a !important;
 }
 
-/* Borders */
+/* 4. Borders */
 html.light .border-slate-900,
 html.light .border-slate-800,
 html.light .border-slate-800\/80,
@@ -75,32 +77,132 @@ html.light .border-slate-700 {
   border-color: #cbd5e1 !important;
 }
 
-/* Text Hierarchy */
+/* 5. Typography - Dark, Crisp, High-Contrast */
 html.light .text-white {
   color: #0f172a !important;
 }
 
 html.light .text-slate-100 {
-  color: #1e293b !important;
+  color: #0f172a !important;
 }
 
 html.light .text-slate-200 {
-  color: #334155 !important;
+  color: #1e293b !important;
 }
 
 html.light .text-slate-300 {
-  color: #475569 !important;
+  color: #334155 !important;
 }
 
 html.light .text-slate-400 {
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
 html.light .text-slate-500 {
   color: #64748b !important;
 }
 
-/* Form Inputs, Selects & Textareas */
+/* 6. High-Contrast Text Overrides for Colored Labels & Accents */
+/* Emerald / Green */
+html.light .text-emerald-400,
+html.light .text-emerald-400\/90,
+html.light .text-emerald-300,
+html.light .text-emerald-300\/90 {
+  color: #065f46 !important; /* emerald-800 */
+}
+
+/* Amber / Orange / Yellow */
+html.light .text-amber-400,
+html.light .text-amber-400\/90,
+html.light .text-amber-300,
+html.light .text-amber-300\/90,
+html.light .text-amber-500 {
+  color: #92400e !important; /* amber-800 */
+}
+
+/* Indigo / Blue / Violet */
+html.light .text-indigo-400,
+html.light .text-indigo-400\/90,
+html.light .text-indigo-300,
+html.light .text-indigo-300\/90 {
+  color: #3730a3 !important; /* indigo-800 */
+}
+
+html.light .text-sky-400,
+html.light .text-sky-300,
+html.light .text-blue-400,
+html.light .text-blue-300 {
+  color: #0369a1 !important; /* sky-700 */
+}
+
+/* Purple */
+html.light .text-purple-400,
+html.light .text-purple-300,
+html.light .text-purple-200 {
+  color: #6b21a8 !important; /* purple-800 */
+}
+
+/* Rose / Red */
+html.light .text-rose-400,
+html.light .text-rose-300,
+html.light .text-rose-200 {
+  color: #9f1239 !important; /* rose-800 */
+}
+
+/* Teal / Cyan */
+html.light .text-teal-400,
+html.light .text-teal-300,
+html.light .text-cyan-400,
+html.light .text-cyan-300 {
+  color: #0f766e !important; /* teal-700 */
+}
+
+/* 7. Soft Tinted Badges & Alert Boxes in Light Mode */
+html.light .bg-emerald-500\/10,
+html.light .bg-emerald-500\/15,
+html.light .bg-emerald-500\/20 {
+  background-color: #ecfdf5 !important;
+  border-color: #a7f3d0 !important;
+}
+
+html.light .bg-amber-500\/5,
+html.light .bg-amber-500\/10,
+html.light .bg-amber-500\/15,
+html.light .bg-amber-500\/20 {
+  background-color: #fffbeb !important;
+  border-color: #fde68a !important;
+}
+
+html.light .bg-indigo-500\/10,
+html.light .bg-indigo-500\/15,
+html.light .bg-indigo-500\/20 {
+  background-color: #eef2ff !important;
+  border-color: #c7d2fe !important;
+}
+
+html.light .bg-purple-500\/10,
+html.light .bg-purple-500\/15,
+html.light .bg-purple-500\/20,
+html.light .bg-purple-950\/30 {
+  background-color: #f5f3ff !important;
+  border-color: #e9d5ff !important;
+}
+
+html.light .bg-rose-500\/10,
+html.light .bg-rose-500\/15,
+html.light .bg-rose-500\/20 {
+  background-color: #fff1f2 !important;
+  border-color: #fecdd3 !important;
+}
+
+html.light .bg-sky-500\/10,
+html.light .bg-sky-500\/15,
+html.light .bg-sky-500\/20 {
+  background-color: #f0f9ff !important;
+  border-color: #bae6fd !important;
+}
+
+/* 8. Form Inputs, Selects & Textareas */
 html.light input:not([type="range"]),
 html.light select,
 html.light textarea {
@@ -114,28 +216,34 @@ html.light textarea::placeholder {
   color: #94a3b8 !important;
 }
 
-/* Ensure colored primary buttons keep white text in light mode */
-html.light .bg-emerald-500,
-html.light .bg-sky-600,
-html.light .bg-purple-600,
-html.light .bg-rose-500,
-html.light .bg-indigo-600 {
+/* 9. Preserve Pure White Text on Solid Buttons */
+html.light button.bg-emerald-500,
+html.light button.bg-emerald-600,
+html.light button.bg-sky-600,
+html.light button.bg-sky-500,
+html.light button.bg-purple-600,
+html.light button.bg-purple-500,
+html.light button.bg-rose-500,
+html.light button.bg-rose-600,
+html.light button.bg-indigo-600,
+html.light button.bg-indigo-500 {
   color: #ffffff !important;
 }
 
-html.light .bg-emerald-500.text-slate-950 {
-  color: #022c22 !important;
+html.light .bg-emerald-500.text-slate-950,
+html.light button.bg-emerald-500.text-slate-950 {
+  color: #022c22 !important; /* dark readable emerald on light-green solid */
 }
 
-html.light .bg-emerald-500 .text-white,
-html.light .bg-sky-600 .text-white,
-html.light .bg-purple-600 .text-white,
-html.light .bg-rose-500 .text-white,
-html.light .bg-indigo-600 .text-white {
+html.light button.bg-emerald-500 .text-white,
+html.light button.bg-sky-600 .text-white,
+html.light button.bg-purple-600 .text-white,
+html.light button.bg-rose-500 .text-white,
+html.light button.bg-indigo-600 .text-white {
   color: #ffffff !important;
 }
 
-/* Keep video boxes & webcams dark and immersive */
+/* 10. Preserve Video / Webcam Black Frame */
 html.light video,
 html.light .aspect-video {
   background-color: #020617 !important;
