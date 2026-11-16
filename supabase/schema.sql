@@ -1,13 +1,12 @@
 -- ==============================================================================
--- iTalk Database Schema for Supabase (Full Cloud Sync & Storage)
--- Run this script in the Supabase SQL Editor:
--- https://supabase.com/dashboard/project/_/sql
+-- iTalk Database Schema for Supabase (Clean & Safe)
+-- Hướng dẫn: Mở SQL Editor trên Supabase -> Tạo tab mới (New Query) -> Dán toàn bộ và bấm Run
 -- ==============================================================================
 
--- 1. Enable UUID Extension
+-- 1. Kích hoạt Extension UUID
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- 2. User Profiles Table
+-- 2. Bảng Hồ sơ Người dùng (Profiles)
 CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT,
@@ -19,14 +18,13 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Profiles access policy" ON public.profiles;
-CREATE POLICY "Profiles access policy"
+DROP POLICY IF EXISTS "Allow all on profiles" ON public.profiles;
+CREATE POLICY "Allow all on profiles"
   ON public.profiles FOR ALL
-  TO anon, authenticated
   USING (true)
   WITH CHECK (true);
 
--- 3. User Settings Table
+-- 3. Bảng Cài đặt Người dùng (Settings)
 CREATE TABLE IF NOT EXISTS public.user_settings (
   user_id TEXT NOT NULL PRIMARY KEY,
   settings JSONB NOT NULL DEFAULT '{}'::jsonb,
@@ -35,14 +33,13 @@ CREATE TABLE IF NOT EXISTS public.user_settings (
 
 ALTER TABLE public.user_settings ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Settings access policy" ON public.user_settings;
-CREATE POLICY "Settings access policy"
+DROP POLICY IF EXISTS "Allow all on user_settings" ON public.user_settings;
+CREATE POLICY "Allow all on user_settings"
   ON public.user_settings FOR ALL
-  TO anon, authenticated
   USING (true)
   WITH CHECK (true);
 
--- 4. User Schedule & Progress Tracking
+-- 4. Bảng Lịch trình & Tiến độ Học tập (Schedules)
 CREATE TABLE IF NOT EXISTS public.user_schedules (
   user_id TEXT NOT NULL PRIMARY KEY,
   streak INT DEFAULT 0,
@@ -55,14 +52,13 @@ CREATE TABLE IF NOT EXISTS public.user_schedules (
 
 ALTER TABLE public.user_schedules ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Schedules access policy" ON public.user_schedules;
-CREATE POLICY "Schedules access policy"
+DROP POLICY IF EXISTS "Allow all on user_schedules" ON public.user_schedules;
+CREATE POLICY "Allow all on user_schedules"
   ON public.user_schedules FOR ALL
-  TO anon, authenticated
   USING (true)
   WITH CHECK (true);
 
--- 5. Custom Lessons Table
+-- 5. Bảng Bài học Tự tạo & Import (Custom Lessons)
 CREATE TABLE IF NOT EXISTS public.custom_lessons (
   id TEXT NOT NULL,
   user_id TEXT NOT NULL,
@@ -80,14 +76,13 @@ CREATE TABLE IF NOT EXISTS public.custom_lessons (
 
 ALTER TABLE public.custom_lessons ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Custom lessons access policy" ON public.custom_lessons;
-CREATE POLICY "Custom lessons access policy"
+DROP POLICY IF EXISTS "Allow all on custom_lessons" ON public.custom_lessons;
+CREATE POLICY "Allow all on custom_lessons"
   ON public.custom_lessons FOR ALL
-  TO anon, authenticated
   USING (true)
   WITH CHECK (true);
 
--- 6. Shadowing Practice Recordings Metadata
+-- 6. Bảng Lịch sử Thu âm Shadowing (Recordings)
 CREATE TABLE IF NOT EXISTS public.study_recordings (
   id TEXT NOT NULL,
   user_id TEXT NOT NULL,
@@ -96,7 +91,7 @@ CREATE TABLE IF NOT EXISTS public.study_recordings (
   language TEXT NOT NULL,
   duration_sec INT NOT NULL DEFAULT 0,
   score NUMERIC(5, 2),
-  type TEXT NOT NULL DEFAULT 'audio', -- 'audio' | 'video'
+  type TEXT NOT NULL DEFAULT 'audio',
   file_url TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   PRIMARY KEY (id, user_id)
@@ -104,14 +99,13 @@ CREATE TABLE IF NOT EXISTS public.study_recordings (
 
 ALTER TABLE public.study_recordings ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Recordings access policy" ON public.study_recordings;
-CREATE POLICY "Recordings access policy"
+DROP POLICY IF EXISTS "Allow all on study_recordings" ON public.study_recordings;
+CREATE POLICY "Allow all on study_recordings"
   ON public.study_recordings FOR ALL
-  TO anon, authenticated
   USING (true)
   WITH CHECK (true);
 
--- 7. Automatic profile creation on auth signup
+-- 7. Tự động thêm Profile khi đăng ký tài khoản mới
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
@@ -131,12 +125,12 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- 8. Storage bucket setup for Recordings & Video files
+-- 8. Khởi tạo Storage Bucket cho Video & Audio
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('italk-recordings', 'italk-recordings', true)
 ON CONFLICT (id) DO UPDATE SET public = true;
 
--- Storage policies for uploads & reads (Both authenticated users & guest users)
+-- Phân quyền Storage cho phép tải lên và xem video
 DROP POLICY IF EXISTS "Allow all uploads to recordings" ON storage.objects;
 CREATE POLICY "Allow all uploads to recordings"
   ON storage.objects FOR INSERT
