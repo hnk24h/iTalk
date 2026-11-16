@@ -517,7 +517,7 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
         {/* 1. SIDEBAR: LESSONS LIST & 2-MODE SWITCH                  */}
         {/* ======================================================== */}
         <aside
-          className={`w-full lg:w-80 flex-shrink-0 bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-xl flex flex-col space-y-4 ${
+          className={`w-full lg:w-80 xl:w-96 2xl:w-[420px] flex-shrink-0 bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-xl flex flex-col space-y-4 ${
             isSidebarOpenMobile ? 'block' : 'hidden lg:flex'
           }`}
         >
@@ -674,7 +674,7 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
           </div>
 
           {/* LESSONS LIST (SCROLLABLE) */}
-          <div className="space-y-2 max-h-[52vh] sm:max-h-[58vh] overflow-y-auto pr-1">
+          <div className="space-y-2 max-h-[calc(100vh-320px)] min-h-[350px] overflow-y-auto pr-1">
             {filteredLessons.length === 0 ? (
               <div className="p-4 text-center text-xs text-slate-500 border border-dashed border-slate-800 rounded-2xl">
                 Không tìm thấy bài học nào phù hợp
@@ -836,9 +836,9 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
           </div>
 
           {/* Main Studio Grid: Target Sentence (Left) + Webcam & Shadowing (Right) */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-5">
             {/* Target Sentence & Audio Player */}
-            <div className="lg:col-span-7 space-y-4">
+            <div className="xl:col-span-7 space-y-4">
               <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 relative overflow-hidden shadow-xl">
                 {/* Sentence Header & Pager */}
                 <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
@@ -902,8 +902,8 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
                 )}
 
                 {/* Target Big Text */}
-                <div className="my-4">
-                  <h2 className="text-2xl sm:text-3xl font-extrabold text-white leading-relaxed tracking-normal font-sans">
+                <div className="my-5">
+                  <h2 className="text-2xl sm:text-3xl xl:text-4xl 2xl:text-5xl font-extrabold text-white leading-relaxed tracking-normal font-sans">
                     {currentSentence?.text}
                   </h2>
                 </div>
@@ -1031,10 +1031,10 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
             </div>
 
             {/* Webcam Preview, Live Mic Meter & Shadowing Action */}
-            <div className="lg:col-span-5 space-y-4">
-              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl flex flex-col justify-between h-full min-h-[420px]">
+            <div className="xl:col-span-5 space-y-4">
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl flex flex-col justify-between h-full min-h-[440px]">
                 {/* Webcam / Audio Visualizer Box */}
-                <div className="relative w-full aspect-video sm:aspect-[4/3] rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center">
+                <div className="relative w-full aspect-video xl:aspect-[16/10] 2xl:aspect-video rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center">
                   {recordMode === 'video' ? (
                     <>
                       <video

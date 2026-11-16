@@ -34,7 +34,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 text-slate-100">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="w-full px-3 sm:px-6 lg:px-8 xl:px-10">
         <div className="flex items-center justify-between h-16 gap-4">
           {/* Logo & Desktop Badge */}
           <div className="flex items-center gap-3">

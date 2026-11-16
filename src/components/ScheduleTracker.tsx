@@ -41,7 +41,7 @@ export const ScheduleTracker: React.FC<{ schedule: UserSchedule }> = ({ schedule
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="w-full space-y-6">
       {/* Top Banner: Streak and Motivation */}
       <div className="bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-slate-900 border border-amber-500/30 rounded-3xl p-6 sm:p-8 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="flex items-center gap-5">

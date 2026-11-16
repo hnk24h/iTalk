@@ -171,7 +171,7 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="w-full space-y-6">
       {/* Introduction Card */}
       <div className="bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-slate-900 border border-emerald-500/20 rounded-3xl p-6">
         <div className="flex items-center gap-3 mb-2">
