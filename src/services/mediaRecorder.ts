@@ -3,6 +3,34 @@ export interface RecordingResult {
   blobUrl: string
   mimeType: string
   durationSec: number
+  actualType: 'audio' | 'video'
+}
+
+function formatMediaError(err: any): Error {
+  const name = err.name || ''
+  const msg = err.message || ''
+
+  if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || msg.includes('Permission denied')) {
+    return new Error(
+      'Trình duyệt chưa được cấp quyền mở Microphone / Camera!\n👉 Hãy bấm vào biểu tượng Ổ khóa / Camera trên thanh địa chỉ URL (bên cạnh http://localhost:5173) và chọn "Cho phép" (Allow), sau đó tải lại trang.'
+    )
+  }
+  if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+    return new Error(
+      'Không tìm thấy thiết bị Microphone hoặc Camera. Hãy đảm bảo micro/webcam đã được cắm vào máy tính.'
+    )
+  }
+  if (name === 'NotReadableError' || name === 'TrackStartError') {
+    return new Error(
+      'Microphone hoặc Camera đang bị ứng dụng khác chiếm dụng (như Zoom, Teams, Zalo, Discord). Hãy tắt các app đó và thử lại.'
+    )
+  }
+  if (name === 'OverconstrainedError') {
+    return new Error(
+      'Thiết bị đã chọn không phản hồi. Hãy vào Cài đặt và chọn "Microphone/Camera mặc định".'
+    )
+  }
+  return new Error(msg || 'Lỗi khi kích hoạt Microphone hoặc Camera.')
 }
 
 export class MediaRecordingManager {
@@ -13,6 +41,7 @@ export class MediaRecordingManager {
   private audioContext: AudioContext | null = null
   private analyser: AnalyserNode | null = null
   private animFrameId: number | null = null
+  private actualType: 'audio' | 'video' = 'video'
 
   public isRecording: boolean = false
 
@@ -31,38 +60,91 @@ export class MediaRecordingManager {
   }): Promise<void> {
     this.recordedChunks = []
     this.startTime = Date.now()
+    this.actualType = type
 
-    const constraints: MediaStreamConstraints = {
-      audio: {
-        deviceId: audioDeviceId ? { exact: audioDeviceId } : undefined,
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true,
-      },
-      video: type === 'video' ? {
-        deviceId: videoDeviceId ? { exact: videoDeviceId } : undefined,
-        width: { ideal: 640 },
-        height: { ideal: 480 },
-        facingMode: 'user',
-      } : false,
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      if (typeof window !== 'undefined' && !window.isSecureContext) {
+        throw new Error(
+          'Trình duyệt yêu cầu truy cập qua http://localhost:5173 (hoặc HTTPS) để cấp quyền mở Camera & Micro. Vui lòng không dùng IP mạng ngoài khi chưa bật HTTPS.'
+        )
+      }
+      throw new Error('Trình duyệt hiện tại không hỗ trợ Web MediaStream API!')
     }
 
-    try {
-      this.stream = await navigator.mediaDevices.getUserMedia(constraints)
+    const audioConstraint: MediaTrackConstraints = {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+    }
+    if (audioDeviceId && audioDeviceId !== 'default' && audioDeviceId !== '') {
+      audioConstraint.deviceId = { ideal: audioDeviceId }
+    }
 
-      if (type === 'video' && videoElement && this.stream) {
+    const videoConstraint: MediaTrackConstraints = {
+      width: { ideal: 1280 },
+      height: { ideal: 720 },
+      facingMode: 'user',
+    }
+    if (videoDeviceId && videoDeviceId !== 'default' && videoDeviceId !== '') {
+      videoConstraint.deviceId = { ideal: videoDeviceId }
+    }
+
+    let stream: MediaStream | null = null
+
+    // Attempt 1: Try requested type (video + audio)
+    if (type === 'video') {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: audioConstraint,
+          video: videoConstraint,
+        })
+      } catch (videoErr: any) {
+        console.warn('Could not open video stream, falling back to audio-only stream:', videoErr)
+        // If camera failed or not available, fallback to audio-only so practice is not blocked
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            audio: audioConstraint,
+            video: false,
+          })
+          this.actualType = 'audio'
+        } catch (audioErr: any) {
+          throw formatMediaError(audioErr)
+        }
+      }
+    } else {
+      // Audio only
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: audioConstraint,
+          video: false,
+        })
+      } catch (audioErr: any) {
+        throw formatMediaError(audioErr)
+      }
+    }
+
+    if (!stream) {
+      throw new Error('Không thể khởi tạo luồng âm thanh/video.')
+    }
+
+    this.stream = stream
+
+    try {
+      // Attach to video preview element if available
+      if (videoElement && this.actualType === 'video') {
         videoElement.srcObject = this.stream
+        videoElement.muted = true
         videoElement.play().catch(() => {})
       }
 
-      // Audio Level Meter
+      // Audio Level VU Meter
       if (onAudioLevel && this.stream.getAudioTracks().length > 0) {
         this.setupAudioMeter(this.stream, onAudioLevel)
       }
 
-      // Pick supported mimeType
+      // Determine best supported mimeType
       let mimeType = 'video/webm;codecs=vp9,opus'
-      if (type === 'audio') {
+      if (this.actualType === 'audio') {
         mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
           ? 'audio/webm;codecs=opus'
           : 'audio/webm'
@@ -70,13 +152,18 @@ export class MediaRecordingManager {
         if (!MediaRecorder.isTypeSupported(mimeType)) {
           mimeType = MediaRecorder.isTypeSupported('video/webm')
             ? 'video/webm'
-            : 'video/mp4'
+            : MediaRecorder.isTypeSupported('video/mp4')
+            ? 'video/mp4'
+            : ''
         }
       }
 
-      this.mediaRecorder = new MediaRecorder(this.stream, {
-        mimeType: MediaRecorder.isTypeSupported(mimeType) ? mimeType : undefined,
-      })
+      const recorderOptions: MediaRecorderOptions = {}
+      if (mimeType && MediaRecorder.isTypeSupported(mimeType)) {
+        recorderOptions.mimeType = mimeType
+      }
+
+      this.mediaRecorder = new MediaRecorder(this.stream, recorderOptions)
 
       this.mediaRecorder.ondataavailable = (event) => {
         if (event.data && event.data.size > 0) {
@@ -84,23 +171,25 @@ export class MediaRecordingManager {
         }
       }
 
-      this.mediaRecorder.start(250) // slice every 250ms
+      this.mediaRecorder.start(250) // collect chunks every 250ms
       this.isRecording = true
     } catch (err: any) {
       this.cleanup()
-      throw new Error(err.message || 'Không thể truy cập Microphone hoặc Camera')
+      throw formatMediaError(err)
     }
   }
 
   public async stop(): Promise<RecordingResult> {
     return new Promise((resolve, reject) => {
       if (!this.mediaRecorder || this.mediaRecorder.state === 'inactive') {
+        this.cleanup()
         reject(new Error('Chưa có phiên ghi âm nào đang chạy'))
         return
       }
 
       const durationSec = Math.max(1, Math.round((Date.now() - this.startTime) / 1000))
-      const mimeType = this.mediaRecorder.mimeType || 'video/webm'
+      const mimeType = this.mediaRecorder.mimeType || (this.actualType === 'audio' ? 'audio/webm' : 'video/webm')
+      const resultType = this.actualType
 
       this.mediaRecorder.onstop = () => {
         const blob = new Blob(this.recordedChunks, { type: mimeType })
@@ -111,6 +200,7 @@ export class MediaRecordingManager {
           blobUrl,
           mimeType,
           durationSec,
+          actualType: resultType,
         })
       }
 
@@ -124,52 +214,66 @@ export class MediaRecordingManager {
     })
   }
 
-  private setupAudioMeter(stream: MediaStream, callback: (level: number) => void) {
+  private setupAudioMeter(stream: MediaStream, onAudioLevel: (level: number) => void) {
     try {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext
       if (!AudioCtx) return
+
       this.audioContext = new AudioCtx()
       const source = this.audioContext.createMediaStreamSource(stream)
       this.analyser = this.audioContext.createAnalyser()
       this.analyser.fftSize = 64
+      this.analyser.smoothingTimeConstant = 0.5
       source.connect(this.analyser)
 
       const dataArray = new Uint8Array(this.analyser.frequencyBinCount)
 
-      const checkLevel = () => {
-        if (!this.analyser || !this.isRecording) return
+      const checkVolume = () => {
+        if (!this.analyser) return
         this.analyser.getByteFrequencyData(dataArray)
         let sum = 0
         for (let i = 0; i < dataArray.length; i++) {
           sum += dataArray[i]
         }
         const avg = sum / dataArray.length
-        const normalized = Math.min(100, Math.round((avg / 128) * 100))
-        callback(normalized)
-        this.animFrameId = requestAnimationFrame(checkLevel)
+        // Convert to percentage 0 - 100
+        const percentage = Math.min(100, Math.round((avg / 128) * 100))
+        onAudioLevel(percentage)
+
+        this.animFrameId = requestAnimationFrame(checkVolume)
       }
-      this.animFrameId = requestAnimationFrame(checkLevel)
+
+      checkVolume()
     } catch (e) {
-      console.warn('AudioContext setup error:', e)
+      console.warn('Audio meter init warning:', e)
     }
   }
 
-  private cleanup() {
+  public cleanup() {
     this.isRecording = false
+
     if (this.animFrameId) {
       cancelAnimationFrame(this.animFrameId)
       this.animFrameId = null
     }
-    if (this.audioContext) {
-      try { this.audioContext.close() } catch {}
+
+    if (this.audioContext && this.audioContext.state !== 'closed') {
+      try {
+        this.audioContext.close()
+      } catch {}
       this.audioContext = null
     }
-    this.analyser = null
 
     if (this.stream) {
-      this.stream.getTracks().forEach((track) => track.stop())
+      this.stream.getTracks().forEach((track) => {
+        try {
+          track.stop()
+        } catch {}
+      })
       this.stream = null
     }
+
     this.mediaRecorder = null
+    this.analyser = null
   }
 }

@@ -33,6 +33,10 @@ import {
   Menu,
   X,
   Layers,
+  Camera,
+  CameraOff,
+  AlertTriangle,
+  Lock,
 } from 'lucide-react'
 
 export type LessonAdvanceMode = 'auto' | 'manual'
@@ -90,6 +94,11 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
   const [customTitle, setCustomTitle] = useState('')
   const [customText, setCustomText] = useState('')
   const [customTranslation, setCustomTranslation] = useState('')
+
+  // Live Camera Preview & Permissions
+  const [isPreviewCam, setIsPreviewCam] = useState(false)
+  const previewStreamRef = useRef<MediaStream | null>(null)
+  const [mediaPermissionError, setMediaPermissionError] = useState<string | null>(null)
 
   // Refs
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -173,11 +182,85 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
   useEffect(() => {
     return () => {
       stopPlayback()
+      stopCamPreview()
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current)
       if (audioCheckIntervalRef.current) clearInterval(audioCheckIntervalRef.current)
       if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current)
     }
   }, [])
+
+  const stopCamPreview = () => {
+    if (previewStreamRef.current) {
+      previewStreamRef.current.getTracks().forEach((t) => {
+        try {
+          t.stop()
+        } catch {}
+      })
+      previewStreamRef.current = null
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null
+    }
+    setIsPreviewCam(false)
+  }
+
+  const toggleCamPreview = async () => {
+    if (isPreviewCam) {
+      stopCamPreview()
+      return
+    }
+
+    setMediaPermissionError(null)
+
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      const msg =
+        'Trình duyệt yêu cầu truy cập qua http://localhost:5173 hoặc https:// để mở Camera & Micro!'
+      setMediaPermissionError(msg)
+      alert(msg)
+      return
+    }
+
+    try {
+      const currentSettings = loadSettings()
+      const videoConstraint: MediaTrackConstraints = {
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+        facingMode: 'user',
+      }
+      if (currentSettings.selectedVideoInputId && currentSettings.selectedVideoInputId !== 'default' && currentSettings.selectedVideoInputId !== '') {
+        videoConstraint.deviceId = { ideal: currentSettings.selectedVideoInputId }
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: videoConstraint,
+        audio: false,
+      })
+
+      previewStreamRef.current = stream
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        videoRef.current.muted = true
+        videoRef.current.play().catch(() => {})
+      }
+      setIsPreviewCam(true)
+      setMediaPermissionError(null)
+    } catch (err: any) {
+      console.error('Camera preview error:', err)
+      const name = err.name || ''
+      let msg = err.message || 'Không thể mở Camera trên trình duyệt.'
+      if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || msg.includes('Permission denied')) {
+        msg =
+          'Trình duyệt chưa được cấp quyền mở Camera / Micro!\n👉 Hãy bấm vào biểu tượng Ổ khóa / Camera trên thanh địa chỉ URL (bên cạnh http://localhost:5173) và chọn "Cho phép" (Allow).'
+      } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+        msg = 'Không tìm thấy thiết bị Camera nào cắm vào máy tính.'
+      } else if (name === 'NotReadableError' || name === 'TrackStartError') {
+        msg =
+          'Camera đang bị ứng dụng khác sử dụng (như Zoom, Teams, Zalo, Discord). Hãy tắt các ứng dụng đó và bấm thử lại.'
+      }
+      setMediaPermissionError(msg)
+      alert(msg)
+    }
+  }
 
   const stopPlayback = () => {
     stopTextToSpeech()
@@ -276,6 +359,10 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
     if (!currentSentence) return
     setRealtimeTranscript('')
     setRecordingSeconds(0)
+    setMediaPermissionError(null)
+
+    // Stop standalone preview so MediaRecorder can claim the camera device exclusively
+    stopCamPreview()
 
     const currentSettings = loadSettings()
 
@@ -309,7 +396,9 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
         })
       }
     } catch (err: any) {
-      alert(`Không thể kích hoạt thiết bị thu âm: ${err.message}`)
+      console.error('Start recording error:', err)
+      setMediaPermissionError(err.message)
+      alert(err.message)
       setIsRecording(false)
     }
   }
@@ -1043,18 +1132,43 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
                         muted
                         playsInline
                         className={`w-full h-full object-cover transform -scale-x-100 ${
-                          !isRecording ? 'opacity-70' : 'opacity-100'
+                          !isRecording && !isPreviewCam ? 'opacity-70' : 'opacity-100'
                         }`}
                       />
-                      {!isRecording && (
+                      {!isRecording && !isPreviewCam && (
                         <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/60 p-4 text-center">
                           <Video className="w-10 h-10 text-slate-400 mb-2 opacity-50" />
                           <p className="text-xs text-slate-300 font-medium">
-                            Webcam sẽ hiển thị khi bạn bấm Bắt đầu Shadowing
+                            Webcam đang tắt
                           </p>
-                          <p className="text-[11px] text-slate-500 mt-1">
+                          <p className="text-[11px] text-slate-500 mt-1 mb-3">
                             Quan sát khẩu hình miệng giúp bạn sửa âm chuẩn như người bản xứ
                           </p>
+                          <button
+                            type="button"
+                            onClick={toggleCamPreview}
+                            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-600/30 transition-all cursor-pointer"
+                          >
+                            <Camera className="w-3.5 h-3.5" />
+                            Bật xem trước Webcam
+                          </button>
+                        </div>
+                      )}
+                      {!isRecording && isPreviewCam && (
+                        <div className="absolute top-3 left-3 flex items-center gap-2">
+                          <span className="flex items-center gap-1.5 bg-emerald-500/90 text-white text-[11px] font-bold px-2.5 py-1 rounded-full shadow-lg backdrop-blur-sm">
+                            <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+                            Xem trước Webcam
+                          </span>
+                          <button
+                            type="button"
+                            onClick={toggleCamPreview}
+                            className="p-1 rounded-full bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700 text-xs flex items-center gap-1 px-2 cursor-pointer"
+                            title="Tắt xem trước"
+                          >
+                            <CameraOff className="w-3 h-3 text-rose-400" />
+                            <span>Tắt</span>
+                          </button>
                         </div>
                       )}
                     </>
@@ -1084,6 +1198,19 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
                     </div>
                   )}
                 </div>
+
+                {/* Inline Permission / Device Error Banner */}
+                {mediaPermissionError && (
+                  <div className="mt-3 p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-start gap-2.5">
+                    <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                    <div className="flex-1 space-y-1">
+                      <p className="font-semibold text-rose-200">Không thể truy cập Microphone hoặc Camera</p>
+                      <p className="whitespace-pre-line text-[11px] leading-relaxed text-rose-300/90">
+                        {mediaPermissionError}
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Live Mic Audio Level VU Meter */}
                 <div className="mt-4">

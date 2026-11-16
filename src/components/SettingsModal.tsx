@@ -110,10 +110,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const startMicTest = async () => {
     stopMicTest()
     try {
+      if (typeof navigator === 'undefined' || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert('Trình duyệt yêu cầu truy cập qua http://localhost:5173 để mở Microphone!')
+        return
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          deviceId: settings.selectedAudioInputId ? { exact: settings.selectedAudioInputId } : undefined,
-        },
+        audio: settings.selectedAudioInputId
+          ? { deviceId: { ideal: settings.selectedAudioInputId } }
+          : true,
       })
       micStreamRef.current = stream
       setIsTestingMic(true)
