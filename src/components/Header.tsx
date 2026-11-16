@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Language, UserSchedule } from '../types'
 import { supportedLanguages } from '../data/languages'
 import {
@@ -10,7 +10,10 @@ import {
   Settings as SettingsIcon,
   Laptop,
   Globe,
+  Sun,
+  Moon,
 } from 'lucide-react'
+import { getStoredTheme, applyTheme, getResolvedTheme, AppTheme } from '../services/theme'
 
 interface HeaderProps {
   currentLang: Language
@@ -31,6 +34,13 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const isElectron = Boolean(window.electronAPI?.isElectron)
   const currentLangMeta = supportedLanguages.find(l => l.code === currentLang) || supportedLanguages[0]
+  const [theme, setTheme] = useState<AppTheme>(getStoredTheme())
+
+  const handleToggleTheme = () => {
+    const next = getResolvedTheme(theme) === 'dark' ? 'light' : 'dark'
+    applyTheme(next)
+    setTheme(next)
+  }
 
   return (
     <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 text-slate-100">
@@ -140,11 +150,24 @@ export const Header: React.FC<HeaderProps> = ({
               </select>
             </div>
 
+            {/* Theme Toggle Button */}
+            <button
+              onClick={handleToggleTheme}
+              title={getResolvedTheme(theme) === 'dark' ? 'Chuyển sang giao diện Sáng' : 'Chuyển sang giao diện Tối'}
+              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors cursor-pointer"
+            >
+              {getResolvedTheme(theme) === 'dark' ? (
+                <Sun className="w-4 h-4 text-amber-400" />
+              ) : (
+                <Moon className="w-4 h-4 text-indigo-500" />
+              )}
+            </button>
+
             {/* Settings Button */}
             <button
               onClick={onOpenSettings}
               title="Cài đặt hệ thống & Thư mục lưu"
-              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors"
+              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors cursor-pointer"
             >
               <SettingsIcon className="w-4 h-4" />
             </button>

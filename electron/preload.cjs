@@ -13,4 +13,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   synthesizeVoiceStudioSpeech: (params) => ipcRenderer.invoke('synthesize-voicestudio-speech', params),
   synthesizeOpenAISpeech: (params) => ipcRenderer.invoke('synthesize-openai-speech', params),
   checkVoiceStudioStatus: (endpoint) => ipcRenderer.invoke('check-voicestudio-status', endpoint),
+  setTheme: (theme) => ipcRenderer.invoke('set-theme', theme),
 })

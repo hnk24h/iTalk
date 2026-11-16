@@ -6,12 +6,14 @@ const CUSTOM_LESSONS_KEY = 'italk_custom_lessons_v1'
 const SETTINGS_KEY = 'italk_settings_v1'
 
 export type TTSEngineType = 'edge' | 'voicestudio' | 'openai' | 'system'
+export type AppTheme = 'dark' | 'light' | 'system'
 
 export interface AppSettings {
   defaultLanguage: Language
   speechRate: number
   recordVideo: boolean
   localRecordingsDir: string
+  theme?: AppTheme
   selectedAudioInputId?: string
   selectedAudioOutputId?: string
   selectedVideoInputId?: string
@@ -35,6 +37,7 @@ export const defaultSettings: AppSettings = {
   speechRate: 1.0,
   recordVideo: true,
   localRecordingsDir: '',
+  theme: 'dark',
   selectedAudioInputId: '',
   selectedAudioOutputId: '',
   selectedVideoInputId: '',

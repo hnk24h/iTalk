@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog, shell, nativeTheme } = require('electron')
 const path = require('path')
 const fs = require('fs')
 const os = require('os')
@@ -59,6 +59,17 @@ function createWindow() {
 
 // IPC Handlers
 ipcMain.handle('is-electron', () => true)
+
+ipcMain.handle('set-theme', (event, theme) => {
+  if (theme === 'system') {
+    nativeTheme.themeSource = 'system'
+  } else if (theme === 'light') {
+    nativeTheme.themeSource = 'light'
+  } else {
+    nativeTheme.themeSource = 'dark'
+  }
+  return nativeTheme.shouldUseDarkColors
+})
 
 ipcMain.handle('get-recordings-dir', () => {
   return recordingsDir

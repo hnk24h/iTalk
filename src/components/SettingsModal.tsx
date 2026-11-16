@@ -36,7 +36,10 @@ import {
   LogIn,
   ChevronRight,
   Gauge,
+  Sun,
+  Moon,
 } from 'lucide-react'
+import { applyTheme, getStoredTheme, AppTheme } from '../services/theme'
 import {
   getSupabaseConfig,
   saveSupabaseConfig,
@@ -1151,6 +1154,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </div>
                 </div>
 
+                {/* Language Selector */}
                 <div className="p-5 rounded-2xl bg-slate-950 border border-slate-800/80 space-y-3">
                   <label className="text-xs font-semibold text-slate-300 block mb-2">
                     Ngôn ngữ ưu tiên mặc định:
@@ -1174,6 +1178,76 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         </button>
                       )
                     })}
+                  </div>
+                </div>
+
+                {/* Theme Mode Selector */}
+                <div className="p-5 rounded-2xl bg-slate-950 border border-slate-800/80 space-y-3">
+                  <div>
+                    <label className="text-xs font-semibold text-slate-300 block mb-1">
+                      Chủ đề giao diện (Theme):
+                    </label>
+                    <p className="text-[11px] text-slate-400">
+                      Tùy chọn tông màu sáng tối phù hợp với mắt nhìn của bạn
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleUpdate({ theme: 'dark' })
+                        applyTheme('dark')
+                      }}
+                      className={`p-3.5 rounded-2xl border text-xs font-bold flex flex-col items-center justify-center gap-2 transition-all cursor-pointer ${
+                        (settings.theme || getStoredTheme()) === 'dark'
+                          ? 'bg-indigo-500/15 border-indigo-500/50 text-indigo-300 ring-1 ring-indigo-500/30 shadow-md'
+                          : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                      }`}
+                    >
+                      <div className="p-2 rounded-xl bg-slate-950 text-indigo-400 border border-slate-800">
+                        <Moon className="w-5 h-5" />
+                      </div>
+                      <span>Giao diện Tối</span>
+                      <span className="text-[10px] text-slate-500 font-normal">Dịu mắt ban đêm</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleUpdate({ theme: 'light' })
+                        applyTheme('light')
+                      }}
+                      className={`p-3.5 rounded-2xl border text-xs font-bold flex flex-col items-center justify-center gap-2 transition-all cursor-pointer ${
+                        (settings.theme || getStoredTheme()) === 'light'
+                          ? 'bg-amber-500/15 border-amber-500/50 text-amber-300 ring-1 ring-amber-500/30 shadow-md'
+                          : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                      }`}
+                    >
+                      <div className="p-2 rounded-xl bg-slate-950 text-amber-400 border border-slate-800">
+                        <Sun className="w-5 h-5" />
+                      </div>
+                      <span>Giao diện Sáng</span>
+                      <span className="text-[10px] text-slate-500 font-normal">Sáng sủa ban ngày</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleUpdate({ theme: 'system' })
+                        applyTheme('system')
+                      }}
+                      className={`p-3.5 rounded-2xl border text-xs font-bold flex flex-col items-center justify-center gap-2 transition-all cursor-pointer ${
+                        (settings.theme || getStoredTheme()) === 'system'
+                          ? 'bg-emerald-500/15 border-emerald-500/50 text-emerald-300 ring-1 ring-emerald-500/30 shadow-md'
+                          : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                      }`}
+                    >
+                      <div className="p-2 rounded-xl bg-slate-950 text-emerald-400 border border-slate-800">
+                        <Laptop className="w-5 h-5" />
+                      </div>
+                      <span>Theo hệ thống</span>
+                      <span className="text-[10px] text-slate-500 font-normal">Tự động theo OS</span>
+                    </button>
                   </div>
                 </div>
               </div>
