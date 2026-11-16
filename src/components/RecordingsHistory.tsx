@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { RecordingItem, Language } from '../types'
 import { loadRecordings, deleteRecordingEntry } from '../services/storage'
+import { getRecordingBlob } from '../services/audioDb'
 import {
   FolderOpen,
   Video,
@@ -15,9 +16,10 @@ import {
   RefreshCw,
   CalendarDays,
   LayoutList,
-  Sparkles,
-  ChevronRight,
-  CheckCircle2,
+  ExternalLink,
+  Download,
+  Loader2,
+  Cloud,
 } from 'lucide-react'
 
 interface DayGroup {
@@ -31,11 +33,16 @@ interface DayGroup {
   audioCount: number
 }
 
+type MediaSourceType = 'memory' | 'indexeddb' | 'electron' | 'cloud'
+
 export const RecordingsHistory: React.FC = () => {
   const [recordings, setRecordings] = useState<RecordingItem[]>([])
   const [filterLang, setFilterLang] = useState<string>('all')
   const [viewMode, setViewMode] = useState<'timeline' | 'list'>('timeline')
   const [playingItem, setPlayingItem] = useState<RecordingItem | null>(null)
+  const [activeMediaUrl, setActiveMediaUrl] = useState<string | null>(null)
+  const [activeMediaSource, setActiveMediaSource] = useState<MediaSourceType | null>(null)
+  const [loadingPlayId, setLoadingPlayId] = useState<string | null>(null)
   const [localDir, setLocalDir] = useState<string>('')
 
   const isElectron = Boolean(window.electronAPI?.isElectron)
@@ -60,7 +67,10 @@ export const RecordingsHistory: React.FC = () => {
     if (confirm('Bạn có chắc chắn muốn xóa bản ghi này khỏi lịch sử?')) {
       const updated = deleteRecordingEntry(id)
       setRecordings(updated)
-      if (playingItem?.id === id) setPlayingItem(null)
+      if (playingItem?.id === id) {
+        setPlayingItem(null)
+        setActiveMediaUrl(null)
+      }
     }
   }
 
@@ -77,6 +87,117 @@ export const RecordingsHistory: React.FC = () => {
         setLocalDir(selected)
       }
     }
+  }
+
+  // Robust Playback: supports in-memory blob, IndexedDB storage, Electron local filesystem, or Supabase cloud
+  const handlePlayRecording = async (item: RecordingItem) => {
+    setLoadingPlayId(item.id)
+
+    try {
+      // 1. In-memory blobUrl if still valid in current session
+      if (item.blobUrl) {
+        setPlayingItem(item)
+        setActiveMediaUrl(item.blobUrl)
+        setActiveMediaSource('memory')
+        setLoadingPlayId(null)
+        return
+      }
+
+      // 2. If running in Electron and file exists on disk, read directly
+      if (isElectron && item.localPath && window.electronAPI?.readRecordingFile) {
+        try {
+          const res = await window.electronAPI.readRecordingFile(item.localPath)
+          if (res.success && res.dataUrl) {
+            setPlayingItem(item)
+            setActiveMediaUrl(res.dataUrl)
+            setActiveMediaSource('electron')
+            setLoadingPlayId(null)
+            return
+          }
+        } catch (err) {
+          console.warn('Failed to read from local file via Electron:', err)
+        }
+      }
+
+      // 3. Try reading persisted blob from browser IndexedDB
+      try {
+        const blob = await getRecordingBlob(item.id)
+        if (blob) {
+          const url = URL.createObjectURL(blob)
+          item.blobUrl = url
+          setPlayingItem(item)
+          setActiveMediaUrl(url)
+          setActiveMediaSource('indexeddb')
+          setLoadingPlayId(null)
+          return
+        }
+      } catch (err) {
+        console.warn('Failed to read from IndexedDB:', err)
+      }
+
+      // 4. Try streaming from Supabase Cloud URL if synced
+      if (item.cloudUrl) {
+        setPlayingItem(item)
+        setActiveMediaUrl(item.cloudUrl)
+        setActiveMediaSource('cloud')
+        setLoadingPlayId(null)
+        return
+      }
+
+      // 5. Fallback in Electron: open in system default media player
+      if (isElectron && item.localPath && window.electronAPI?.openRecordingFile) {
+        const openRes = await window.electronAPI.openRecordingFile(item.localPath)
+        setLoadingPlayId(null)
+        if (openRes.success) return
+      }
+
+      // If all fallbacks fail
+      alert(
+        'Không tìm thấy file âm thanh/video cục bộ cho bản ghi này (có thể đã bị xoá cache trình duyệt hoặc di chuyển file).'
+      )
+    } finally {
+      setLoadingPlayId(null)
+    }
+  }
+
+  // Open file with external media app (VLC, Windows Media Player, Photos) in Electron
+  const handleOpenExternal = async (filePath?: string) => {
+    if (!filePath) return
+    if (window.electronAPI?.openRecordingFile) {
+      const res = await window.electronAPI.openRecordingFile(filePath)
+      if (!res.success && res.error) {
+        alert(res.error)
+      }
+    }
+  }
+
+  // Download media file to computer (Web or Electron)
+  const handleDownloadMedia = async (item: RecordingItem) => {
+    let downloadUrl = activeMediaUrl || item.blobUrl || item.cloudUrl
+
+    if (!downloadUrl) {
+      // Try to get from IndexedDB
+      const blob = await getRecordingBlob(item.id)
+      if (blob) {
+        downloadUrl = URL.createObjectURL(blob)
+      } else if (isElectron && item.localPath && window.electronAPI?.readRecordingFile) {
+        const res = await window.electronAPI.readRecordingFile(item.localPath)
+        if (res.success && res.dataUrl) downloadUrl = res.dataUrl
+      }
+    }
+
+    if (!downloadUrl) {
+      alert('Không thể tải tệp vì không tìm thấy nội dung media.')
+      return
+    }
+
+    const ext = item.type === 'video' ? 'webm' : 'wav'
+    const link = document.createElement('a')
+    link.href = downloadUrl
+    link.download = item.fileName || `italk-${item.id}.${ext}`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
   }
 
   const filtered = useMemo(() => {
@@ -392,40 +513,89 @@ export const RecordingsHistory: React.FC = () => {
       </div>
 
       {/* Video / Audio Player Dialog if selected */}
-      {playingItem && playingItem.blobUrl && (
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl">
-          <div className="flex items-center justify-between mb-4">
+      {playingItem && activeMediaUrl && (
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl animate-in fade-in duration-200">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <div>
-              <span className="text-xs text-emerald-400 font-semibold block">
-                Đang phát lại bản ghi:
-              </span>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xs text-emerald-400 font-semibold block">
+                  Đang phát lại bản ghi:
+                </span>
+                {activeMediaSource === 'electron' && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
+                    📁 File máy tính
+                  </span>
+                )}
+                {activeMediaSource === 'indexeddb' && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-md bg-teal-500/10 text-teal-400 border border-teal-500/20 font-medium">
+                    💾 Bộ nhớ trình duyệt
+                  </span>
+                )}
+                {activeMediaSource === 'cloud' && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-md bg-sky-500/10 text-sky-400 border border-sky-500/20 font-medium">
+                    ☁️ Supabase Cloud
+                  </span>
+                )}
+              </div>
               <h4 className="text-lg font-bold text-white">
                 {playingItem.lessonTitle}
               </h4>
             </div>
-            <button
-              onClick={() => setPlayingItem(null)}
-              className="text-xs px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
-            >
-              Đóng trình phát
-            </button>
+
+            {/* Player Controls */}
+            <div className="flex items-center gap-2 flex-wrap">
+              {isElectron && playingItem.localPath && (
+                <button
+                  onClick={() => handleOpenExternal(playingItem.localPath)}
+                  className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors"
+                  title="Mở bằng ứng dụng xem video mặc định trên máy (VLC, Media Player)"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Mở bằng trình phát ngoài</span>
+                </button>
+              )}
+
+              <button
+                onClick={() => handleDownloadMedia(playingItem)}
+                className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors"
+                title="Tải tệp về máy tính"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Tải tệp</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setPlayingItem(null)
+                  setActiveMediaUrl(null)
+                }}
+                className="text-xs px-3 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 font-medium transition-colors"
+              >
+                Đóng trình phát
+              </button>
+            </div>
           </div>
 
-          <div className="rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 max-h-80 flex items-center justify-center">
+          <div className="rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 max-h-96 flex items-center justify-center">
             {playingItem.type === 'video' ? (
               <video
-                src={playingItem.blobUrl}
+                src={activeMediaUrl}
                 controls
                 autoPlay
-                className="max-h-80 w-full object-contain"
+                className="max-h-96 w-full object-contain"
               />
             ) : (
-              <audio
-                src={playingItem.blobUrl}
-                controls
-                autoPlay
-                className="w-full my-6 px-4"
-              />
+              <div className="w-full p-6 flex flex-col items-center justify-center">
+                <div className="w-16 h-16 rounded-2xl bg-teal-500/10 text-teal-400 flex items-center justify-center mb-4">
+                  <Mic className="w-8 h-8" />
+                </div>
+                <audio
+                  src={activeMediaUrl}
+                  controls
+                  autoPlay
+                  className="w-full max-w-xl"
+                />
+              </div>
             )}
           </div>
         </div>
@@ -515,19 +685,23 @@ export const RecordingsHistory: React.FC = () => {
                         ? 'Tiếng Trung'
                         : 'Tiếng Việt'
                     const timeStr = formatTimeOnly(item.date)
+                    const isLoadingThis = loadingPlayId === item.id
 
                     return (
                       <div key={item.id} className="relative group">
                         {/* Timeline Node Point (Glow on hover) */}
                         <div
-                          className={`absolute -left-[31px] sm:-left-[39px] top-4 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-950 border-2 transition-all flex items-center justify-center shadow-md ${
+                          onClick={() => handlePlayRecording(item)}
+                          className={`absolute -left-[31px] sm:-left-[39px] top-4 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-950 border-2 transition-all flex items-center justify-center shadow-md cursor-pointer ${
                             item.type === 'video'
                               ? 'border-emerald-500 text-emerald-400 group-hover:bg-emerald-500 group-hover:text-slate-950'
                               : 'border-teal-400 text-teal-400 group-hover:bg-teal-400 group-hover:text-slate-950'
                           }`}
-                          title={`${item.type === 'video' ? 'Video' : 'Audio'} ghi lúc ${timeStr}`}
+                          title={`Bấm để xem/nghe lại lúc ${timeStr}`}
                         >
-                          {item.type === 'video' ? (
+                          {isLoadingThis ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : item.type === 'video' ? (
                             <Video className="w-3.5 h-3.5" />
                           ) : (
                             <Mic className="w-3.5 h-3.5" />
@@ -568,6 +742,14 @@ export const RecordingsHistory: React.FC = () => {
                                   • {item.durationSec}s
                                 </span>
 
+                                {/* Cloud indicator */}
+                                {item.cloudUrl && (
+                                  <span className="inline-flex items-center gap-0.5 text-[11px] text-sky-400 font-medium">
+                                    <Cloud className="w-3 h-3" />
+                                    <span>Cloud</span>
+                                  </span>
+                                )}
+
                                 {/* Score Pill */}
                                 {getScoreBadge(item.score)}
                               </div>
@@ -587,17 +769,43 @@ export const RecordingsHistory: React.FC = () => {
                             </div>
 
                             {/* Action Buttons */}
-                            <div className="flex items-center gap-2 self-end sm:self-center flex-shrink-0">
-                              {item.blobUrl && (
-                                <button
-                                  onClick={() => setPlayingItem(item)}
-                                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold shadow-md transition-all active:scale-95"
-                                >
+                            <div className="flex items-center gap-2 self-end sm:self-center flex-shrink-0 flex-wrap">
+                              {/* Always Available Play Button */}
+                              <button
+                                onClick={() => handlePlayRecording(item)}
+                                disabled={isLoadingThis}
+                                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold shadow-md transition-all active:scale-95 disabled:opacity-50"
+                                title="Xem lại video hoặc nghe lại bài đọc"
+                              >
+                                {isLoadingThis ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : (
                                   <Play className="w-3.5 h-3.5 fill-current" />
-                                  <span>{item.type === 'video' ? 'Xem video' : 'Nghe lại'}</span>
+                                )}
+                                <span>{item.type === 'video' ? 'Xem video' : 'Nghe lại'}</span>
+                              </button>
+
+                              {/* Desktop: Open with external app */}
+                              {isElectron && item.localPath && (
+                                <button
+                                  onClick={() => handleOpenExternal(item.localPath)}
+                                  className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+                                  title="Mở bằng ứng dụng máy tính (VLC, Media Player)"
+                                >
+                                  <ExternalLink className="w-4 h-4" />
                                 </button>
                               )}
 
+                              {/* Download file */}
+                              <button
+                                onClick={() => handleDownloadMedia(item)}
+                                className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+                                title="Tải tệp video/âm thanh về máy"
+                              >
+                                <Download className="w-4 h-4" />
+                              </button>
+
+                              {/* Delete */}
                               <button
                                 onClick={() => handleDelete(item.id)}
                                 className="p-2 rounded-xl bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition-colors"
@@ -617,7 +825,7 @@ export const RecordingsHistory: React.FC = () => {
           })}
         </div>
       ) : (
-        /* LIST / TABLE VIEW (Dạng danh sách cũ) */
+        /* LIST / TABLE VIEW */
         <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-xl">
           <div className="divide-y divide-slate-800">
             {filtered.map((item) => {
@@ -631,6 +839,7 @@ export const RecordingsHistory: React.FC = () => {
                 dateStyle: 'short',
                 timeStyle: 'short',
               })
+              const isLoadingThis = loadingPlayId === item.id
 
               return (
                 <div
@@ -639,13 +848,17 @@ export const RecordingsHistory: React.FC = () => {
                 >
                   <div className="flex items-center gap-3.5 min-w-0">
                     <div
-                      className={`w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 ${
+                      onClick={() => handlePlayRecording(item)}
+                      className={`w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 cursor-pointer ${
                         item.type === 'video'
-                          ? 'bg-emerald-500/10 text-emerald-400'
-                          : 'bg-teal-500/10 text-teal-400'
+                          ? 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
+                          : 'bg-teal-500/10 text-teal-400 hover:bg-teal-500/20'
                       }`}
+                      title="Bấm để phát lại"
                     >
-                      {item.type === 'video' ? (
+                      {isLoadingThis ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : item.type === 'video' ? (
                         <Video className="w-5 h-5" />
                       ) : (
                         <Mic className="w-5 h-5" />
@@ -658,8 +871,14 @@ export const RecordingsHistory: React.FC = () => {
                         <h4 className="font-bold text-sm text-white truncate max-w-sm sm:max-w-md">
                           {item.lessonTitle}
                         </h4>
+                        {item.cloudUrl && (
+                          <span className="inline-flex items-center gap-0.5 text-[10px] text-sky-400 font-medium">
+                            <Cloud className="w-2.5 h-2.5" />
+                            <span>Cloud</span>
+                          </span>
+                        )}
                       </div>
-                      <div className="flex items-center gap-3 mt-1 text-xs text-slate-400">
+                      <div className="flex items-center gap-3 mt-1 text-xs text-slate-400 flex-wrap">
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3.5 h-3.5" />
                           {dateFormatted}
@@ -687,16 +906,37 @@ export const RecordingsHistory: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 self-end sm:self-center">
-                    {item.blobUrl && (
+                  <div className="flex items-center gap-2 self-end sm:self-center flex-wrap">
+                    <button
+                      onClick={() => handlePlayRecording(item)}
+                      disabled={isLoadingThis}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-semibold border border-emerald-500/20 transition-colors disabled:opacity-50"
+                    >
+                      {isLoadingThis ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Play className="w-3.5 h-3.5 fill-current" />
+                      )}
+                      <span>Phát</span>
+                    </button>
+
+                    {isElectron && item.localPath && (
                       <button
-                        onClick={() => setPlayingItem(item)}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-semibold border border-emerald-500/20 transition-colors"
+                        onClick={() => handleOpenExternal(item.localPath)}
+                        className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+                        title="Mở bằng ứng dụng máy tính (VLC, Media Player)"
                       >
-                        <Play className="w-3.5 h-3.5" />
-                        <span>Phát</span>
+                        <ExternalLink className="w-4 h-4" />
                       </button>
                     )}
+
+                    <button
+                      onClick={() => handleDownloadMedia(item)}
+                      className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+                      title="Tải tệp video/âm thanh về máy"
+                    >
+                      <Download className="w-4 h-4" />
+                    </button>
 
                     <button
                       onClick={() => handleDelete(item.id)}

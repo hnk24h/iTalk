@@ -61,6 +61,7 @@ export interface RecordingItem {
   blobUrl?: string
   localPath?: string
   fileName?: string
+  cloudUrl?: string
 }
 
 export interface DailyGoal {
@@ -104,6 +105,8 @@ export interface ElectronAPI {
     error?: string
   }>
   openRecordingFolder: (customPath?: string) => Promise<{ success: boolean; error?: string }>
+  openRecordingFile: (filePath: string) => Promise<{ success: boolean; error?: string }>
+  readRecordingFile: (filePath: string) => Promise<{ success: boolean; dataUrl?: string; mime?: string; error?: string }>
   listLocalRecordings: () => Promise<Array<{
     name: string
     path: string

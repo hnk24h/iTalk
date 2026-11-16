@@ -1,4 +1,5 @@
 import { RecordingItem, UserSchedule, Lesson, Language } from '../types'
+import { storeRecordingBlob, deleteRecordingBlob } from './audioDb'
 
 const SCHEDULE_KEY = 'italk_schedule_v1'
 const RECORDINGS_KEY = 'italk_recordings_v1'
@@ -229,6 +230,13 @@ export async function saveRecordingEntry({
     localStorage.setItem(RECORDINGS_KEY, JSON.stringify(toSave))
   } catch {}
 
+  // Persist the actual binary blob in IndexedDB for web offline / reload playback
+  try {
+    await storeRecordingBlob(item.id, blob)
+  } catch (err) {
+    console.warn('Failed to store recording in IndexedDB:', err)
+  }
+
   // Update schedule
   recordDayActivity(Math.max(1, Math.round(durationSec / 60)), score)
 
@@ -244,7 +252,19 @@ export async function saveRecordingEntry({
           )
           const uploadRes = await sb.uploadRecordingToStorage(fileName, blob)
           if (uploadRes.url) {
+            item.cloudUrl = uploadRes.url
             await sb.saveRecordingMetadataToCloud(item, uploadRes.url)
+
+            // Update cloudUrl in local metadata
+            const recs = loadRecordings()
+            const idx = recs.findIndex(r => r.id === item.id)
+            if (idx >= 0) {
+              recs[idx].cloudUrl = uploadRes.url
+              try {
+                localStorage.setItem(RECORDINGS_KEY, JSON.stringify(recs.slice(0, 50).map(r => ({ ...r, blobUrl: undefined }))))
+              } catch {}
+            }
+
             window.dispatchEvent(
               new CustomEvent('italk:cloud-sync', {
                 detail: {
@@ -281,6 +301,9 @@ export function deleteRecordingEntry(id: string): RecordingItem[] {
   try {
     localStorage.setItem(RECORDINGS_KEY, JSON.stringify(next))
   } catch {}
+
+  deleteRecordingBlob(id).catch(() => {})
+
   return next
 }
 

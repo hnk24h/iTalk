@@ -184,6 +184,42 @@ ipcMain.handle('open-recording-folder', async (event, customPath) => {
   }
 })
 
+ipcMain.handle('open-recording-file', async (event, filePath) => {
+  try {
+    if (!filePath || !fs.existsSync(filePath)) {
+      return { success: false, error: 'Tệp không tồn tại trên máy' }
+    }
+    await shell.openPath(filePath)
+    return { success: true }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+})
+
+ipcMain.handle('read-recording-file', async (event, filePath) => {
+  try {
+    if (!filePath || !fs.existsSync(filePath)) {
+      return { success: false, error: 'Tệp không tồn tại trên máy' }
+    }
+    const fileBuffer = await fs.promises.readFile(filePath)
+    const ext = path.extname(filePath).slice(1).toLowerCase()
+    const mimeMap = {
+      webm: 'video/webm',
+      mp4: 'video/mp4',
+      wav: 'audio/wav',
+      mp3: 'audio/mpeg',
+      ogg: 'audio/ogg',
+    }
+    const mime = mimeMap[ext] || (ext === 'wav' ? 'audio/wav' : 'video/webm')
+    const base64 = fileBuffer.toString('base64')
+    const dataUrl = `data:${mime};base64,${base64}`
+    return { success: true, dataUrl, mime }
+  } catch (err) {
+    console.error('Failed to read recording file:', err)
+    return { success: false, error: err.message }
+  }
+})
+
 ipcMain.handle('list-local-recordings', async () => {
   try {
     if (!fs.existsSync(recordingsDir)) return []

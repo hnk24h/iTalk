@@ -8,6 +8,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   selectTextFile: () => ipcRenderer.invoke('select-text-file'),
   saveRecording: (data) => ipcRenderer.invoke('save-recording', data),
   openRecordingFolder: (customPath) => ipcRenderer.invoke('open-recording-folder', customPath),
+  openRecordingFile: (filePath) => ipcRenderer.invoke('open-recording-file', filePath),
+  readRecordingFile: (filePath) => ipcRenderer.invoke('read-recording-file', filePath),
   listLocalRecordings: () => ipcRenderer.invoke('list-local-recordings'),
   synthesizeEdgeSpeech: (params) => ipcRenderer.invoke('synthesize-edge-speech', params),
   synthesizeVoiceStudioSpeech: (params) => ipcRenderer.invoke('synthesize-voicestudio-speech', params),

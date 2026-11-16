@@ -1,8 +1,9 @@
-// IndexedDB persistence for original audio files (MP3, WAV, M4A)
+// IndexedDB persistence for original audio files & recorded media (MP3, WAV, WebM, MP4)
 
 const DB_NAME = 'italk_audio_db'
-const DB_VERSION = 1
+const DB_VERSION = 2
 const STORE_NAME = 'audio_files'
+const RECORDINGS_STORE = 'recordings_blobs'
 
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -17,6 +18,9 @@ function openDB(): Promise<IDBDatabase> {
       const db = request.result
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.createObjectStore(STORE_NAME, { keyPath: 'id' })
+      }
+      if (!db.objectStoreNames.contains(RECORDINGS_STORE)) {
+        db.createObjectStore(RECORDINGS_STORE, { keyPath: 'id' })
       }
     }
 
@@ -73,4 +77,69 @@ export async function deleteAudioBlob(id: string): Promise<void> {
     req.onsuccess = () => resolve()
     req.onerror = () => reject(req.error)
   })
+}
+
+/* ==========================================================================
+   RECORDINGS BLOB PERSISTENCE (Audio & Video Practice Recordings)
+   ========================================================================== */
+
+export async function storeRecordingBlob(id: string, blob: Blob): Promise<string> {
+  try {
+    const db = await openDB()
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(RECORDINGS_STORE, 'readwrite')
+      const store = tx.objectStore(RECORDINGS_STORE)
+
+      const record = {
+        id,
+        blob,
+        mimeType: blob.type,
+        updatedAt: Date.now(),
+      }
+
+      const req = store.put(record)
+      req.onsuccess = () => resolve(id)
+      req.onerror = () => reject(req.error)
+    })
+  } catch (err) {
+    console.warn('Failed to store recording blob in IndexedDB:', err)
+    return id
+  }
+}
+
+export async function getRecordingBlob(id: string): Promise<Blob | null> {
+  try {
+    const db = await openDB()
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(RECORDINGS_STORE, 'readonly')
+      const store = tx.objectStore(RECORDINGS_STORE)
+      const req = store.get(id)
+
+      req.onsuccess = () => {
+        const res = req.result
+        if (res && res.blob) {
+          resolve(res.blob)
+        } else {
+          resolve(null)
+        }
+      }
+      req.onerror = () => reject(req.error)
+    })
+  } catch (err) {
+    console.warn('Failed to read recording blob from IndexedDB:', err)
+    return null
+  }
+}
+
+export async function deleteRecordingBlob(id: string): Promise<void> {
+  try {
+    const db = await openDB()
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(RECORDINGS_STORE, 'readwrite')
+      const store = tx.objectStore(RECORDINGS_STORE)
+      const req = store.delete(id)
+      req.onsuccess = () => resolve()
+      req.onerror = () => reject(req.error)
+    })
+  } catch {}
 }
