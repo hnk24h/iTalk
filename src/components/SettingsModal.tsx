@@ -28,7 +28,23 @@ import {
   Radio,
   CheckCircle2,
   AlertCircle,
+  Database,
+  Lock,
+  Mail,
+  UserCheck,
+  LogOut,
+  LogIn,
 } from 'lucide-react'
+import {
+  getSupabaseConfig,
+  saveSupabaseConfig,
+  isSupabaseConfigured,
+  getCurrentUser,
+  signInWithEmail,
+  signUpWithEmail,
+  signOutSupabase,
+  performFullSync,
+} from '../services/supabase'
 
 interface SettingsModalProps {
   isOpen: boolean
@@ -68,17 +84,79 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   // Sample audio testing state
   const [isPlayingTestVoice, setIsPlayingTestVoice] = useState(false)
 
+  // Supabase Cloud State
+  const [supabaseConfig, setSupabaseConfigState] = useState(getSupabaseConfig())
+  const [currentUser, setCurrentUser] = useState<any>(null)
+  const [authEmail, setAuthEmail] = useState('')
+  const [authPassword, setAuthPassword] = useState('')
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login')
+  const [authError, setAuthError] = useState<string | null>(null)
+  const [isAuthLoading, setIsAuthLoading] = useState(false)
+  const [isSyncing, setIsSyncing] = useState(false)
+  const [syncMessage, setSyncMessage] = useState<string | null>(null)
+  const [showConfigInputs, setShowConfigInputs] = useState(false)
+
   useEffect(() => {
     if (window.electronAPI?.getRecordingsDir) {
       window.electronAPI.getRecordingsDir().then(setLocalDir).catch(() => {})
     }
     loadDevices()
+    getCurrentUser().then(setCurrentUser).catch(() => {})
 
     return () => {
       stopMicTest()
       stopTextToSpeech()
     }
   }, [])
+
+  const handleSaveSupabaseConfig = () => {
+    saveSupabaseConfig(supabaseConfig)
+    getCurrentUser().then(setCurrentUser).catch(() => {})
+    setSyncMessage('Đã lưu cấu hình Supabase!')
+    setTimeout(() => setSyncMessage(null), 3000)
+  }
+
+  const handleAuthSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setAuthError(null)
+    setIsAuthLoading(true)
+
+    if (authMode === 'login') {
+      const { user, error } = await signInWithEmail(authEmail, authPassword)
+      if (error) {
+        setAuthError(error)
+      } else {
+        setCurrentUser(user)
+        setSyncMessage('Đăng nhập thành công! Bắt đầu đồng bộ...')
+        await performFullSync()
+      }
+    } else {
+      const { user, error } = await signUpWithEmail(authEmail, authPassword)
+      if (error) {
+        setAuthError(error)
+      } else {
+        setCurrentUser(user)
+        setSyncMessage('Đăng ký thành công! Hãy đăng nhập để bắt đầu đồng bộ.')
+      }
+    }
+    setIsAuthLoading(false)
+  }
+
+  const handleSignOut = async () => {
+    await signOutSupabase()
+    setCurrentUser(null)
+    setSyncMessage('Đã đăng xuất khỏi Cloud.')
+    setTimeout(() => setSyncMessage(null), 3000)
+  }
+
+  const handleTriggerSync = async () => {
+    setIsSyncing(true)
+    setSyncMessage('Đang đồng bộ dữ liệu với Cloud...')
+    const res = await performFullSync()
+    setSyncMessage(res.message)
+    setIsSyncing(false)
+    setTimeout(() => setSyncMessage(null), 4000)
+  }
 
   const loadDevices = async () => {
     setIsLoadingDevices(true)
@@ -647,7 +725,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
                 <button
                   onClick={handleChangeFolder}
-                  className="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-colors flex items-center justify-center gap-1.5"
+                  className="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <FolderOpen className="w-3.5 h-3.5" />
                   <span>Chọn thư mục lưu khác trên máy</span>
@@ -657,6 +735,177 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <p className="text-xs text-slate-400 leading-relaxed">
                 Trên bản Web, video/audio lưu trong bộ nhớ tạm của trang. Khi chạy bản Electron Desktop trên Windows, tệp sẽ lưu trực tiếp vào ổ đĩa máy tính.
               </p>
+            )}
+          </div>
+
+          {/* SECTION 3.5: SUPABASE CLOUD SYNC & DATABASE */}
+          <div className="p-4 sm:p-5 rounded-2xl bg-slate-950 border border-slate-800 space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                <Database className="w-4 h-4 text-sky-400" />
+                Đồng bộ Đám mây (Supabase Cloud Database)
+              </span>
+              {currentUser ? (
+                <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3" />
+                  <span>Đã kết nối Cloud</span>
+                </span>
+              ) : isSupabaseConfigured() ? (
+                <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                  Sẵn sàng kết nối
+                </span>
+              ) : (
+                <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
+                  Chế độ Offline cục bộ
+                </span>
+              )}
+            </div>
+
+            {currentUser ? (
+              <div className="bg-slate-900 border border-slate-800 rounded-xl p-3.5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs text-slate-200">
+                    <UserCheck className="w-4 h-4 text-emerald-400" />
+                    <span>Tài khoản: <strong className="text-white">{currentUser.email}</strong></span>
+                  </div>
+                  <button
+                    onClick={handleSignOut}
+                    className="text-[11px] text-slate-400 hover:text-rose-400 transition-colors flex items-center gap-1 cursor-pointer"
+                  >
+                    <LogOut className="w-3 h-3" />
+                    <span>Đăng xuất</span>
+                  </button>
+                </div>
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    onClick={handleTriggerSync}
+                    disabled={isSyncing}
+                    className="flex-1 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-sky-600/20"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+                    <span>{isSyncing ? 'Đang đồng bộ...' : 'Đồng bộ 2 chiều với Cloud'}</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Đăng nhập để tự động lưu Streak học tập, Điểm phát âm, Bài học tự tạo và File ghi âm lên cơ sở dữ liệu Supabase miễn phí.
+                </p>
+
+                {/* Login / Register Mini Form */}
+                <form onSubmit={handleAuthSubmit} className="space-y-2.5 bg-slate-900 border border-slate-800 rounded-xl p-3.5">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-800/80">
+                    <span className="text-xs font-bold text-slate-200">
+                      {authMode === 'login' ? 'Đăng nhập tài khoản' : 'Tạo tài khoản học mới'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthMode(authMode === 'login' ? 'register' : 'login')
+                        setAuthError(null)
+                      }}
+                      className="text-[11px] text-sky-400 hover:underline cursor-pointer"
+                    >
+                      {authMode === 'login' ? 'Chưa có tài khoản? Đăng ký' : 'Đã có tài khoản? Đăng nhập'}
+                    </button>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <Mail className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-2.5" />
+                      <input
+                        type="email"
+                        required
+                        value={authEmail}
+                        onChange={(e) => setAuthEmail(e.target.value)}
+                        placeholder="Email của bạn..."
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                      />
+                    </div>
+                    <div className="relative">
+                      <Lock className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-2.5" />
+                      <input
+                        type="password"
+                        required
+                        value={authPassword}
+                        onChange={(e) => setAuthPassword(e.target.value)}
+                        placeholder="Mật khẩu..."
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                      />
+                    </div>
+                  </div>
+
+                  {authError && (
+                    <div className="p-2 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-300 text-[11px]">
+                      {authError}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={isAuthLoading}
+                    className="w-full py-2 rounded-xl bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+                  >
+                    <LogIn className="w-3.5 h-3.5" />
+                    <span>{isAuthLoading ? 'Đang xử lý...' : authMode === 'login' ? 'Đăng nhập & Bắt đầu đồng bộ' : 'Tạo tài khoản'}</span>
+                  </button>
+                </form>
+
+                {/* Advanced Supabase Config Toggle */}
+                <div className="pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowConfigInputs(!showConfigInputs)}
+                    className="text-[11px] text-slate-400 hover:text-slate-200 underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>{showConfigInputs ? 'Ẩn cấu hình Supabase API Key' : 'Tùy chỉnh Supabase URL & Anon Key dự án riêng'}</span>
+                  </button>
+
+                  {showConfigInputs && (
+                    <div className="mt-2.5 p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+                          Supabase Project URL
+                        </label>
+                        <input
+                          type="text"
+                          value={supabaseConfig.url}
+                          onChange={(e) => setSupabaseConfigState({ ...supabaseConfig, url: e.target.value })}
+                          placeholder="https://xyzcompany.supabase.co"
+                          className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+                          Supabase Anon Key
+                        </label>
+                        <input
+                          type="password"
+                          value={supabaseConfig.anonKey}
+                          onChange={(e) => setSupabaseConfigState({ ...supabaseConfig, anonKey: e.target.value })}
+                          placeholder="eyJhbGciOiJIUzI1NiIsInR5..."
+                          className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleSaveSupabaseConfig}
+                        className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 cursor-pointer"
+                      >
+                        Lưu thông tin kết nối
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {syncMessage && (
+              <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
+                <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>{syncMessage}</span>
+              </div>
             )}
           </div>
 

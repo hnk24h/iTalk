@@ -94,6 +94,13 @@ export function loadSchedule(): UserSchedule {
   }
 }
 
+export function saveSchedule(schedule: UserSchedule): UserSchedule {
+  try {
+    localStorage.setItem(SCHEDULE_KEY, JSON.stringify(schedule))
+  } catch {}
+  return schedule
+}
+
 export function recordDayActivity(minutes: number, score?: number): UserSchedule {
   const schedule = loadSchedule()
   const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD
@@ -127,6 +134,13 @@ export function recordDayActivity(minutes: number, score?: number): UserSchedule
   try {
     localStorage.setItem(SCHEDULE_KEY, JSON.stringify(schedule))
   } catch {}
+
+  // Non-blocking cloud sync if Supabase is enabled
+  if (typeof window !== 'undefined') {
+    import('./supabase')
+      .then((sb) => sb.syncScheduleToCloud(schedule).catch(() => {}))
+      .catch(() => {})
+  }
 
   return schedule
 }
@@ -215,6 +229,18 @@ export async function saveRecordingEntry({
   // Update schedule
   recordDayActivity(Math.max(1, Math.round(durationSec / 60)), score)
 
+  // Non-blocking upload & metadata sync to Supabase Cloud
+  if (typeof window !== 'undefined') {
+    import('./supabase')
+      .then(async (sb) => {
+        if (sb.isSupabaseConfigured()) {
+          const cloudUrl = await sb.uploadRecordingToStorage(fileName, blob)
+          await sb.saveRecordingMetadataToCloud(item, cloudUrl || undefined)
+        }
+      })
+      .catch(() => {})
+  }
+
   return item
 }
 
@@ -249,5 +275,13 @@ export function saveCustomLesson(lesson: Lesson): Lesson[] {
   try {
     localStorage.setItem(CUSTOM_LESSONS_KEY, JSON.stringify(current))
   } catch {}
+
+  // Non-blocking sync to Supabase Cloud
+  if (typeof window !== 'undefined') {
+    import('./supabase')
+      .then((sb) => sb.syncCustomLessonsToCloud(current).catch(() => {}))
+      .catch(() => {})
+  }
+
   return current
 }

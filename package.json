@@ -28,16 +28,21 @@
       "target": [
         {
           "target": "portable",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "dir",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ]
     }
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.119.0",
     "canvas-confetti": "^1.9.4",
     "lucide-react": "^1.46.0",
     "react": "^19.0.0",
