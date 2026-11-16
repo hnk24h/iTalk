@@ -180,7 +180,16 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
   }, [activeLessonId, currentSentenceIdx])
 
   useEffect(() => {
+    const handleCloudSync = (e: any) => {
+      const { message } = e.detail || {}
+      if (message) {
+        triggerToast(message)
+      }
+    }
+    window.addEventListener('italk:cloud-sync', handleCloudSync)
+
     return () => {
+      window.removeEventListener('italk:cloud-sync', handleCloudSync)
       stopPlayback()
       stopCamPreview()
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current)

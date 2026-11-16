@@ -237,11 +237,39 @@ export async function saveRecordingEntry({
     import('./supabase')
       .then(async (sb) => {
         if (sb.isSupabaseConfigured()) {
-          const cloudUrl = await sb.uploadRecordingToStorage(fileName, blob)
-          await sb.saveRecordingMetadataToCloud(item, cloudUrl || undefined)
+          window.dispatchEvent(
+            new CustomEvent('italk:cloud-sync', {
+              detail: { status: 'uploading', message: 'Đang tải bản ghi lên Supabase Storage...' },
+            })
+          )
+          const uploadRes = await sb.uploadRecordingToStorage(fileName, blob)
+          if (uploadRes.url) {
+            await sb.saveRecordingMetadataToCloud(item, uploadRes.url)
+            window.dispatchEvent(
+              new CustomEvent('italk:cloud-sync', {
+                detail: {
+                  status: 'success',
+                  message: 'Đã tải bản ghi lên Supabase Storage thành công!',
+                  url: uploadRes.url,
+                },
+              })
+            )
+          } else {
+            console.warn('Supabase upload failed:', uploadRes.error)
+            window.dispatchEvent(
+              new CustomEvent('italk:cloud-sync', {
+                detail: {
+                  status: 'error',
+                  message: `Không thể tải lên Supabase: ${uploadRes.error || 'Vui lòng kiểm tra Bucket hoặc SQL'}`,
+                },
+              })
+            )
+          }
         }
       })
-      .catch(() => {})
+      .catch((err) => {
+        console.warn('Supabase sync import error:', err)
+      })
   }
 
   return item

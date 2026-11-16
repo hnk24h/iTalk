@@ -1,6 +1,7 @@
 -- ==============================================================================
--- iTalk Database Schema for Supabase
--- Run this script in the Supabase SQL Editor: https://supabase.com/dashboard/project/_/sql
+-- iTalk Database Schema for Supabase (Full Cloud Sync & Storage)
+-- Run this script in the Supabase SQL Editor:
+-- https://supabase.com/dashboard/project/_/sql
 -- ==============================================================================
 
 -- 1. Enable UUID Extension
@@ -18,35 +19,32 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view own profile"
-  ON public.profiles FOR SELECT
-  USING (auth.uid() = id);
-
-CREATE POLICY "Users can update own profile"
-  ON public.profiles FOR UPDATE
-  USING (auth.uid() = id);
-
-CREATE POLICY "Users can insert own profile"
-  ON public.profiles FOR INSERT
-  WITH CHECK (auth.uid() = id);
+DROP POLICY IF EXISTS "Profiles access policy" ON public.profiles;
+CREATE POLICY "Profiles access policy"
+  ON public.profiles FOR ALL
+  TO anon, authenticated
+  USING (true)
+  WITH CHECK (true);
 
 -- 3. User Settings Table
 CREATE TABLE IF NOT EXISTS public.user_settings (
-  user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL PRIMARY KEY,
   settings JSONB NOT NULL DEFAULT '{}'::jsonb,
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 ALTER TABLE public.user_settings ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can manage own settings"
+DROP POLICY IF EXISTS "Settings access policy" ON public.user_settings;
+CREATE POLICY "Settings access policy"
   ON public.user_settings FOR ALL
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+  TO anon, authenticated
+  USING (true)
+  WITH CHECK (true);
 
 -- 4. User Schedule & Progress Tracking
 CREATE TABLE IF NOT EXISTS public.user_schedules (
-  user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL PRIMARY KEY,
   streak INT DEFAULT 0,
   last_active_date TEXT,
   target_minutes INT DEFAULT 15,
@@ -57,15 +55,17 @@ CREATE TABLE IF NOT EXISTS public.user_schedules (
 
 ALTER TABLE public.user_schedules ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can manage own schedule"
+DROP POLICY IF EXISTS "Schedules access policy" ON public.user_schedules;
+CREATE POLICY "Schedules access policy"
   ON public.user_schedules FOR ALL
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+  TO anon, authenticated
+  USING (true)
+  WITH CHECK (true);
 
--- 5. Custom Lessons Table (Self-created or imported from transcripts)
+-- 5. Custom Lessons Table
 CREATE TABLE IF NOT EXISTS public.custom_lessons (
   id TEXT NOT NULL,
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL,
   title TEXT NOT NULL,
   language TEXT NOT NULL DEFAULT 'ja',
   level TEXT NOT NULL DEFAULT 'N3',
@@ -80,15 +80,17 @@ CREATE TABLE IF NOT EXISTS public.custom_lessons (
 
 ALTER TABLE public.custom_lessons ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can manage own custom lessons"
+DROP POLICY IF EXISTS "Custom lessons access policy" ON public.custom_lessons;
+CREATE POLICY "Custom lessons access policy"
   ON public.custom_lessons FOR ALL
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+  TO anon, authenticated
+  USING (true)
+  WITH CHECK (true);
 
 -- 6. Shadowing Practice Recordings Metadata
 CREATE TABLE IF NOT EXISTS public.study_recordings (
   id TEXT NOT NULL,
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL,
   lesson_id TEXT,
   lesson_title TEXT NOT NULL,
   language TEXT NOT NULL,
@@ -102,10 +104,12 @@ CREATE TABLE IF NOT EXISTS public.study_recordings (
 
 ALTER TABLE public.study_recordings ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can manage own recordings"
+DROP POLICY IF EXISTS "Recordings access policy" ON public.study_recordings;
+CREATE POLICY "Recordings access policy"
   ON public.study_recordings FOR ALL
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+  TO anon, authenticated
+  USING (true)
+  WITH CHECK (true);
 
 -- 7. Automatic profile creation on auth signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -127,22 +131,26 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- 8. Storage bucket setup for Recordings & Audio files (Run if not exists)
+-- 8. Storage bucket setup for Recordings & Video files
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('italk-recordings', 'italk-recordings', true)
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE SET public = true;
 
--- Storage policies for user uploads
-CREATE POLICY "Allow authenticated users to upload recordings"
+-- Storage policies for uploads & reads (Both authenticated users & guest users)
+DROP POLICY IF EXISTS "Allow all uploads to recordings" ON storage.objects;
+CREATE POLICY "Allow all uploads to recordings"
   ON storage.objects FOR INSERT
-  TO authenticated
-  WITH CHECK (bucket_id = 'italk-recordings' AND (storage.foldername(name))[1] = auth.uid()::text);
+  TO anon, authenticated
+  WITH CHECK (bucket_id = 'italk-recordings');
 
-CREATE POLICY "Allow public read for recordings"
+DROP POLICY IF EXISTS "Allow all reads for recordings" ON storage.objects;
+CREATE POLICY "Allow all reads for recordings"
   ON storage.objects FOR SELECT
+  TO anon, authenticated
   USING (bucket_id = 'italk-recordings');
 
-CREATE POLICY "Allow authenticated users to delete own recordings"
+DROP POLICY IF EXISTS "Allow all deletes for recordings" ON storage.objects;
+CREATE POLICY "Allow all deletes for recordings"
   ON storage.objects FOR DELETE
-  TO authenticated
-  USING (bucket_id = 'italk-recordings' AND (storage.foldername(name))[1] = auth.uid()::text);
+  TO anon, authenticated
+  USING (bucket_id = 'italk-recordings');

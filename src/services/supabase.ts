@@ -70,6 +70,21 @@ export function isSupabaseConfigured(): boolean {
   return Boolean(url && anonKey)
 }
 
+export function getEffectiveUserId(user: User | null): string {
+  if (user?.id) return user.id
+  if (typeof window === 'undefined') return 'guest_default'
+  try {
+    let guestId = localStorage.getItem('italk_guest_device_id')
+    if (!guestId) {
+      guestId = 'guest_' + Math.random().toString(36).substring(2, 9) + Date.now().toString(36)
+      localStorage.setItem('italk_guest_device_id', guestId)
+    }
+    return guestId
+  } catch {
+    return 'guest_default'
+  }
+}
+
 // ==========================================
 // Auth Services
 // ==========================================
@@ -119,7 +134,7 @@ export async function signOutSupabase(): Promise<void> {
 }
 
 // ==========================================
-// Cloud Sync Services (Non-blocking)
+// Cloud Sync Services
 // ==========================================
 
 /**
@@ -130,14 +145,13 @@ export async function syncScheduleToCloud(schedule?: UserSchedule): Promise<bool
   if (!client) return false
 
   const user = await getCurrentUser()
-  if (!user) return false
-
+  const userId = getEffectiveUserId(user)
   const dataToSync = schedule || loadSchedule()
 
   try {
     const { error } = await client.from('user_schedules').upsert(
       {
-        user_id: user.id,
+        user_id: userId,
         streak: dataToSync.streak,
         last_active_date: dataToSync.lastActiveDate,
         target_minutes: dataToSync.dailyGoal.targetMinutes,
@@ -166,13 +180,13 @@ export async function fetchScheduleFromCloud(): Promise<UserSchedule | null> {
   if (!client) return null
 
   const user = await getCurrentUser()
-  if (!user) return null
+  const userId = getEffectiveUserId(user)
 
   try {
     const { data, error } = await client
       .from('user_schedules')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .maybeSingle()
 
     if (error || !data) return null
@@ -212,7 +226,7 @@ export async function syncCustomLessonsToCloud(lessons?: Lesson[]): Promise<bool
   if (!client) return false
 
   const user = await getCurrentUser()
-  if (!user) return false
+  const userId = getEffectiveUserId(user)
 
   const list = lessons || loadCustomLessons()
   if (list.length === 0) return true
@@ -220,7 +234,7 @@ export async function syncCustomLessonsToCloud(lessons?: Lesson[]): Promise<bool
   try {
     const rows = list.map((l) => ({
       id: l.id,
-      user_id: user.id,
+      user_id: userId,
       title: l.title,
       language: l.language,
       level: l.level,
@@ -250,13 +264,13 @@ export async function fetchCustomLessonsFromCloud(): Promise<Lesson[] | null> {
   if (!client) return null
 
   const user = await getCurrentUser()
-  if (!user) return null
+  const userId = getEffectiveUserId(user)
 
   try {
     const { data, error } = await client
       .from('custom_lessons')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
 
     if (error || !data) return null
 
@@ -287,35 +301,37 @@ export async function fetchCustomLessonsFromCloud(): Promise<Lesson[] | null> {
 export async function uploadRecordingToStorage(
   fileName: string,
   blob: Blob
-): Promise<string | null> {
+): Promise<{ url: string | null; error?: string }> {
   const client = getSupabaseClient()
-  if (!client) return null
+  if (!client) return { url: null, error: 'Chưa cấu hình Supabase URL hoặc Key' }
 
   const user = await getCurrentUser()
-  if (!user) return null
+  const userId = getEffectiveUserId(user)
 
   try {
-    const storagePath = `${user.id}/${Date.now()}_${fileName}`
+    const storagePath = `${userId}/${Date.now()}_${fileName}`
+    const contentType = blob.type || (fileName.endsWith('.webm') ? 'video/webm' : 'audio/wav')
+
     const { error } = await client.storage
       .from('italk-recordings')
       .upload(storagePath, blob, {
-        contentType: blob.type,
+        contentType,
         upsert: true,
       })
 
     if (error) {
       console.warn('Upload recording warning:', error)
-      return null
+      return { url: null, error: error.message }
     }
 
     const { data: publicUrlData } = client.storage
       .from('italk-recordings')
       .getPublicUrl(storagePath)
 
-    return publicUrlData?.publicUrl || null
-  } catch (err) {
+    return { url: publicUrlData?.publicUrl || null }
+  } catch (err: any) {
     console.warn('Upload recording to Supabase error:', err)
-    return null
+    return { url: null, error: err.message || 'Lỗi upload file' }
   }
 }
 
@@ -325,18 +341,18 @@ export async function uploadRecordingToStorage(
 export async function saveRecordingMetadataToCloud(
   item: RecordingItem,
   cloudFileUrl?: string
-): Promise<boolean> {
+): Promise<{ success: boolean; error?: string }> {
   const client = getSupabaseClient()
-  if (!client) return false
+  if (!client) return { success: false, error: 'Chưa cấu hình Supabase' }
 
   const user = await getCurrentUser()
-  if (!user) return false
+  const userId = getEffectiveUserId(user)
 
   try {
     const { error } = await client.from('study_recordings').upsert(
       {
         id: item.id,
-        user_id: user.id,
+        user_id: userId,
         lesson_id: item.lessonId,
         lesson_title: item.lessonTitle,
         language: item.language,
@@ -351,12 +367,12 @@ export async function saveRecordingMetadataToCloud(
 
     if (error) {
       console.warn('Save recording metadata warning:', error)
-      return false
+      return { success: false, error: error.message }
     }
-    return true
-  } catch (err) {
+    return { success: true }
+  } catch (err: any) {
     console.warn('Save recording error:', err)
-    return false
+    return { success: false, error: err.message }
   }
 }
 
@@ -366,9 +382,6 @@ export async function saveRecordingMetadataToCloud(
 export async function performFullSync(): Promise<{ success: boolean; message: string }> {
   const client = getSupabaseClient()
   if (!client) return { success: false, message: 'Chưa cấu hình Supabase' }
-
-  const user = await getCurrentUser()
-  if (!user) return { success: false, message: 'Chưa đăng nhập tài khoản Supabase' }
 
   try {
     // 1. Sync schedule
