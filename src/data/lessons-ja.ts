@@ -11,58 +11,58 @@ export const japaneseLessons: Lesson[] = [
     "sentences": [
       {
         "id": "ja-kana-01-s1",
-        "text": "あ (A) — [朝;あさ] (Asa: Buổi sáng)",
+        "text": "あ — 朝（あさ）",
         "phonetic": "a (asa)",
-        "furigana": "あ (A) — [朝;あさ]",
         "translation": "Chữ あ (A) — Ví dụ: 朝 (Asa: Buổi sáng)",
         "mouthShape": "Miệng mở tự nhiên hình bầu dục đứng, độ mở vừa phải (khoảng 2 ngón tay), không mở quá to như chữ A tiếng Việt.",
         "tonguePosition": "Lưỡi thả lỏng tự nhiên nằm ở đáy hàm dưới, đầu lưỡi chạm nhẹ vào mặt trong chân răng hàm dưới.",
         "breathGuide": "Dây thanh rung đều đặn, luồng hơi thoát thẳng nhẹ nhàng qua miệng, không gắt.",
-        "grammarNote": "Lỗi thường gặp: Mở miệng quá rộng khiến âm bị bẹt. Trong tiếng Nhật, khẩu hình nguyên âm luôn gọn gàng và ổn định."
+        "grammarNote": "Lỗi thường gặp: Mở miệng quá rộng khiến âm bị bẹt. Trong tiếng Nhật, khẩu hình nguyên âm luôn gọn gàng và ổn định.",
+        "speakText": "あ。あさ。"
       },
       {
         "id": "ja-kana-01-s2",
-        "text": "い (I) — [犬;いぬ] (Inu: Con chó)",
+        "text": "い — 犬（いぬ）",
         "phonetic": "i (inu)",
-        "furigana": "い (I) — [犬;いぬ]",
         "translation": "Chữ い (I) — Ví dụ: 犬 (Inu: Con chó)",
         "mouthShape": "Khóe miệng kéo nhẹ sang hai bên như đang mỉm cười nhẹ, hai hàm răng hơi hé mở (khoảng nửa ngón tay).",
         "tonguePosition": "Thân lưỡi nâng cao áp sát vòm miệng cứng phía trước, đầu lưỡi tựa vào mặt sau răng cửa dưới.",
         "breathGuide": "Luồng khí đi qua khe hẹp giữa thân lưỡi và vòm miệng, thanh đới rung rõ ràng, âm thanh sáng và trong.",
-        "grammarNote": "Chú ý nét chữ: Nét bên trái dài và có móc nhẹ, nét bên phải ngắn hơn."
+        "grammarNote": "Chú ý nét chữ: Nét bên trái dài và có móc nhẹ, nét bên phải ngắn hơn.",
+        "speakText": "い。いぬ。"
       },
       {
         "id": "ja-kana-01-s3",
-        "text": "う (U) — [海;うみ] (Umi: Biển cả)",
+        "text": "う — 海（うみ）",
         "phonetic": "u (umi)",
-        "furigana": "う (U) — [海;うみ]",
         "translation": "Chữ う (U) — Ví dụ: 海 (Umi: Biển cả)",
         "mouthShape": "Môi giữ thư giãn hờ, KHÔNG chu tròn môi ra phía trước như âm 'U' tiếng Việt. Khẩu hình phẳng, hơi khép nhẹ.",
         "tonguePosition": "Cuống lưỡi nâng nhẹ lên phía sau, thân lưỡi hơi rút về sau nhưng đầu lưỡi không chạm ngạc.",
         "breathGuide": "Thanh đới rung, luồng hơi êm và trầm nhẹ, nằm giữa âm 'U' và âm 'Ư' trong tiếng Việt.",
-        "grammarNote": "QUAN TRỌNG: Đây là âm người nước ngoài hay phát âm sai nhất. Tuyệt đối không chu mỏ tròn môi. Giữ môi dẹt tự nhiên rồi phát âm giữa U và Ư."
+        "grammarNote": "QUAN TRỌNG: Đây là âm người nước ngoài hay phát âm sai nhất. Tuyệt đối không chu mỏ tròn môi. Giữ môi dẹt tự nhiên rồi phát âm giữa U và Ư.",
+        "speakText": "う。うみ。"
       },
       {
         "id": "ja-kana-01-s4",
-        "text": "え (E) — [駅;えき] (Eki: Nhà ga)",
+        "text": "え — 駅（えき）",
         "phonetic": "e (eki)",
-        "furigana": "え (E) — [駅;えき]",
         "translation": "Chữ え (E) — Ví dụ: 駅 (Eki: Nhà ga)",
         "mouthShape": "Độ mở miệng trung bình giữa âm 'I' và 'A', khóe môi hơi mở rộng tự nhiên sang hai bên.",
         "tonguePosition": "Thân lưỡi nâng cao vừa phải ở khoảng giữa khoang miệng, đầu lưỡi đặt sau chân răng dưới.",
         "breathGuide": "Luồng hơi thoát ra tự do, dây thanh rung rõ ràng, âm thanh dứt khoát không ngân dài.",
-        "grammarNote": "Âm 'E' tiếng Nhật gần giống âm 'Ê' ngắn và nhẹ trong tiếng Việt, không mở rộng miệng bẹt như âm 'E' tiếng Việt."
+        "grammarNote": "Âm 'E' tiếng Nhật gần giống âm 'Ê' ngắn và nhẹ trong tiếng Việt, không mở rộng miệng bẹt như âm 'E' tiếng Việt.",
+        "speakText": "え。えき。"
       },
       {
         "id": "ja-kana-01-s5",
-        "text": "お (O) — [お菓子;おかし] (Okashi: Bánh kẹo)",
+        "text": "お — お菓子（おかし）",
         "phonetic": "o (okashi)",
-        "furigana": "お (O) — [お菓子;おかし]",
         "translation": "Chữ お (O) — Ví dụ: お菓子 (Okashi: Bánh kẹo)",
         "mouthShape": "Môi hơi tròn lại nhưng không chu ra phía trước, độ mở miệng rộng hơn âm 'U' và hẹp hơn âm 'A'.",
         "tonguePosition": "Gốc lưỡi nâng nhẹ về phía vòm họng mềm, thân lưỡi hạ thấp tạo khoang cộng hưởng tròn trong miệng.",
         "breathGuide": "Luồng hơi tròn đầy, thanh đới rung ấm, âm phát ra dứt khoát gọn gàng.",
-        "grammarNote": "Lưu ý không nhầm lẫn nét viết giữa chữ お (O) và chữ あ (A)."
+        "grammarNote": "Lưu ý không nhầm lẫn nét viết giữa chữ お (O) và chữ あ (A).",
+        "speakText": "お。おかし。"
       }
     ]
   },
@@ -76,58 +76,58 @@ export const japaneseLessons: Lesson[] = [
     "sentences": [
       {
         "id": "ja-kana-02-s1",
-        "text": "か (Ka) — [傘;かさ] (Kasa: Cây dù/ô)",
+        "text": "か — 傘（かさ）",
         "phonetic": "ka (kasa)",
-        "furigana": "か (Ka) — [傘;かさ]",
         "translation": "Chữ か (Ka) — Ví dụ: 傘 (Kasa: Cây ô/dù)",
         "mouthShape": "Mở miệng tự nhiên theo nguyên âm [a].",
         "tonguePosition": "Cuống lưỡi nâng lên chạm ngạc mềm (vòm họng trên) chặn luồng hơi rồi hạ nhanh xuống giải phóng hơi.",
         "breathGuide": "Bật hơi nhẹ [k], thanh đới không rung ở phụ âm [k], sau đó rung ngay khi phát âm [a].",
-        "grammarNote": "Trong tiếng Nhật, âm Ka đứng đầu câu bật hơi rõ, đứng giữa câu thường nhẹ hơn gần như 'c/k' tiếng Việt."
+        "grammarNote": "Trong tiếng Nhật, âm Ka đứng đầu câu bật hơi rõ, đứng giữa câu thường nhẹ hơn gần như 'c/k' tiếng Việt.",
+        "speakText": "か。かさ。"
       },
       {
         "id": "ja-kana-02-s2",
-        "text": "き (Ki) — [木;き] (Ki: Cái cây)",
+        "text": "き — 木（き）",
         "phonetic": "ki (ki)",
-        "furigana": "き (Ki) — [木;き]",
         "translation": "Chữ き (Ki) — Ví dụ: 木 (Ki: Cây cối)",
         "mouthShape": "Khóe miệng kéo sang hai bên theo nguyên âm [i].",
         "tonguePosition": "Mặt lưỡi nâng cao ép sát ngạc cứng, tạo điểm cản hơi hẹp phía trước hơn so với Ka.",
         "breathGuide": "Bật hơi sắc gọn qua khe hẹp mặt lưỡi.",
-        "grammarNote": "Chú ý chữ き khi viết tay thường tách rời nét cong phía dưới, khác với font chữ in liền."
+        "grammarNote": "Chú ý chữ き khi viết tay thường tách rời nét cong phía dưới, khác với font chữ in liền.",
+        "speakText": "き。き。"
       },
       {
         "id": "ja-kana-02-s3",
-        "text": "く (Ku) — [車;くるま] (Kuruma: Xe ô tô)",
+        "text": "く — 車（くるま）",
         "phonetic": "ku (kuruma)",
-        "furigana": "く (Ku) — [車;くるま]",
         "translation": "Chữ く (Ku) — Ví dụ: 車 (Kuruma: Xe hơi)",
         "mouthShape": "Môi giữ phẳng tự nhiên theo nguyên âm [u], tuyệt đối không chu mỏ.",
         "tonguePosition": "Cuống lưỡi nâng chạm ngạc mềm rồi bật nhẹ.",
         "breathGuide": "Hơi bật êm ái, âm trầm gọn.",
-        "grammarNote": "Chữ く chỉ gồm 1 nét duy nhất gập góc như dấu ngoặc nhọn mở."
+        "grammarNote": "Chữ く chỉ gồm 1 nét duy nhất gập góc như dấu ngoặc nhọn mở.",
+        "speakText": "く。くるま。"
       },
       {
         "id": "ja-kana-02-s4",
-        "text": "け (Ke) — [毛虫;けむし] (Kemushi: Sâu róm)",
+        "text": "け — 毛虫（けむし）",
         "phonetic": "ke (kemushi)",
-        "furigana": "け (Ke) — [毛虫;けむし]",
         "translation": "Chữ け (Ke) — Ví dụ: 毛虫 (Kemushi: Sâu bướm)",
         "mouthShape": "Miệng mở vừa phải theo nguyên âm [e].",
         "tonguePosition": "Cuống lưỡi nâng nhẹ chạm ngạc mềm rồi mở ra theo hướng nguyên âm [e].",
         "breathGuide": "Khí bật dứt khoát không kéo dài.",
-        "grammarNote": "Nét sổ bên trái hơi cong nhẹ, nét ngang và nét sổ bên phải cân đối."
+        "grammarNote": "Nét sổ bên trái hơi cong nhẹ, nét ngang và nét sổ bên phải cân đối.",
+        "speakText": "け。けむし。"
       },
       {
         "id": "ja-kana-02-s5",
-        "text": "こ (Ko) — [声;こえ] (Koe: Giọng nói)",
+        "text": "こ — 声（こえ）",
         "phonetic": "ko (koe)",
-        "furigana": "こ (Ko) — [声;こえ]",
         "translation": "Chữ こ (Ko) — Ví dụ: 声 (Koe: Tiếng nói/âm thanh)",
         "mouthShape": "Môi hơi khum tròn tự nhiên theo nguyên âm [o].",
         "tonguePosition": "Gốc lưỡi tiếp xúc ngạc mềm rồi tách ra nhanh chóng.",
         "breathGuide": "Hơi tròn trịa, dứt khoát.",
-        "grammarNote": "Chữ こ gồm 2 nét ngang song song cong nhẹ, nét trên ngắn hơn nét dưới."
+        "grammarNote": "Chữ こ gồm 2 nét ngang song song cong nhẹ, nét trên ngắn hơn nét dưới.",
+        "speakText": "こ。こえ。"
       }
     ]
   },
@@ -141,58 +141,58 @@ export const japaneseLessons: Lesson[] = [
     "sentences": [
       {
         "id": "ja-kana-03-s1",
-        "text": "さ (Sa) — [桜;さくら] (Sakura: Hoa anh đào)",
+        "text": "さ — 桜（さくら）",
         "phonetic": "sa (sakura)",
-        "furigana": "さ (Sa) — [桜;さくら]",
         "translation": "Chữ さ (Sa) — Ví dụ: 桜 (Sakura: Hoa anh đào)",
         "mouthShape": "Mở miệng tự nhiên theo nguyên âm [a], răng trên dưới khép gần nhau.",
         "tonguePosition": "Đầu lưỡi đưa sát chân răng hàm trên (không chạm hẳn), tạo khe hở hẹp.",
         "breathGuide": "Đẩy luồng khí ma sát mạnh qua kẽ răng tạo âm gió xát [s], thanh đới không rung ở phụ âm.",
-        "grammarNote": "Giống chữ き, chữ さ khi viết tay thường tách rời nét cong dưới cùng."
+        "grammarNote": "Giống chữ き, chữ さ khi viết tay thường tách rời nét cong dưới cùng.",
+        "speakText": "さ。さくら。"
       },
       {
         "id": "ja-kana-03-s2",
-        "text": "し (Shi) — [白い;しろい] (Shiroi: Màu trắng)",
+        "text": "し — 白い（しろい）",
         "phonetic": "shi (shiroi)",
-        "furigana": "し (Shi) — [白い;しろい]",
         "translation": "Chữ し (Shi) — Ví dụ: 白い (Shiroi: Màu trắng)",
         "mouthShape": "Khóe miệng hơi kéo nhẹ sang hai bên, môi thả lỏng không chu ra.",
         "tonguePosition": "Mặt lưỡi nâng cao áp sát vòm ngạc cứng, đầu lưỡi hướng về chân răng dưới.",
         "breathGuide": "Khí thoát qua khe hẹp giữa mặt lưỡi và vòm miệng, tạo âm xát êm ái [ɕi], giống tiếng suỵt khẽ 'xì' nhẹ.",
-        "grammarNote": "ĐẶC BIỆT: Đây là âm 'Shi' chứ không phải 'Si'. Tuyệt đối không đọc là 'si' như tiếng Việt."
+        "grammarNote": "ĐẶC BIỆT: Đây là âm 'Shi' chứ không phải 'Si'. Tuyệt đối không đọc là 'si' như tiếng Việt.",
+        "speakText": "し。しろい。"
       },
       {
         "id": "ja-kana-03-s3",
-        "text": "す (Su) — [寿司;すし] (Sushi: Món sushi)",
+        "text": "す — 寿司（すし）",
         "phonetic": "su (sushi)",
-        "furigana": "す (Su) — [寿司;すし]",
         "translation": "Chữ す (Su) — Ví dụ: 寿司 (Sushi: Món sushi)",
         "mouthShape": "Răng khép gần nhau, môi giữ phẳng tự nhiên không chu tròn.",
         "tonguePosition": "Đầu lưỡi đặt sát mặt sau chân răng trên, khí ma sát thoát ra ngoài.",
         "breathGuide": "Âm xát nhẹ, luồng khí đều.",
-        "grammarNote": "Trong câu giao tiếp khi ở cuối từ (ví dụ: です - desu, ます - masu), nguyên âm 'u' thường bị nuốt (vô thanh hóa), phát âm gần như 'des', 'mas'."
+        "grammarNote": "Trong câu giao tiếp khi ở cuối từ (ví dụ: です - desu, ます - masu), nguyên âm 'u' thường bị nuốt (vô thanh hóa), phát âm gần như 'des', 'mas'.",
+        "speakText": "す。すし。"
       },
       {
         "id": "ja-kana-03-s4",
-        "text": "せ (Se) — [世界;せかい] (Sekai: Thế giới)",
+        "text": "せ — 世界（せかい）",
         "phonetic": "se (sekai)",
-        "furigana": "せ (Se) — [世界;せかい]",
         "translation": "Chữ せ (Se) — Ví dụ: 世界 (Sekai: Thế giới)",
         "mouthShape": "Mở miệng vừa phải theo nguyên âm [e].",
         "tonguePosition": "Đầu lưỡi sát chân răng trên xát nhẹ rồi mở ra nguyên âm [e].",
         "breathGuide": "Âm gió thoát thanh thoát, dứt khoát.",
-        "grammarNote": "Nét ngang dài đầu tiên, sau đó nét sổ có móc bên phải và nét sổ thẳng bên trái."
+        "grammarNote": "Nét ngang dài đầu tiên, sau đó nét sổ có móc bên phải và nét sổ thẳng bên trái.",
+        "speakText": "せ。せかい。"
       },
       {
         "id": "ja-kana-03-s5",
-        "text": "そ (So) — [空;そら] (Sora: Bầu trời)",
+        "text": "そ — 空（そら）",
         "phonetic": "so (sora)",
-        "furigana": "そ (So) — [空;そら]",
         "translation": "Chữ そ (So) — Ví dụ: 空 (Sora: Bầu trời)",
         "mouthShape": "Môi hơi khum tròn theo nguyên âm [o].",
         "tonguePosition": "Đầu lưỡi sát chân răng trên phát âm xát [s] rồi chuyển mượt mà sang [o].",
         "breathGuide": "Khí thoát êm ái, thanh đới rung theo [o].",
-        "grammarNote": "Chữ そ viết liền mạch thành một nét zic-zac uốn cong mềm mại."
+        "grammarNote": "Chữ そ viết liền mạch thành một nét zic-zac uốn cong mềm mại.",
+        "speakText": "そ。そら。"
       }
     ]
   },
@@ -206,58 +206,58 @@ export const japaneseLessons: Lesson[] = [
     "sentences": [
       {
         "id": "ja-kana-04-s1",
-        "text": "た (Ta) — [食べる;たべる] (Taberu: Ăn uống)",
+        "text": "た — 食べる（たべる）",
         "phonetic": "ta (taberu)",
-        "furigana": "た (Ta) — [食;た]べる",
         "translation": "Chữ た (Ta) — Ví dụ: 食べる (Taberu: Ăn uống)",
         "mouthShape": "Mở tự nhiên theo nguyên âm [a].",
         "tonguePosition": "Đầu lưỡi chạm chặt vào chân răng trên chặn hơi, rồi bật nhanh xuống.",
         "breathGuide": "Bật hơi tắc [t] dứt khoát, thanh đới không rung ở phụ âm.",
-        "grammarNote": "Chữ た có hình dáng gần giống chữ 't' kết hợp 'a' trong ký tự Latinh."
+        "grammarNote": "Chữ た có hình dáng gần giống chữ 't' kết hợp 'a' trong ký tự Latinh.",
+        "speakText": "た。たべる。"
       },
       {
         "id": "ja-kana-04-s2",
-        "text": "ち (Chi) — [地下鉄;ちかてつ] (Chikatetsu: Tàu điện ngầm)",
+        "text": "ち — 地下鉄（ちかてつ）",
         "phonetic": "chi (chikatetsu)",
-        "furigana": "ち (Chi) — [地下鉄;ちかてつ]",
         "translation": "Chữ ち (Chi) — Ví dụ: 地下鉄 (Chikatetsu: Tàu điện ngầm)",
         "mouthShape": "Khóe môi hơi mở rộng sang hai bên, miệng hé mở nhẹ.",
         "tonguePosition": "Mặt lưỡi trước ép chặt vào ngạc cứng chặn hơi, sau đó mở ra một khe hẹp để khí ma sát thoát ra.",
         "breathGuide": "Âm tắc xát [tɕi], kết hợp giữa chặn hơi và xát nhẹ, tương tự âm 'ch' tiếng Việt nhưng đầu lưỡi hướng thấp hơn.",
-        "grammarNote": "LƯU Ý: Đây là 'Chi' chứ không phải 'Ti'."
+        "grammarNote": "LƯU Ý: Đây là 'Chi' chứ không phải 'Ti'.",
+        "speakText": "ち。ちかてつ。"
       },
       {
         "id": "ja-kana-04-s3",
-        "text": "つ (Tsu) — [机;つくえ] (Tsukue: Cái bàn học)",
+        "text": "つ — 机（つくえ）",
         "phonetic": "tsu (tsukue)",
-        "furigana": "つ (Tsu) — [机;つくえ]",
         "translation": "Chữ つ (Tsu) — Ví dụ: 机 (Tsukue: Cái bàn)",
         "mouthShape": "Hai hàm răng khép gần sát nhau, môi giữ phẳng tự nhiên không chu ra.",
         "tonguePosition": "Đầu lưỡi chạm sát mặt sau răng cửa trên chặn luồng hơi, sau đó hơi rút lại hé một khe cực hẹp để luồng khí bật xát qua.",
         "breathGuide": "Âm tắc xát [tsɯ]. Bật hơi dứt khoát nghe như tiếng xì gió sắc sảo 'ts'.",
-        "grammarNote": "QUAN TRỌNG: Không phát âm thành 'chu' hay 'su'. Hãy đặt lưỡi vị trí chữ 't', bật xì hơi ra thành 'tsu'."
+        "grammarNote": "QUAN TRỌNG: Không phát âm thành 'chu' hay 'su'. Hãy đặt lưỡi vị trí chữ 't', bật xì hơi ra thành 'tsu'.",
+        "speakText": "つ。つくえ。"
       },
       {
         "id": "ja-kana-04-s4",
-        "text": "て (Te) — [手紙;てがみ] (Tegami: Bức thư)",
+        "text": "て — 手紙（てがみ）",
         "phonetic": "te (tegami)",
-        "furigana": "て (Te) — [手紙;てがみ]",
         "translation": "Chữ て (Te) — Ví dụ: 手紙 (Tegami: Bức thư)",
         "mouthShape": "Miệng mở vừa phải theo nguyên âm [e].",
         "tonguePosition": "Đầu lưỡi chạm chân răng trên bật hơi [t] rồi hạ nhanh xuống.",
         "breathGuide": "Bật hơi gọn gàng, thanh đới rung theo [e].",
-        "grammarNote": "Chữ て là nét vẽ liên tục hình lưỡi câu nằm ngang uốn cong."
+        "grammarNote": "Chữ て là nét vẽ liên tục hình lưỡi câu nằm ngang uốn cong.",
+        "speakText": "て。てがみ。"
       },
       {
         "id": "ja-kana-04-s5",
-        "text": "と (To) — [友達;ともだち] (Tomodachi: Bạn bè)",
+        "text": "と — 友達（ともだち）",
         "phonetic": "to (tomodachi)",
-        "furigana": "と (To) — [友達;ともだち]",
         "translation": "Chữ と (To) — Ví dụ: 友達 (Tomodachi: Bạn bè thân thiết)",
         "mouthShape": "Môi hơi khum tròn theo nguyên âm [o].",
         "tonguePosition": "Đầu lưỡi chạm chân răng trên bật dứt khoát.",
         "breathGuide": "Luồng hơi gọn, không kéo dài hơi thừa.",
-        "grammarNote": "Chữ と gồm một nét sổ ngắn hơi nghiêng và một nét cong tròn bên dưới."
+        "grammarNote": "Chữ と gồm một nét sổ ngắn hơi nghiêng và một nét cong tròn bên dưới.",
+        "speakText": "と。ともだち。"
       }
     ]
   },
@@ -271,58 +271,58 @@ export const japaneseLessons: Lesson[] = [
     "sentences": [
       {
         "id": "ja-kana-05-s1",
-        "text": "な (Na) — [夏;なつ] (Natsu: Mùa hè)",
+        "text": "な — 夏（なつ）",
         "phonetic": "na (natsu)",
-        "furigana": "な (Na) — [夏;なつ]",
         "translation": "Chữ な (Na) — Ví dụ: 夏 (Natsu: Mùa hạ)",
         "mouthShape": "Mở tự nhiên theo [a].",
         "tonguePosition": "Đầu lưỡi chạm vào vòm răng trên đóng kín khoang miệng.",
         "breathGuide": "Hạ ngạc mềm để luồng hơi thoát hoàn toàn qua khoang mũi tạo âm vang, sau đó hạ đầu lưỡi phát âm [a].",
-        "grammarNote": "Thanh đới rung suốt từ phụ âm [n] sang nguyên âm [a]."
+        "grammarNote": "Thanh đới rung suốt từ phụ âm [n] sang nguyên âm [a].",
+        "speakText": "な。なつ。"
       },
       {
         "id": "ja-kana-05-s2",
-        "text": "に (Ni) — [日本;にほん] (Nihon: Đất nước Nhật Bản)",
+        "text": "に — 日本（にほん）",
         "phonetic": "ni (nihon)",
-        "furigana": "に (Ni) — [日本;にほん]",
         "translation": "Chữ に (Ni) — Ví dụ: 日本 (Nihon: Nhật Bản)",
         "mouthShape": "Khóe miệng kéo nhẹ sang hai bên.",
         "tonguePosition": "Mặt lưỡi áp sát ngạc cứng, âm mũi ngạc hóa [ɲi].",
         "breathGuide": "Hơi mũi thoát êm, âm sáng rõ.",
-        "grammarNote": "Phát âm gần giống 'nhi' trong tiếng Việt nhưng gọn gàng hơn."
+        "grammarNote": "Phát âm gần giống 'nhi' trong tiếng Việt nhưng gọn gàng hơn.",
+        "speakText": "に。にほん。"
       },
       {
         "id": "ja-kana-05-s3",
-        "text": "ぬ (Nu) — [ぬいぐるみ] (Nuigurumi: Thú nhồi bông)",
+        "text": "ぬ — ぬいぐるみ",
         "phonetic": "nu (nuigurumi)",
-        "furigana": "ぬ (Nu) — [ぬいぐるみ]",
         "translation": "Chữ ぬ (Nu) — Ví dụ: ぬいぐるみ (Nuigurumi: Gấu bông)",
         "mouthShape": "Môi giữ phẳng tự nhiên theo nguyên âm [u], không chu môi.",
         "tonguePosition": "Đầu lưỡi áp chân răng trên, thoát hơi qua mũi.",
         "breathGuide": "Âm mũi ấm, kết thúc gọn.",
-        "grammarNote": "Chú ý chữ ぬ có vòng xoắn tròn nhỏ ở đuôi nét cuối cùng, tránh nhầm với chữ め (Me)."
+        "grammarNote": "Chú ý chữ ぬ có vòng xoắn tròn nhỏ ở đuôi nét cuối cùng, tránh nhầm với chữ め (Me).",
+        "speakText": "ぬ。ぬいぐるみ。"
       },
       {
         "id": "ja-kana-05-s4",
-        "text": "ね (Ne) — [猫;ねこ] (Neko: Con mèo)",
+        "text": "ね — 猫（ねこ）",
         "phonetic": "ne (neko)",
-        "furigana": "ね (Ne) — [猫;ねこ]",
         "translation": "Chữ ね (Ne) — Ví dụ: 猫 (Neko: Con mèo)",
         "mouthShape": "Mở miệng vừa phải theo [e].",
         "tonguePosition": "Đầu lưỡi chạm chân răng trên rồi tách ra sang [e].",
         "breathGuide": "Âm vang mũi nhẹ nhàng.",
-        "grammarNote": "Chữ ね cũng có vòng xoắn nhỏ ở đuôi, nét đầu sổ thẳng bên trái."
+        "grammarNote": "Chữ ね cũng có vòng xoắn nhỏ ở đuôi, nét đầu sổ thẳng bên trái.",
+        "speakText": "ね。ねこ。"
       },
       {
         "id": "ja-kana-05-s5",
-        "text": "の (No) — [飲み物;のみもの] (Nomimono: Đồ uống)",
+        "text": "の — 飲み物（のみもの）",
         "phonetic": "no (nomimono)",
-        "furigana": "の (No) — [飲;の]み[物;もの]",
         "translation": "Chữ の (No) — Ví dụ: 飲み物 (Nomimono: Thức uống)",
         "mouthShape": "Môi hơi khum tròn theo [o].",
         "tonguePosition": "Đầu lưỡi tiếp xúc chân răng trên rồi mở ra [o].",
         "breathGuide": "Âm mũi êm ấm tròn vành.",
-        "grammarNote": "Chữ の gồm 1 nét uốn tròn xoắn ốc cực kỳ duyên dáng."
+        "grammarNote": "Chữ の gồm 1 nét uốn tròn xoắn ốc cực kỳ duyên dáng.",
+        "speakText": "の。のみもの。"
       }
     ]
   },
@@ -336,58 +336,58 @@ export const japaneseLessons: Lesson[] = [
     "sentences": [
       {
         "id": "ja-kana-06-s1",
-        "text": "は (Ha) — [花;はな] (Hana: Bông hoa)",
+        "text": "は — 花（はな）",
         "phonetic": "ha (hana)",
-        "furigana": "は (Ha) — [花;はな]",
         "translation": "Chữ は (Ha) — Ví dụ: 花 (Hana: Hoa tươi)",
         "mouthShape": "Mở tự nhiên theo [a].",
         "tonguePosition": "Lưỡi thả lỏng hoàn toàn trong khoang miệng.",
         "breathGuide": "Đẩy nhẹ luồng hơi qua khe thanh môn trong cổ họng tạo âm thở nhẹ nhàng [ha].",
-        "grammarNote": "Khi đóng vai trò là trợ từ chủ ngữ trong câu, chữ は được phát âm là 'Wa' (ví dụ: わたしは - Watashi wa)."
+        "grammarNote": "Khi đóng vai trò là trợ từ chủ ngữ trong câu, chữ は được phát âm là 'Wa' (ví dụ: わたしは - Watashi wa).",
+        "speakText": "は。はな。"
       },
       {
         "id": "ja-kana-06-s2",
-        "text": "ひ (Hi) — [飛行機;ひこうき] (Hikouki: Máy bay)",
+        "text": "ひ — 飛行機（ひこうき）",
         "phonetic": "hi (hikouki)",
-        "furigana": "ひ (Hi) — [飛行機;ひこうき]",
         "translation": "Chữ ひ (Hi) — Ví dụ: 飛行機 (Hikouki: Máy bay)",
         "mouthShape": "Khóe miệng kéo sang hai bên.",
         "tonguePosition": "Mặt lưỡi nâng cao áp sát vòm ngạc cứng tạo khe hẹp.",
         "breathGuide": "Khí thoát cọ xát vào ngạc cứng tạo âm xát vòm [çi], nghe như tiếng thở dài khẽ khàng.",
-        "grammarNote": "Chữ ひ chỉ gồm 1 nét cong võng xuống như chiếc chén."
+        "grammarNote": "Chữ ひ chỉ gồm 1 nét cong võng xuống như chiếc chén.",
+        "speakText": "ひ。ひこうき。"
       },
       {
         "id": "ja-kana-06-s3",
-        "text": "ふ (Fu) — [富士山;ふじさん] (Fujisan: Núi Phú Sĩ)",
+        "text": "ふ — 富士山（ふじさん）",
         "phonetic": "fu (fujisan)",
-        "furigana": "ふ (Fu) — [富士山;ふじさん]",
         "translation": "Chữ ふ (Fu) — Ví dụ: 富士山 (Fujisan: Núi Phú Sĩ)",
         "mouthShape": "Hai môi khép hờ để lại một khe hở nhỏ tự nhiên, TUYỆT ĐỐI KHÔNG dùng răng trên cắn môi dưới như âm 'F' tiếng Việt.",
         "tonguePosition": "Lưỡi thả lỏng tự nhiên ở đáy khoang miệng.",
         "breathGuide": "Thổi nhẹ luồng hơi ma sát qua khe giữa hai cánh môi [ɸɯ], tựa như động tác thổi tắt ngọn nến dịu dàng.",
-        "grammarNote": "ĐẶC BIỆT QUAN TRỌNG: Đây là âm hai môi (bilabial), không phải âm môi răng (labiodental). Không cắn môi!"
+        "grammarNote": "ĐẶC BIỆT QUAN TRỌNG: Đây là âm hai môi (bilabial), không phải âm môi răng (labiodental). Không cắn môi!",
+        "speakText": "ふ。ふじさん。"
       },
       {
         "id": "ja-kana-06-s4",
-        "text": "へ (He) — [部屋;へや] (Heya: Căn phòng)",
+        "text": "へ — 部屋（へや）",
         "phonetic": "he (heya)",
-        "furigana": "へ (He) — [部屋;へや]",
         "translation": "Chữ へ (He) — Ví dụ: 部屋 (Heya: Phòng ở)",
         "mouthShape": "Mở vừa phải theo [e].",
         "tonguePosition": "Lưỡi thả lỏng, hơi thở từ họng thoát êm qua miệng.",
         "breathGuide": "Hơi thở nhẹ nhàng không gắt.",
-        "grammarNote": "Khi đóng vai trò là trợ từ chỉ phương hướng di chuyển, chữ へ được phát âm là 'E' (ví dụ: 日本へ行く - Nihon e iku)."
+        "grammarNote": "Khi đóng vai trò là trợ từ chỉ phương hướng di chuyển, chữ へ được phát âm là 'E' (ví dụ: 日本へ行く - Nihon e iku).",
+        "speakText": "へ。へや。"
       },
       {
         "id": "ja-kana-06-s5",
-        "text": "ほ (Ho) — [星;ほし] (Hoshi: Ngôi sao)",
+        "text": "ほ — 星（ほし）",
         "phonetic": "ho (hoshi)",
-        "furigana": "ほ (Ho) — [星;ほし]",
         "translation": "Chữ ほ (Ho) — Ví dụ: 星 (Hoshi: Ngôi sao sáng)",
         "mouthShape": "Môi hơi khum tròn theo [o].",
         "tonguePosition": "Lưỡi hạ thấp phía sau, hơi thở ấm từ họng đi ra.",
         "breathGuide": "Âm gió ấm áp, tròn vành dứt khoát.",
-        "grammarNote": "Chữ ほ có nét ngang trên cùng KHÔNG bị nét sổ đâm xuyên qua (khác với chữ ま Ma)."
+        "grammarNote": "Chữ ほ có nét ngang trên cùng KHÔNG bị nét sổ đâm xuyên qua (khác với chữ ま Ma).",
+        "speakText": "ほ。ほし。"
       }
     ]
   },
@@ -401,58 +401,58 @@ export const japaneseLessons: Lesson[] = [
     "sentences": [
       {
         "id": "ja-kana-07-s1",
-        "text": "ま (Ma) — [街;まち] (Machi: Phố phường)",
+        "text": "ま — 街（まち）",
         "phonetic": "ma (machi)",
-        "furigana": "ま (Ma) — [街;まち]",
         "translation": "Chữ ま (Ma) — Ví dụ: 街 (Machi: Khu phố)",
         "mouthShape": "Hai môi khép mím nhẹ lại, sau đó mở ra theo nguyên âm [a].",
         "tonguePosition": "Lưỡi thả lỏng tự nhiên.",
         "breathGuide": "Khí thoát qua mũi khi hai môi đang mím, dây thanh rung rền nhẹ, rồi giải phóng qua miệng.",
-        "grammarNote": "Nét sổ dọc đâm xuyên qua cả 2 nét ngang (khác với chữ ほ Ho)."
+        "grammarNote": "Nét sổ dọc đâm xuyên qua cả 2 nét ngang (khác với chữ ほ Ho).",
+        "speakText": "ま。まち。"
       },
       {
         "id": "ja-kana-07-s2",
-        "text": "み (Mi) — [道;みち] (Michi: Con đường)",
+        "text": "み — 道（みち）",
         "phonetic": "mi (michi)",
-        "furigana": "み (Mi) — [道;みち]",
         "translation": "Chữ み (Mi) — Ví dụ: 道 (Michi: Con đường)",
         "mouthShape": "Mím môi rồi mở sang hai bên theo [i].",
         "tonguePosition": "Mặt lưỡi nâng cao về phía ngạc cứng.",
         "breathGuide": "Âm mũi ngạc hóa mềm mại.",
-        "grammarNote": "Nét viết uyển chuyển vòng qua một vòng tròn nhỏ rồi kéo sang phải."
+        "grammarNote": "Nét viết uyển chuyển vòng qua một vòng tròn nhỏ rồi kéo sang phải.",
+        "speakText": "み。みち。"
       },
       {
         "id": "ja-kana-07-s3",
-        "text": "む (Mu) — [昔;むかし] (Mukashi: Ngày xưa)",
+        "text": "む — 昔（むかし）",
         "phonetic": "mu (mukashi)",
-        "furigana": "む (Mu) — [昔;むかし]",
         "translation": "Chữ む (Mu) — Ví dụ: 昔 (Mukashi: Ngày xửa ngày xưa)",
         "mouthShape": "Môi khép nhẹ rồi mở ra trạng thái phẳng của [u], không chu môi.",
         "tonguePosition": "Lưỡi hơi rút về sau nhẹ.",
         "breathGuide": "Âm mũi trầm ấm êm dịu.",
-        "grammarNote": "Chữ む gồm nét ngang, nét sổ vòng xoắn có móc và một dấu phẩy bên phải."
+        "grammarNote": "Chữ む gồm nét ngang, nét sổ vòng xoắn có móc và một dấu phẩy bên phải.",
+        "speakText": "む。むかし。"
       },
       {
         "id": "ja-kana-07-s4",
-        "text": "め (Me) — [目;め] (Me: Đôi mắt)",
+        "text": "め — 目（め）",
         "phonetic": "me (me)",
-        "furigana": "め (Me) — [目;め]",
         "translation": "Chữ め (Me) — Ví dụ: 目 (Me: Con mắt)",
         "mouthShape": "Mím môi mở ra vừa phải theo [e].",
         "tonguePosition": "Lưỡi đặt vị trí tự nhiên của [e].",
         "breathGuide": "Luồng hơi dứt khoát.",
-        "grammarNote": "Chữ め không có vòng xoắn tròn ở đuôi (khác với chữ ぬ Nu)."
+        "grammarNote": "Chữ め không có vòng xoắn tròn ở đuôi (khác với chữ ぬ Nu).",
+        "speakText": "め。め。"
       },
       {
         "id": "ja-kana-07-s5",
-        "text": "も (Mo) — [森;もり] (Mori: Rừng rậm)",
+        "text": "も — 森（もり）",
         "phonetic": "mo (mori)",
-        "furigana": "も (Mo) — [森;もり]",
         "translation": "Chữ も (Mo) — Ví dụ: 森 (Mori: Rừng cây xanh)",
         "mouthShape": "Mím môi rồi mở ra hình khum tròn theo [o].",
         "tonguePosition": "Lưỡi hạ thấp phía sau.",
         "breathGuide": "Âm vang tròn trịa.",
-        "grammarNote": "Thứ tự viết: Nét sổ có móc câu viết trước, sau đó mới viết 2 nét ngang."
+        "grammarNote": "Thứ tự viết: Nét sổ có móc câu viết trước, sau đó mới viết 2 nét ngang.",
+        "speakText": "も。もり。"
       }
     ]
   },
@@ -466,69 +466,69 @@ export const japaneseLessons: Lesson[] = [
     "sentences": [
       {
         "id": "ja-kana-08-s1",
-        "text": "や (Ya) — [山;やま] (Yama: Ngọn núi)",
+        "text": "や — 山（やま）",
         "phonetic": "ya (yama)",
-        "furigana": "や (Ya) — [山;やま]",
         "translation": "Chữ や (Ya) — Ví dụ: 山 (Yama: Núi cao)",
         "mouthShape": "Khởi đầu từ vị trí hẹp của nguyên âm [i] rồi lướt thật nhanh mở rộng sang nguyên âm [a].",
         "tonguePosition": "Mặt lưỡi nâng cao sát ngạc rồi hạ nhanh xuống đáy miệng.",
         "breathGuide": "Dây thanh rung liên tục, tạo âm lướt bán nguyên âm [ja].",
-        "grammarNote": "Hàng Ya chỉ có 3 âm: Ya, Yu, Yo (không có Yi và Ye)."
+        "grammarNote": "Hàng Ya chỉ có 3 âm: Ya, Yu, Yo (không có Yi và Ye).",
+        "speakText": "や。やま。"
       },
       {
         "id": "ja-kana-08-s2",
-        "text": "ゆ (Yu) — [雪;ゆき] (Yuki: Tuyết trắng)",
+        "text": "ゆ — 雪（ゆき）",
         "phonetic": "yu (yuki)",
-        "furigana": "ゆ (Yu) — [雪;ゆき]",
         "translation": "Chữ ゆ (Yu) — Ví dụ: 雪 (Yuki: Tuyết rơi)",
         "mouthShape": "Khởi đầu từ [i] lướt nhanh sang khẩu hình phẳng của [u], không chu môi.",
         "tonguePosition": "Thân lưỡi nâng cao rồi lùi nhẹ về sau.",
         "breathGuide": "Âm lướt mềm mại [jɯ].",
-        "grammarNote": "Nét cong rộng đẹp mắt, nét sổ đâm thẳng cắt ngang nét cong."
+        "grammarNote": "Nét cong rộng đẹp mắt, nét sổ đâm thẳng cắt ngang nét cong.",
+        "speakText": "ゆ。ゆき。"
       },
       {
         "id": "ja-kana-08-s3",
-        "text": "よ (Yo) — [夜;よる] (Yoru: Đêm tối)",
+        "text": "よ — 夜（よる）",
         "phonetic": "yo (yoru)",
-        "furigana": "よ (Yo) — [夜;よる]",
         "translation": "Chữ よ (Yo) — Ví dụ: 夜 (Yoru: Màn đêm)",
         "mouthShape": "Lướt từ vị trí [i] sang khẩu hình tròn môi khum của [o].",
         "tonguePosition": "Mặt lưỡi hạ nhanh từ cao xuống thấp.",
         "breathGuide": "Âm phát ra tròn trịa dứt khoát [jo].",
-        "grammarNote": "Gồm nét ngang ngắn và nét sổ có vòng xoắn hướng sang trái."
+        "grammarNote": "Gồm nét ngang ngắn và nét sổ có vòng xoắn hướng sang trái.",
+        "speakText": "よ。よる。"
       },
       {
         "id": "ja-kana-08-s4",
-        "text": "わ (Wa) — [私;わたし] (Watashi: Tôi/Bản thân)",
+        "text": "わ — 私（わたし）",
         "phonetic": "wa (watashi)",
-        "furigana": "わ (Wa) — [私;わたし]",
         "translation": "Chữ わ (Wa) — Ví dụ: 私 (Watashi: Tôi)",
         "mouthShape": "Môi hơi khép nhẹ rồi mở lướt nhanh sang [a].",
         "tonguePosition": "Lưỡi hạ thấp tự do.",
         "breathGuide": "Bán nguyên âm môi [w], âm thanh trong sáng.",
-        "grammarNote": "Chú ý lưng chữ cong tròn ra ngoài, tránh nhầm với chữ れ (Re) hay ね (Ne)."
+        "grammarNote": "Chú ý lưng chữ cong tròn ra ngoài, tránh nhầm với chữ れ (Re) hay ね (Ne).",
+        "speakText": "わ。わたし。"
       },
       {
         "id": "ja-kana-08-s5",
-        "text": "を (Wo/O) — [本を読む;ほんをよむ] (Hon o yomu: Đọc sách)",
+        "text": "を — 本を読む（ほんをよむ）",
         "phonetic": "o / wo (hon o yomu)",
-        "furigana": "を (Wo/O) — [本;ほん]を[読;よ]む",
         "translation": "Chữ を (Wo/O) — Ví dụ: Trợ từ chỉ tân ngữ trực tiếp",
         "mouthShape": "Trong tiếng Nhật hiện đại phát âm giống hệt nguyên âm [o].",
         "tonguePosition": "Lưỡi đặt vị trí của [o].",
         "breathGuide": "Dây thanh rung tròn vành.",
-        "grammarNote": "Chữ を CHỈ dùng làm trợ từ trong ngữ pháp, không bao giờ đứng đầu một từ vựng độc lập."
+        "grammarNote": "Chữ を CHỈ dùng làm trợ từ trong ngữ pháp, không bao giờ đứng đầu một từ vựng độc lập.",
+        "speakText": "を。ほんをよむ。"
       },
       {
         "id": "ja-kana-08-s6",
-        "text": "ん (N) — [本;ほん] (Hon: Cuốn sách)",
+        "text": "ん — 本（ほん）",
         "phonetic": "n (hon)",
-        "furigana": "ん (N) — [本;ほん]",
         "translation": "Chữ ん (N) — Âm mũi đứng cuối từ (chiếm trọn 1 phách morae)",
         "mouthShape": "Đóng khoang miệng (tùy phụ âm đi sau: mím môi trước m/b/p; chạm răng trước t/d/n; nâng cuống lưỡi trước k/g).",
         "tonguePosition": "Lưỡi bịt kín khoang miệng để âm vang hoàn toàn trong khoang mũi.",
         "breathGuide": "Dây thanh rung rền ấm trong mũi, giữ độ dài đúng 1 phách (mora).",
-        "grammarNote": "QUAN TRỌNG: Chữ ん chiếm đúng 1 nhịp thời gian (1 phách), không đọc lướt nhanh như âm n/ng tiếng Việt."
+        "grammarNote": "QUAN TRỌNG: Chữ ん chiếm đúng 1 nhịp thời gian (1 phách), không đọc lướt nhanh như âm n/ng tiếng Việt.",
+        "speakText": "ん。ほん。"
       }
     ]
   },
@@ -542,58 +542,58 @@ export const japaneseLessons: Lesson[] = [
     "sentences": [
       {
         "id": "ja-kana-09-s1",
-        "text": "ら (Ra) — [桜;さくら] (Sakura: Hoa anh đào)",
+        "text": "ら — 桜（さくら）",
         "phonetic": "ra (sakura)",
-        "furigana": "ら (Ra) — [桜;さくら]",
         "translation": "Chữ ら (Ra) — Ví dụ: 桜 (Sakura: Hoa anh đào)",
         "mouthShape": "Mở tự nhiên theo nguyên âm [a].",
         "tonguePosition": "Đầu lưỡi cong lên gảy vỗ thật nhanh một cái vào phần ngạc cứng (ngay sau chân răng hàm trên) rồi rơi xuống ngay.",
         "breathGuide": "Âm vỗ đầu lưỡi [ɾa]. Dây thanh rung, luồng hơi lách qua trong khoảnh khắc đầu lưỡi vỗ.",
-        "grammarNote": "LƯU Ý: Đây là âm gảy nhịp đơn (Alveolar Tap), tuyệt đối không uốn lưỡi rung 'rrrrr'."
+        "grammarNote": "LƯU Ý: Đây là âm gảy nhịp đơn (Alveolar Tap), tuyệt đối không uốn lưỡi rung 'rrrrr'.",
+        "speakText": "ら。さくら。"
       },
       {
         "id": "ja-kana-09-s2",
-        "text": "り (Ri) — [林檎;りんご] (Ringo: Quả táo)",
+        "text": "り — 林檎（りんご）",
         "phonetic": "ri (ringo)",
-        "furigana": "り (Ri) — [林檎;りんご]",
         "translation": "Chữ り (Ri) — Ví dụ: 林檎 (Ringo: Quả táo)",
         "mouthShape": "Khóe miệng kéo sang hai bên theo [i].",
         "tonguePosition": "Đầu lưỡi gảy nhẹ vào ngạc trên rồi mở sang [i].",
         "breathGuide": "Âm thanh trong trẻo, dứt khoát [ɾi].",
-        "grammarNote": "Nét trái ngắn, nét phải dài cong nhẹ xuống dưới."
+        "grammarNote": "Nét trái ngắn, nét phải dài cong nhẹ xuống dưới.",
+        "speakText": "り。りんご。"
       },
       {
         "id": "ja-kana-09-s3",
-        "text": "る (Ru) — [春;はる] (Haru: Mùa xuân)",
+        "text": "る — 春（はる）",
         "phonetic": "ru (haru)",
-        "furigana": "る (Ru) — [春;はる]",
         "translation": "Chữ る (Ru) — Ví dụ: 春 (Haru: Mùa xuân ấm áp)",
         "mouthShape": "Môi phẳng tự nhiên theo [u], không chu môi.",
         "tonguePosition": "Đầu lưỡi gảy nhanh vào ngạc cứng chân răng trên.",
         "breathGuide": "Âm thanh gọn gàng [ɾɯ].",
-        "grammarNote": "Chữ る có vòng tròn xoắn ở cuối nét, phân biệt với chữ ろ (Ro) không có vòng xoắn."
+        "grammarNote": "Chữ る có vòng tròn xoắn ở cuối nét, phân biệt với chữ ろ (Ro) không có vòng xoắn.",
+        "speakText": "る。はる。"
       },
       {
         "id": "ja-kana-09-s4",
-        "text": "れ (Re) — [歴史;れきし] (Rekishi: Lịch sử)",
+        "text": "れ — 歴史（れきし）",
         "phonetic": "re (rekishi)",
-        "furigana": "れ (Re) — [歴史;れきし]",
         "translation": "Chữ れ (Re) — Ví dụ: 歴史 (Rekishi: Lịch sử hào hùng)",
         "mouthShape": "Mở miệng vừa phải theo [e].",
         "tonguePosition": "Đầu lưỡi gảy nhẹ rồi mở sang [e].",
         "breathGuide": "Luồng hơi êm, dứt khoát.",
-        "grammarNote": "Nét đuôi lượn móc ra phía ngoài (khác chữ わ cong vào trong, và chữ ね xoắn ốc)."
+        "grammarNote": "Nét đuôi lượn móc ra phía ngoài (khác chữ わ cong vào trong, và chữ ね xoắn ốc).",
+        "speakText": "れ。れきし。"
       },
       {
         "id": "ja-kana-09-s5",
-        "text": "ろ (Ro) — [廊下;ろうか] (Rouka: Hành lang)",
+        "text": "ろ — 廊下（ろうか）",
         "phonetic": "ro (rouka)",
-        "furigana": "ろ (Ro) — [廊下;ろうか]",
         "translation": "Chữ ろ (Ro) — Ví dụ: 廊下 (Rouka: Hành lang)",
         "mouthShape": "Môi hơi khum tròn theo [o].",
         "tonguePosition": "Đầu lưỡi gảy một nhịp nhanh vào ngạc cứng chân răng trên.",
         "breathGuide": "Âm tròn đầy, thanh thoát.",
-        "grammarNote": "Chữ ろ giống hệt chữ る nhưng phần đuôi mở tự do không có xoắn tròn."
+        "grammarNote": "Chữ ろ giống hệt chữ る nhưng phần đuôi mở tự do không có xoắn tròn.",
+        "speakText": "ろ。ろうか。"
       }
     ]
   },
@@ -607,58 +607,58 @@ export const japaneseLessons: Lesson[] = [
     "sentences": [
       {
         "id": "ja-kana-10-s1",
-        "text": "が (Ga) — [学校;がっこう] (Gakkou: Trường học)",
+        "text": "が — 学校（がっこう）",
         "phonetic": "ga (gakkou)",
-        "furigana": "が (Ga) — [学校;がっこう]",
         "translation": "Hàng Ga (が ぎ ぐ げ ご) — Ví dụ: 学校 (Trường học)",
         "mouthShape": "Khẩu hình giống hàng Ka.",
         "tonguePosition": "Cuống lưỡi nâng chặn ngạc mềm.",
         "breathGuide": "RUNG MẠNH DÂY THANH QUẢN ngay từ lúc bắt đầu chặn hơi [g], tạo âm đục trầm ấm.",
-        "grammarNote": "Khi đứng giữa câu, người Tokyo truyền thống thường phát âm ngạc mềm mũi nhẹ [ŋa]."
+        "grammarNote": "Khi đứng giữa câu, người Tokyo truyền thống thường phát âm ngạc mềm mũi nhẹ [ŋa].",
+        "speakText": "が。がっこう。"
       },
       {
         "id": "ja-kana-10-s2",
-        "text": "ざ (Za) / じ (Ji) — [時間;じかん] (Jikan: Thời gian)",
+        "text": "ざ / じ — 時間（じかん）",
         "phonetic": "za / ji (jikan)",
-        "furigana": "ざ (Za) / じ (Ji) — [時間;じかん]",
         "translation": "Hàng Za (ざ じ ず ぜ ぞ) — Ví dụ: 時間 (Thời gian)",
         "mouthShape": "Khẩu hình răng khép gần nhau giống hàng Sa.",
         "tonguePosition": "Đầu lưỡi sát chân răng trên, riêng じ (Ji) mặt lưỡi áp ngạc cứng.",
         "breathGuide": "Thanh đới rung mạnh kết hợp xát thoát hơi [z] và [dʑi].",
-        "grammarNote": "じ phát âm là [Ji] giống âm 'J' tiếng Anh nhẹ nhàng, không phát âm thành 'zi'."
+        "grammarNote": "じ phát âm là [Ji] giống âm 'J' tiếng Anh nhẹ nhàng, không phát âm thành 'zi'.",
+        "speakText": "ざ、じ。じかん。"
       },
       {
         "id": "ja-kana-10-s3",
-        "text": "だ (Da) / で (De) — [電話;でんわ] (Denwa: Điện thoại)",
+        "text": "だ / で — 電話（でんわ）",
         "phonetic": "da / de (denwa)",
-        "furigana": "だ (Da) / で (De) — [電話;でんわ]",
         "translation": "Hàng Da (だ ぢ づ で ど) — Ví dụ: 電話 (Điện thoại)",
         "mouthShape": "Khẩu hình giống hàng Ta.",
         "tonguePosition": "Đầu lưỡi chạm chân răng trên chặn hơi.",
         "breathGuide": "Thanh đới rung rền hữu thanh [d].",
-        "grammarNote": "Âm ぢ và づ phát âm giống hệt じ (ji) và ず (zu), chỉ khác nhau về quy tắc chính tả chữ viết."
+        "grammarNote": "Âm ぢ và づ phát âm giống hệt じ (ji) và ず (zu), chỉ khác nhau về quy tắc chính tả chữ viết.",
+        "speakText": "だ、で。でんわ。"
       },
       {
         "id": "ja-kana-10-s4",
-        "text": "ば (Ba) — [バス] (Basu: Xe buýt)",
+        "text": "ば — バス",
         "phonetic": "ba (basu)",
-        "furigana": "ば (Ba) — [バス]",
         "translation": "Hàng Ba (ば び ぶ べ ぼ) — Ví dụ: バス (Xe buýt)",
         "mouthShape": "Hai môi mím chặt chặn luồng hơi.",
         "tonguePosition": "Lưỡi thả lỏng.",
         "breathGuide": "Thanh đới rung mạnh rồi mở hai môi bật dứt khoát ra âm hữu thanh [b].",
-        "grammarNote": "Hàng Ha gắn thêm ten-ten (゛) trở thành âm hữu thanh Ba."
+        "grammarNote": "Hàng Ha gắn thêm ten-ten (゛) trở thành âm hữu thanh Ba.",
+        "speakText": "ば。バス。"
       },
       {
         "id": "ja-kana-10-s5",
-        "text": "ぱ (Pa) — [パン] (Pan: Bánh mì)",
+        "text": "ぱ — パン",
         "phonetic": "pa (pan)",
-        "furigana": "ぱ (Pa) — [パン]",
         "translation": "Hàng Pa bán đục (ぱ ぴ ぷ ぺ ぽ) — Ví dụ: パン (Bánh mì)",
         "mouthShape": "Hai môi ngậm chặt nén khí trong khoang miệng.",
         "tonguePosition": "Lưỡi thả lỏng.",
         "breathGuide": "Bật mạnh hai môi bung luồng khí nén [p], thanh đới không rung lúc bật.",
-        "grammarNote": "Dấu tròn nhỏ (゜) gọi là Maru (Handakuon - Bán trọc âm)."
+        "grammarNote": "Dấu tròn nhỏ (゜) gọi là Maru (Handakuon - Bán trọc âm).",
+        "speakText": "ぱ。パン。"
       }
     ]
   },
@@ -672,47 +672,47 @@ export const japaneseLessons: Lesson[] = [
     "sentences": [
       {
         "id": "ja-kana-11-s1",
-        "text": "きゃ・きゅ・きょ (Kya - Kyu - Kyo) — [京都;きょうと] (Kyouto: Cố đô Kyoto)",
+        "text": "きゃ・きゅ・きょ — 京都（きょうと）",
         "phonetic": "kya, kyu, kyo (kyouto)",
-        "furigana": "きゃ・きゅ・きょ — [京都;きょうと]",
         "translation": "Ảo âm hàng Ki: Kya, Kyu, Kyo — Ví dụ: 京都 (Kyoto)",
         "mouthShape": "Khởi đầu mặt lưỡi nâng áp ngạc cứng [kç] rồi lướt tức thì sang [a], [u], [o].",
         "tonguePosition": "Mặt lưỡi lướt nhanh không ngắt quãng.",
         "breathGuide": "Bật hơi dứt khoát trong trọn vẹn 1 phách nhịp, không tách rời thành 'ki-ya'.",
-        "grammarNote": "LƯU Ý CỰC KỲ QUAN TRỌNG: Ảo âm phát âm liền mạch trong 1 phách, chữ ゃ ゅ ょ viết nhỏ bằng 1/4 chữ bình thường."
+        "grammarNote": "LƯU Ý CỰC KỲ QUAN TRỌNG: Ảo âm phát âm liền mạch trong 1 phách, chữ ゃ ゅ ょ viết nhỏ bằng 1/4 chữ bình thường.",
+        "speakText": "きゃ、きゅ、きょ。きょうと。"
       },
       {
         "id": "ja-kana-11-s2",
-        "text": "しゃ・しゅ・しょ (Sha - Shu - Sho) — [写真;しゃしん] (Shashin: Bức ảnh)",
+        "text": "しゃ・しゅ・しょ — 写真（しゃしん）",
         "phonetic": "sha, shu, sho (shashin)",
-        "furigana": "しゃ・しゅ・しょ — [写真;しゃしん]",
         "translation": "Ảo âm hàng Shi: Sha, Shu, Sho — Ví dụ: 写真 (Nhiếp ảnh/Bức ảnh)",
         "mouthShape": "Môi hơi chu nhẹ tự nhiên theo âm xát.",
         "tonguePosition": "Mặt lưỡi ép sát vòm ngạc cứng.",
         "breathGuide": "Khí xát êm ái [ɕa], [ɕɯ], [ɕo].",
-        "grammarNote": "Phát âm giống 'sa, su, so' nhưng mặt lưỡi áp cao êm ái hơn."
+        "grammarNote": "Phát âm giống 'sa, su, so' nhưng mặt lưỡi áp cao êm ái hơn.",
+        "speakText": "しゃ、しゅ、しょ。しゃしん。"
       },
       {
         "id": "ja-kana-11-s3",
-        "text": "ちゃ・ちゅ・ちょ (Cha - Chu - Cho) — [お茶;おちゃ] (Ocha: Trà xanh)",
+        "text": "ちゃ・ちゅ・ちょ — お茶（おちゃ）",
         "phonetic": "cha, chu, cho (ocha)",
-        "furigana": "ちゃ・ちゅ・ちょ — [お茶;おちゃ]",
         "translation": "Ảo âm hàng Chi: Cha, Chu, Cho — Ví dụ: お茶 (Trà xanh Nhật Bản)",
         "mouthShape": "Miệng hé mở nhẹ, bật dứt khoát.",
         "tonguePosition": "Mặt lưỡi chạm ngạc cứng chặn hơi rồi xát nhanh ra ngoài.",
         "breathGuide": "Âm tắc xát sắc bén [tɕa], [tɕɯ], [tɕo].",
-        "grammarNote": "Gần giống âm 'cha, chu, cho' trong tiếng Việt nhưng đầu lưỡi đặt thấp hơn."
+        "grammarNote": "Gần giống âm 'cha, chu, cho' trong tiếng Việt nhưng đầu lưỡi đặt thấp hơn.",
+        "speakText": "ちゃ、ちゅ、ちょ。おちゃ。"
       },
       {
         "id": "ja-kana-11-s4",
-        "text": "じゃ・じゅ・じょ (Ja - Ju - Jo) — [邪魔;じゃま] (Jama: Làm phiền)",
+        "text": "じゃ・じゅ・じょ — 邪魔（じゃま）",
         "phonetic": "ja, ju, jo (jama)",
-        "furigana": "じゃ・じゅ・じょ — [邪魔;じゃま]",
         "translation": "Ảo âm hữu thanh: Ja, Ju, Jo — Ví dụ: 邪魔 (Làm phiền/cản trở)",
         "mouthShape": "Miệng hé mở, thanh đới rung mạnh.",
         "tonguePosition": "Mặt lưỡi chặn ngạc rồi mở ra âm hữu thanh [dʑa].",
         "breathGuide": "Rung thanh quản rõ rệt.",
-        "grammarNote": "Phát âm như âm 'J' trong tiếng Anh (Japan, Jam)."
+        "grammarNote": "Phát âm như âm 'J' trong tiếng Anh (Japan, Jam).",
+        "speakText": "じゃ、じゅ、じょ。じゃま。"
       }
     ]
   },
@@ -726,36 +726,36 @@ export const japaneseLessons: Lesson[] = [
     "sentences": [
       {
         "id": "ja-kana-12-s1",
-        "text": "っ (Sokuon) — [切手;きって] (Kitte: Con tem bưu chính)",
+        "text": "っ — 切手（きって）",
         "phonetic": "kitte (kit-te)",
-        "furigana": "っ (Sokuon) — [切手;きって]",
         "translation": "Âm ngắt Sokuon (tsu nhỏ っ) — Ví dụ: 切手 (Con tem)",
         "mouthShape": "Định hình sẵn khẩu hình của phụ âm đứng ngay sau chữ っ.",
         "tonguePosition": "Đặt lưỡi ở vị trí phụ âm kế tiếp và NÍN THỞ GIỮ NGUYÊN đúng 1 phách nhịp.",
         "breathGuide": "Hoàn toàn ngắt luồng hơi trong 1 phách im lặng, sau đó mới bật mạnh phụ âm tiếp theo.",
-        "grammarNote": "QUAN TRỌNG: Chữ っ nhỏ không phát âm ra tiếng mà là một khoảng ngừng khựng lại đúng bằng 1 nhịp phách. 'Kite' (1 phách rưỡi) khác hoàn toàn 'Kitte' (3 phách)."
+        "grammarNote": "QUAN TRỌNG: Chữ っ nhỏ không phát âm ra tiếng mà là một khoảng ngừng khựng lại đúng bằng 1 nhịp phách. 'Kite' (1 phách rưỡi) khác hoàn toàn 'Kitte' (3 phách).",
+        "speakText": "きって。"
       },
       {
         "id": "ja-kana-12-s2",
-        "text": "長音 (Chouon) — [お母さん;おかあさん] (Okaasan: Mẹ)",
+        "text": "長音 — お母さん（おかあさん）",
         "phonetic": "okaasan (o-ka-a-sa-n)",
-        "furigana": "長音 — [お母さん;おかあさん]",
         "translation": "Trường âm Hiragana (aa, ii, uu, ee/ei, oo/ou) — Ví dụ: お母さん (Người Mẹ)",
         "mouthShape": "Giữ nguyên vẹn khẩu hình của nguyên âm đứng trước.",
         "tonguePosition": "Lưỡi giữ nguyên vị trí, không chuyển động.",
         "breathGuide": "Duy trì luồng hơi ngân dài đúng gấp đôi thời gian (2 phách thay vì 1 phách).",
-        "grammarNote": "Trường âm thay đổi hoàn toàn nghĩa của từ: おばさん (Obasan: Cô/bác gái) vs おばあさん (Obaasan: Bà cụ)."
+        "grammarNote": "Trường âm thay đổi hoàn toàn nghĩa của từ: おばさん (Obasan: Cô/bác gái) vs おばあさん (Obaasan: Bà cụ).",
+        "speakText": "おかあさん。"
       },
       {
         "id": "ja-kana-12-s3",
-        "text": "カタカナ長音 (Chouonpu ー) — [コーヒー] (Koohii: Cà phê)",
+        "text": "カタカナ長音 — コーヒー",
         "phonetic": "koohii (ko-o-hi-i)",
-        "furigana": "カタカナ長音 (ー) — [コーヒー]",
         "translation": "Dấu trường âm Katakana (gạch ngang ー) — Ví dụ: コーヒー (Cà phê)",
         "mouthShape": "Giữ khẩu hình nguyên âm trước và kéo dài 1 phách.",
         "tonguePosition": "Không đổi.",
         "breathGuide": "Ngân đều đặn luồng hơi xuyên suốt vạch trường âm.",
-        "grammarNote": "Trong chữ Katakana, mọi trường âm đều được biểu diễn đồng nhất bằng dấu gạch ngang 'ー'."
+        "grammarNote": "Trong chữ Katakana, mọi trường âm đều được biểu diễn đồng nhất bằng dấu gạch ngang 'ー'.",
+        "speakText": "コーヒー。"
       }
     ]
   },
@@ -769,47 +769,47 @@ export const japaneseLessons: Lesson[] = [
     "sentences": [
       {
         "id": "ja-kana-13-s1",
-        "text": "アイウエオ — [アイス] (Aisu: Kem lạnh)",
+        "text": "アイウエオ — アイス",
         "phonetic": "a, i, u, e, o (aisu)",
-        "furigana": "アイウエオ — [アイス]",
         "translation": "Nguyên âm Katakana: ア イ ウ エ オ — Ví dụ: アイス (Ice cream)",
         "mouthShape": "Khẩu hình giống hoàn toàn 5 nguyên âm Hiragana.",
         "tonguePosition": "Vị trí lưỡi tương đương hàng A Hiragana.",
         "breathGuide": "Phát âm sắc nét, dứt khoát.",
-        "grammarNote": "Nét viết của Katakana thẳng, vuông vức và dứt khoát hơn nhiều so với đường cong mềm mại của Hiragana."
+        "grammarNote": "Nét viết của Katakana thẳng, vuông vức và dứt khoát hơn nhiều so với đường cong mềm mại của Hiragana.",
+        "speakText": "ア、イ、ウ、エ、オ。アイス。"
       },
       {
         "id": "ja-kana-13-s2",
-        "text": "カキクケコ — [カメラ] (Kamera: Máy ảnh)",
+        "text": "カキクケコ — カメラ",
         "phonetic": "ka, ki, ku, ke, ko (kamera)",
-        "furigana": "カキクケコ — [カメラ]",
         "translation": "Hàng Ka Katakana: カ キ ク ケ コ — Ví dụ: カメラ (Camera)",
         "mouthShape": "Khẩu hình giống hàng Ka Hiragana.",
         "tonguePosition": "Cuống lưỡi nâng chạm ngạc mềm.",
         "breathGuide": "Bật hơi gọn gàng.",
-        "grammarNote": "Chữ カ giống chữ か nhưng bỏ nét phẩy nhỏ trên đầu."
+        "grammarNote": "Chữ カ giống chữ か nhưng bỏ nét phẩy nhỏ trên đầu.",
+        "speakText": "カ、キ、ク、ケ、コ。カメラ。"
       },
       {
         "id": "ja-kana-13-s3",
-        "text": "サシスセソ — [タクシー] (Takushii: Xe taxi)",
+        "text": "サシスセソ — タクシー",
         "phonetic": "sa, shi, su, se, so (takushii)",
-        "furigana": "サシスセソ — [タクシー]",
         "translation": "Hàng Sa Katakana: サ シ ス セ ソ — Ví dụ: タクシー (Taxi)",
         "mouthShape": "Phát âm giống hàng Sa Hiragana.",
         "tonguePosition": "Đặc biệt chú ý chữ シ (Shi) mặt lưỡi áp vòm ngạc cao.",
         "breathGuide": "Xát hơi qua kẽ răng.",
-        "grammarNote": "Cặp chữ dễ nhầm nhất: シ (Shi - nét vuốt từ dưới lên trên) vs ツ (Tsu - nét vuốt từ trên xuống dưới)."
+        "grammarNote": "Cặp chữ dễ nhầm nhất: シ (Shi - nét vuốt từ dưới lên trên) vs ツ (Tsu - nét vuốt từ trên xuống dưới).",
+        "speakText": "サ、シ、ス、セ、ソ。タクシー。"
       },
       {
         "id": "ja-kana-13-s4",
-        "text": "ソ vs ン — [パソコン] (Pasokon: Máy tính cá nhân)",
+        "text": "ソ vs ン — パソコン",
         "phonetic": "pasokon (personal computer)",
-        "furigana": "ソ vs ン — [パソコン]",
         "translation": "Phân biệt cặp chữ kinh điển: ソ (So) và ン (N) — Ví dụ: パソコン (Laptop)",
         "mouthShape": "Phát âm đúng theo chuẩn của [so] và [n].",
         "tonguePosition": "ソ đánh từ trên xuống dốc; ン đánh ngang từ dưới hất lên.",
         "breathGuide": "Chuẩn xác cao độ và phách âm.",
-        "grammarNote": "Mẹo nhớ: Chữ ソ (So) nét sổ trên xuống giống chữ 'So'; chữ ン (N) nét hất ngang ngước lên như đầu chữ 'N'."
+        "grammarNote": "Mẹo nhớ: Chữ ソ (So) nét sổ trên xuống giống chữ 'So'; chữ ン (N) nét hất ngang ngước lên như đầu chữ 'N'.",
+        "speakText": "ソ、ン。パソコン。"
       }
     ]
   },
@@ -830,7 +830,8 @@ export const japaneseLessons: Lesson[] = [
         "mouthShape": "Giữ nhịp chuyển khẩu hình mượt mà, môi không chu thừa thãi.",
         "tonguePosition": "Di chuyển linh hoạt từ gốc lưỡi đến đầu lưỡi.",
         "breathGuide": "Duy trì nhịp thở đều đặn mỗi hàng 5 phách bằng nhau.",
-        "grammarNote": "Luyện đọc tăng tốc dần từ chậm đến nhanh để tạo phản xạ cơ hàm linh hoạt."
+        "grammarNote": "Luyện đọc tăng tốc dần từ chậm đến nhanh để tạo phản xạ cơ hàm linh hoạt.",
+        "speakText": "あいうえお、かきくけこ、さしすせそ、たちつてと。"
       },
       {
         "id": "ja-kana-14-s2",
@@ -841,18 +842,20 @@ export const japaneseLessons: Lesson[] = [
         "mouthShape": "Chú ý đặc biệt âm ふ (Fu) hai môi không cắn răng và ら (Ra) vỗ nhẹ đầu lưỡi.",
         "tonguePosition": "Điều hòa vị trí chạm ngạc của âm mũi và âm gảy.",
         "breathGuide": "Âm ん cuối cùng giữ đúng độ dài 1 nhịp ngắt êm.",
-        "grammarNote": "Hoàn thành 46 âm cơ bản của tiếng Nhật một cách trọn vẹn và tự tin."
+        "grammarNote": "Hoàn thành 46 âm cơ bản của tiếng Nhật một cách trọn vẹn và tự tin.",
+        "speakText": "なにぬねの、はひふへほ、まみむめも、やゆよ、らりるれろ、わをん。"
       },
       {
         "id": "ja-kana-14-s3",
-        "text": "[初;はじ]めまして、どうぞよろしくお[願;ねが]いします。",
+        "text": "初めまして、どうぞよろしくお願いします。",
         "phonetic": "Hajimemashite, douzo yoroshiku onegaishimasu.",
-        "furigana": "[初;はじ]めまして、どうぞよろしくお[願;ねが]いします。",
+        "furigana": "初[はじ]めまして、どうぞよろしくお願[ねが]いします。",
         "translation": "Rất vui được gặp bạn, từ nay xin được giúp đỡ nhiều hơn.",
         "mouthShape": "Vận dụng đầy đủ âm đục [ji], trường âm [ou], âm ngắt và nuốt âm cuối [su].",
         "tonguePosition": "Chuyển động tự nhiên, mềm mại.",
         "breathGuide": "Hạ nhẹ giọng ở cuối câu thể hiện sự lễ độ trang nhã.",
-        "grammarNote": "Câu chào kinh điển gói gọn toàn bộ tinh hoa ngữ âm và nhịp điệu của người Nhật Bản."
+        "grammarNote": "Câu chào kinh điển gói gọn toàn bộ tinh hoa ngữ âm và nhịp điệu của người Nhật Bản.",
+        "speakText": "はじめまして、どうぞよろしくおねがいします。"
       }
     ]
   },

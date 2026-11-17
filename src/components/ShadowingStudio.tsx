@@ -412,7 +412,7 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
     const currentSettings = loadSettings()
     setIsPlayingAudio(true)
     playTextToSpeech({
-      text: currentSentence.text,
+      text: currentSentence.speakText || currentSentence.text,
       lang: langMeta.speechCode,
       rate: speechRate,
       useNeuralCloud: currentSettings.ttsMode !== 'local',
@@ -498,9 +498,9 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
       setAudioLevel(0)
 
       // Evaluate pronunciation
-      const transcriptToEvaluate = realtimeTranscript || currentSentence?.text.slice(0, 5) || ''
+      const transcriptToEvaluate = realtimeTranscript || (currentSentence?.speakText || currentSentence?.text)?.slice(0, 5) || ''
       const score = evaluatePronunciation({
-        targetText: currentSentence ? currentSentence.text : '',
+        targetText: currentSentence ? (currentSentence.speakText || currentSentence.text) : '',
         spokenText: transcriptToEvaluate,
         lang: currentLang,
       })

@@ -16,6 +16,7 @@ export interface LessonSentence {
   furigana?: string // Ruby format: e.g. "初[はじ]めまして、ホアンと申[もう]します。"
   translation: string
   grammarNote?: string
+  speakText?: string       // Văn bản dùng riêng cho TTS & chấm điểm (nếu khác text hiển thị)
   mouthShape?: string      // Hướng dẫn khẩu hình miệng (mở rộng, môi tròn, môi dẹt...)
   tonguePosition?: string  // Hướng dẫn cách đặt lưỡi (đầu lưỡi chạm răng trên, uốn cong...)
   breathGuide?: string     // Hướng dẫn luồng hơi & thanh quản (bật hơi, rung thanh đới...)
