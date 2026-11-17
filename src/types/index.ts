@@ -107,6 +107,24 @@ export interface DayProgress {
   scores: number[]
 }
 
+export type LearningStatus = 'all' | 'unviewed' | 'in_progress' | 'completed'
+
+export interface LessonProgress {
+  lessonId: string
+  language: Language
+  hasViewed: boolean
+  firstViewedAt?: string
+  lastViewedAt?: string
+  practicedCount: number
+  practicedSentences: number[]
+  sentenceScores: Record<number, number>
+  bestScore?: number
+  lastScore?: number
+  progressPercent: number // 0 to 100
+  isCompleted: boolean
+  lastPracticedAt?: string
+}
+
 export interface UserSchedule {
   streak: number
   lastActiveDate: string

@@ -139,7 +139,15 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
   // Speech recording state
   const [recordingKey, setRecordingKey] = useState<string | null>(null)
   const [spokenTranscript, setSpokenTranscript] = useState<string>('')
-  const [scoreResults, setScoreResults] = useState<Record<string, ScoreResult>>({})
+  const [scoreResults, setScoreResults] = useState<Record<string, ScoreResult>>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('italk_grammar_scores_v1')
+        return raw ? JSON.parse(raw) : {}
+      } catch {}
+    }
+    return {}
+  })
   const recognizerRef = useRef<SpeechRecognizer | null>(null)
   const mainContentRef = useRef<HTMLDivElement>(null)
   const activePatternBtnRef = useRef<HTMLButtonElement>(null)
@@ -213,7 +221,13 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
             spokenText: transcript,
             lang: currentLang,
           })
-          setScoreResults((prev) => ({ ...prev, [key]: result }))
+          setScoreResults((prev) => {
+            const next = { ...prev, [key]: result }
+            try {
+              localStorage.setItem('italk_grammar_scores_v1', JSON.stringify(next))
+            } catch {}
+            return next
+          })
           setRecordingKey(null)
         }
       },
@@ -418,6 +432,10 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
                 ) : (
                   filteredAllPatterns.map((pat, idx) => {
                     const isCur = currentPattern?.id === pat.id
+                    const practicedCount = pat.examples.filter((_, exIdx) =>
+                      Boolean(scoreResults[`ex-${pat.id}-${exIdx}`])
+                    ).length
+
                     return (
                       <button
                         key={pat.id}
@@ -433,9 +451,19 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
                           <span className="text-[11px] font-bold text-cyan-400">
                             #{idx + 1} • {pat.level}
                           </span>
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">
-                            {pat.examples.length} ví dụ
-                          </span>
+                          {practicedCount === pat.examples.length ? (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold flex items-center gap-0.5">
+                              <Check className="w-2.5 h-2.5" /> Xong ({pat.examples.length})
+                            </span>
+                          ) : practicedCount > 0 ? (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-semibold">
+                              {practicedCount}/{pat.examples.length} câu
+                            </span>
+                          ) : (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">
+                              {pat.examples.length} ví dụ
+                            </span>
+                          )}
                         </div>
                         <div className="text-sm font-semibold text-white leading-snug line-clamp-2">
                           {pat.pattern}

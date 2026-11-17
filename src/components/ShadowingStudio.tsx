@@ -1,10 +1,18 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
-import { Language, Lesson, LessonSentence, ScoreResult } from '../types'
+import { Language, Lesson, LessonSentence, ScoreResult, LessonProgress, LearningStatus } from '../types'
 import { supportedLanguages, defaultLessonsByLanguage } from '../data/languages'
 import { playTextToSpeech, stopTextToSpeech, SpeechRecognizer } from '../services/speech'
 import { MediaRecordingManager } from '../services/mediaRecorder'
 import { evaluatePronunciation } from '../services/scoring'
-import { saveRecordingEntry, loadCustomLessons, saveCustomLesson, loadSettings } from '../services/storage'
+import {
+  saveRecordingEntry,
+  loadCustomLessons,
+  saveCustomLesson,
+  loadSettings,
+  loadAllLessonProgress,
+  recordLessonViewed,
+  recordSentencePractice,
+} from '../services/storage'
 import { getAudioBlob } from '../services/audioDb'
 import { setAudioOutputDevice } from '../services/deviceManager'
 import { FuriganaText } from '../services/furigana'
@@ -46,6 +54,10 @@ import {
   Tag,
   GraduationCap,
   SlidersHorizontal,
+  Eye,
+  Circle,
+  Trophy,
+  Clock,
 } from 'lucide-react'
 
 export const PASS_SCORE = 70
@@ -125,14 +137,34 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
   // Sidebar Filter & Search
   const [searchQuery, setSearchQuery] = useState('')
   const [lessonFilter, setLessonFilter] = useState<'all' | 'native' | 'tts'>('all')
+  const [statusFilter, setStatusFilter] = useState<LearningStatus>('all')
   const [selectedLevel, setSelectedLevel] = useState<string>('all')
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [isSidebarOpenMobile, setIsSidebarOpenMobile] = useState(false)
+
+  // Persistent lesson learning progress state
+  const [lessonProgressMap, setLessonProgressMap] = useState<Record<string, LessonProgress>>(() =>
+    loadAllLessonProgress()
+  )
+
+  // Listen to progress updates across tabs/windows
+  useEffect(() => {
+    const handleProgressUpdate = (e: any) => {
+      if (e.detail) {
+        setLessonProgressMap(e.detail)
+      }
+    }
+    window.addEventListener('italk:lesson-progress-updated', handleProgressUpdate)
+    return () => {
+      window.removeEventListener('italk:lesson-progress-updated', handleProgressUpdate)
+    }
+  }, [])
 
   // Reset filters when switching languages
   useEffect(() => {
     setSelectedLevel('all')
     setSelectedCategory('all')
+    setStatusFilter('all')
     setSearchQuery('')
   }, [currentLang])
 
@@ -526,6 +558,18 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
         }))
       }
 
+      // Record sentence practice in persistent storage
+      if (activeLesson) {
+        const updatedProg = recordSentencePractice(
+          activeLesson.id,
+          currentLang,
+          currentSentenceIdx,
+          activeLesson.sentences.length,
+          score.overallScore
+        )
+        setLessonProgressMap((prev) => ({ ...prev, [activeLesson.id]: updatedProg }))
+      }
+
       // Notify parent to show Scoring Modal
       onScoreReady(score, recResult.blobUrl, savedEntry.localPath)
     } catch (err: any) {
@@ -539,7 +583,9 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
     Boolean(activeLesson) && currentSentenceIdx >= (activeLesson.sentences.length - 1)
 
   const currentSentenceKey = activeLesson ? `${activeLesson.id}_${currentSentenceIdx}` : ''
-  const currentSentenceScore = sentenceScores[currentSentenceKey]
+  const currentSentenceScore =
+    sentenceScores[currentSentenceKey] ??
+    (activeLesson ? lessonProgressMap[activeLesson.id]?.sentenceScores?.[currentSentenceIdx] : undefined)
   const isCurrentSentencePassed =
     typeof currentSentenceScore === 'number' && currentSentenceScore >= PASS_SCORE
   const isCurrentSentenceFailed =
@@ -677,9 +723,60 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
 
       if (lessonFilter === 'native') return Boolean(l.originalAudioUrl || l.audioBlobId)
       if (lessonFilter === 'tts') return !l.originalAudioUrl && !l.audioBlobId
+
+      // Filter by Learning Status (all / unviewed / in_progress / completed)
+      if (statusFilter === 'unviewed') {
+        const prog = lessonProgressMap[l.id]
+        if (prog && (prog.hasViewed || (prog.practicedCount || 0) > 0)) return false
+      } else if (statusFilter === 'in_progress') {
+        const prog = lessonProgressMap[l.id]
+        if (!prog || !prog.hasViewed || prog.isCompleted || (prog.progressPercent || 0) >= 100) return false
+      } else if (statusFilter === 'completed') {
+        const prog = lessonProgressMap[l.id]
+        if (!prog || (!prog.isCompleted && (prog.progressPercent || 0) < 100)) return false
+      }
+
       return true
     })
-  }, [lessons, searchQuery, selectedLevel, selectedCategory, lessonFilter])
+  }, [lessons, searchQuery, selectedLevel, selectedCategory, lessonFilter, statusFilter, lessonProgressMap])
+
+  // Overall learning progress statistics
+  const progressStats = useMemo(() => {
+    let unviewed = 0
+    let inProgress = 0
+    let completed = 0
+
+    const baseList = selectedLevel === 'all'
+      ? lessons
+      : lessons.filter((l: Lesson) => {
+          const normalizedLvl = l.level.startsWith('HSK')
+            ? (l.level.match(/HSK\s*\d+/)?.[0] || l.level)
+            : (l.level.split(' ')[0] || l.level)
+          return normalizedLvl.startsWith(selectedLevel) || l.level.toLowerCase().includes(selectedLevel.toLowerCase())
+        })
+
+    baseList.forEach((l) => {
+      const prog = lessonProgressMap[l.id]
+      if (prog && (prog.isCompleted || (prog.progressPercent || 0) >= 100)) {
+        completed++
+      } else if (prog && prog.hasViewed) {
+        inProgress++
+      } else {
+        unviewed++
+      }
+    })
+
+    const total = baseList.length
+    const completionPercent = total > 0 ? Math.round((completed / total) * 100) : 0
+
+    return {
+      total,
+      unviewed,
+      inProgress,
+      completed,
+      completionPercent,
+    }
+  }, [lessons, lessonProgressMap, selectedLevel])
 
   // Group lessons by level
   const groupedLessonsByLevel = useMemo(() => {
@@ -833,6 +930,12 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
       return
     }
 
+    const targetLesson = lessons.find((l) => l.id === lessonId)
+    if (targetLesson) {
+      const updated = recordLessonViewed(lessonId, currentLang, targetLesson.sentences.length)
+      setLessonProgressMap((prev) => ({ ...prev, [lessonId]: updated }))
+    }
+
     setActiveLessonId(lessonId)
     setCurrentSentenceIdx(0)
     setExpandedLessonIds((prev) => ({ ...prev, [lessonId]: true }))
@@ -866,6 +969,11 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
       expandedLessonIds[l.id] !== undefined ? expandedLessonIds[l.id] : isActive
     const hasOriginal = Boolean(l.originalAudioUrl || l.audioBlobId)
     const lvlClass = getLevelBadgeClass(l.level)
+    const progress = lessonProgressMap[l.id]
+    const isCompleted = Boolean(progress?.isCompleted || (progress?.progressPercent ?? 0) >= 100)
+    const hasPracticed = Boolean((progress?.practicedCount ?? 0) > 0)
+    const hasViewed = Boolean(progress?.hasViewed)
+    const progressPercent = progress?.progressPercent ?? 0
 
     return (
       <div
@@ -934,6 +1042,55 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
           </div>
         )}
 
+        {/* Learning Progress Indicator Badge & Mini Progress Bar */}
+        <div className="mt-2 pt-2 border-t border-slate-800/70">
+          {isCompleted ? (
+            <div className="flex items-center justify-between text-[10px]">
+              <span className="inline-flex items-center gap-1 font-bold text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                <span>Hoàn thành (100%)</span>
+              </span>
+              {progress?.bestScore !== undefined && (
+                <span className="font-semibold text-emerald-300">
+                  🏆 {progress.bestScore}đ
+                </span>
+              )}
+            </div>
+          ) : hasPracticed ? (
+            <div>
+              <div className="flex items-center justify-between text-[10px] font-semibold text-amber-300">
+                <span className="flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-amber-400" />
+                  <span>Đang học ({progress?.practicedSentences?.length || 0}/{l.sentences.length} câu)</span>
+                </span>
+                <span className="font-mono">{progressPercent}%</span>
+              </div>
+              <div className="w-full bg-slate-900 rounded-full h-1 mt-1 overflow-hidden border border-slate-800">
+                <div
+                  className="bg-gradient-to-r from-amber-400 to-emerald-400 h-full rounded-full transition-all duration-300"
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+            </div>
+          ) : hasViewed ? (
+            <div className="flex items-center justify-between text-[10px]">
+              <span className="inline-flex items-center gap-1 font-medium text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded-full">
+                <Eye className="w-3 h-3 text-cyan-400" />
+                <span>Đã xem (Chưa luyện)</span>
+              </span>
+              <span className="text-slate-500 font-mono">0%</span>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between text-[10px]">
+              <span className="inline-flex items-center gap-1 font-medium text-slate-400 bg-slate-900 border border-slate-800 px-2 py-0.5 rounded-full">
+                <Circle className="w-2.5 h-2.5 text-slate-600" />
+                <span>Chưa học</span>
+              </span>
+              <span className="text-[9px] text-slate-500 italic">Chưa xem</span>
+            </div>
+          )}
+        </div>
+
         {/* Active Learning Progress Info (collapsed mode) */}
         {isActive && !isExpanded && (
           <div className="mt-2 pt-2 border-t border-emerald-500/20 flex items-center justify-between text-[11px] text-emerald-300 font-semibold">
@@ -960,6 +1117,8 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
             <div className="space-y-1 max-h-64 overflow-y-auto pr-0.5 scrollbar-thin">
               {l.sentences.map((sent, sIdx) => {
                 const isCurrentSentence = isActive && currentSentenceIdx === sIdx
+                const isSentPracticed = Boolean(progress?.practicedSentences?.includes(sIdx))
+                const sentScore = progress?.sentenceScores?.[sIdx]
 
                 return (
                   <div
@@ -993,11 +1152,33 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
                         )}
                       </div>
 
-                      {typeof sent.startTime === 'number' && typeof sent.endTime === 'number' && (
-                        <span className="text-[9px] font-mono text-slate-500">
-                          {Math.floor(sent.startTime)}s - {Math.ceil(sent.endTime)}s
-                        </span>
-                      )}
+                      <div className="flex items-center gap-1.5">
+                        {isSentPracticed ? (
+                          <span
+                            className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full border flex items-center gap-0.5 ${
+                              (sentScore || 0) >= 80
+                                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                                : (sentScore || 0) >= 60
+                                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                                : 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                            }`}
+                          >
+                            <Check className="w-2.5 h-2.5" />
+                            <span>{sentScore ? `${sentScore}đ` : 'Đã luyện'}</span>
+                          </span>
+                        ) : (
+                          <span className="text-[9px] text-slate-500 flex items-center gap-0.5">
+                            <Circle className="w-2 h-2 text-slate-600" />
+                            <span>Chưa luyện</span>
+                          </span>
+                        )}
+
+                        {typeof sent.startTime === 'number' && typeof sent.endTime === 'number' && (
+                          <span className="text-[9px] font-mono text-slate-500">
+                            {Math.floor(sent.startTime)}s - {Math.ceil(sent.endTime)}s
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     {/* Sentence Text with Furigana if Japanese */}
@@ -1115,6 +1296,86 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
                   ×
                 </button>
               )}
+            </div>
+
+            {/* Overall Learning Progress Card */}
+            <div className="p-3 rounded-2xl bg-slate-950/90 border border-slate-800 space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-white flex items-center gap-1.5">
+                  <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Tiến độ học tập</span>
+                </span>
+                <span className="text-[11px] font-bold text-emerald-400 font-mono">
+                  {progressStats.completed}/{progressStats.total} ({progressStats.completionPercent}%)
+                </span>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden border border-slate-800/80">
+                <div
+                  className="bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 h-full rounded-full transition-all duration-500"
+                  style={{ width: `${progressStats.completionPercent}%` }}
+                />
+              </div>
+
+              {/* Status Filter Buttons */}
+              <div className="grid grid-cols-4 gap-1 pt-0.5 text-[11px]">
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter('all')}
+                  className={`py-1 rounded-lg font-semibold transition-all text-center ${
+                    statusFilter === 'all'
+                      ? 'bg-slate-800 text-white shadow-xs ring-1 ring-slate-700'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                  }`}
+                  title="Hiển thị tất cả bài học"
+                >
+                  <span>Tất cả</span>
+                  <span className="block text-[9px] opacity-75 font-normal">{progressStats.total}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter('unviewed')}
+                  className={`py-1 rounded-lg font-semibold transition-all text-center ${
+                    statusFilter === 'unviewed'
+                      ? 'bg-rose-950/70 text-rose-300 ring-1 ring-rose-500/50 shadow-xs'
+                      : 'text-slate-400 hover:text-rose-300 hover:bg-slate-900'
+                  }`}
+                  title="Chỉ hiển thị bài chưa học / chưa xem"
+                >
+                  <span>Chưa học</span>
+                  <span className="block text-[9px] opacity-75 font-normal">{progressStats.unviewed}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter('in_progress')}
+                  className={`py-1 rounded-lg font-semibold transition-all text-center ${
+                    statusFilter === 'in_progress'
+                      ? 'bg-amber-950/70 text-amber-300 ring-1 ring-amber-500/50 shadow-xs'
+                      : 'text-slate-400 hover:text-amber-300 hover:bg-slate-900'
+                  }`}
+                  title="Chỉ hiển thị bài đang học"
+                >
+                  <span>Đang học</span>
+                  <span className="block text-[9px] opacity-75 font-normal">{progressStats.inProgress}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter('completed')}
+                  className={`py-1 rounded-lg font-semibold transition-all text-center ${
+                    statusFilter === 'completed'
+                      ? 'bg-emerald-950/70 text-emerald-300 ring-1 ring-emerald-500/50 shadow-xs'
+                      : 'text-slate-400 hover:text-emerald-300 hover:bg-slate-900'
+                  }`}
+                  title="Chỉ hiển thị bài đã hoàn thành"
+                >
+                  <span>Đã xong</span>
+                  <span className="block text-[9px] opacity-75 font-normal">{progressStats.completed}</span>
+                </button>
+              </div>
             </div>
 
             {/* Level Filter Bar (N5 đến N1) */}
@@ -1248,8 +1509,26 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
           {/* LESSONS LIST (SCROLLABLE & GROUPED) */}
           <div className="space-y-2 max-h-[calc(100vh-230px)] min-h-[460px] overflow-y-auto pr-1">
             {filteredLessons.length === 0 ? (
-              <div className="p-4 text-center text-xs text-slate-500 border border-dashed border-slate-800 rounded-2xl">
-                Không tìm thấy bài học nào phù hợp với bộ lọc hiện tại
+              <div className="p-5 text-center text-xs text-slate-400 border border-dashed border-slate-800 rounded-2xl space-y-2">
+                <div className="text-base">
+                  {statusFilter === 'unviewed' ? '🎉' : statusFilter === 'completed' ? '📚' : '🔍'}
+                </div>
+                <div className="font-semibold text-slate-300">
+                  {statusFilter === 'unviewed'
+                    ? 'Tuyệt vời! Bạn đã xem và học hết các bài trong danh mục này.'
+                    : statusFilter === 'completed'
+                    ? 'Chưa có bài nào hoàn thành 100%. Hãy tiếp tục luyện tập nhé!'
+                    : 'Không tìm thấy bài học nào phù hợp với bộ lọc hiện tại.'}
+                </div>
+                {statusFilter !== 'all' && (
+                  <button
+                    type="button"
+                    onClick={() => setStatusFilter('all')}
+                    className="text-[11px] text-emerald-400 hover:underline font-medium cursor-pointer"
+                  >
+                    Xem lại tất cả bài học
+                  </button>
+                )}
               </div>
             ) : selectedLevel === 'all' && groupedLessonsByLevel.length > 1 ? (
               groupedLessonsByLevel.map((group: { levelKey: string; lessons: Lesson[] }) => {

@@ -1,10 +1,11 @@
-import { RecordingItem, UserSchedule, Lesson, Language } from '../types'
+import { RecordingItem, UserSchedule, Lesson, Language, LessonProgress } from '../types'
 import { storeRecordingBlob, deleteRecordingBlob } from './audioDb'
 
 const SCHEDULE_KEY = 'italk_schedule_v1'
 const RECORDINGS_KEY = 'italk_recordings_v1'
 const CUSTOM_LESSONS_KEY = 'italk_custom_lessons_v1'
 const SETTINGS_KEY = 'italk_settings_v1'
+const LESSON_PROGRESS_KEY = 'italk_lesson_progress_v1'
 
 export type TTSEngineType = 'edge' | 'voicestudio' | 'openai' | 'system'
 export type AppTheme = 'dark' | 'light' | 'system'
@@ -338,4 +339,103 @@ export function saveCustomLesson(lesson: Lesson): Lesson[] {
   }
 
   return current
+}
+
+export function loadAllLessonProgress(): Record<string, LessonProgress> {
+  if (typeof window === 'undefined') return {}
+  try {
+    const raw = localStorage.getItem(LESSON_PROGRESS_KEY)
+    if (!raw) return {}
+    return JSON.parse(raw)
+  } catch {
+    return {}
+  }
+}
+
+export function saveAllLessonProgress(progressMap: Record<string, LessonProgress>): void {
+  try {
+    localStorage.setItem(LESSON_PROGRESS_KEY, JSON.stringify(progressMap))
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('italk:lesson-progress-updated', { detail: progressMap }))
+    }
+  } catch {}
+}
+
+export function getLessonProgress(lessonId: string): LessonProgress | undefined {
+  const all = loadAllLessonProgress()
+  return all[lessonId]
+}
+
+export function recordLessonViewed(lessonId: string, language: Language, totalSentences: number): LessonProgress {
+  const all = loadAllLessonProgress()
+  const existing = all[lessonId] || {
+    lessonId,
+    language,
+    hasViewed: false,
+    practicedCount: 0,
+    practicedSentences: [],
+    sentenceScores: {},
+    progressPercent: 0,
+    isCompleted: false,
+  }
+
+  const now = new Date().toISOString()
+  if (!existing.hasViewed) {
+    existing.hasViewed = true
+    existing.firstViewedAt = now
+  }
+  existing.lastViewedAt = now
+
+  all[lessonId] = existing
+  saveAllLessonProgress(all)
+  return existing
+}
+
+export function recordSentencePractice(
+  lessonId: string,
+  language: Language,
+  sentenceIdx: number,
+  totalSentences: number,
+  score: number
+): LessonProgress {
+  const all = loadAllLessonProgress()
+  const existing = all[lessonId] || {
+    lessonId,
+    language,
+    hasViewed: true,
+    practicedCount: 0,
+    practicedSentences: [],
+    sentenceScores: {},
+    progressPercent: 0,
+    isCompleted: false,
+  }
+
+  const now = new Date().toISOString()
+  existing.hasViewed = true
+  existing.lastViewedAt = now
+  existing.lastPracticedAt = now
+  existing.practicedCount = (existing.practicedCount || 0) + 1
+  existing.lastScore = score
+  existing.bestScore = Math.max(existing.bestScore || 0, score)
+
+  if (!existing.practicedSentences) existing.practicedSentences = []
+  if (!existing.sentenceScores) existing.sentenceScores = {}
+
+  if (!existing.practicedSentences.includes(sentenceIdx)) {
+    existing.practicedSentences.push(sentenceIdx)
+    existing.practicedSentences.sort((a, b) => a - b)
+  }
+
+  existing.sentenceScores[sentenceIdx] = Math.max(existing.sentenceScores[sentenceIdx] || 0, score)
+
+  const count = existing.practicedSentences.length
+  const total = Math.max(1, totalSentences)
+  existing.progressPercent = Math.min(100, Math.round((count / total) * 100))
+  if (existing.progressPercent >= 100) {
+    existing.isCompleted = true
+  }
+
+  all[lessonId] = existing
+  saveAllLessonProgress(all)
+  return existing
 }
