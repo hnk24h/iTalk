@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { Language, Lesson, LessonSentence, ScoreResult } from '../types'
 import { supportedLanguages, defaultLessonsByLanguage } from '../data/languages'
 import { playTextToSpeech, stopTextToSpeech, SpeechRecognizer } from '../services/speech'
@@ -40,9 +40,20 @@ import {
   Lock,
   CheckCircle2,
   AlertCircle,
+  Tag,
+  GraduationCap,
+  SlidersHorizontal,
 } from 'lucide-react'
 
 export const PASS_SCORE = 70
+
+export const JA_LEVEL_INFO: Record<string, { title: string; desc: string; icon: string }> = {
+  N5: { title: 'Cấp độ N5', desc: 'Cơ bản & Nhập môn giao tiếp', icon: '🔰' },
+  N4: { title: 'Cấp độ N4', desc: 'Sơ trung cấp & Đời sống', icon: '📘' },
+  N3: { title: 'Cấp độ N3', desc: 'Trung cấp & Công sở', icon: '📙' },
+  N2: { title: 'Cấp độ N2', desc: 'Trung cao cấp & Đàm phán', icon: '📕' },
+  N1: { title: 'Cấp độ N1', desc: 'Cao cấp & Chiến lược', icon: '👑' },
+}
 
 export type LessonAdvanceMode = 'auto' | 'manual'
 
@@ -94,7 +105,16 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
   // Sidebar Filter & Search
   const [searchQuery, setSearchQuery] = useState('')
   const [lessonFilter, setLessonFilter] = useState<'all' | 'native' | 'tts'>('all')
+  const [selectedLevel, setSelectedLevel] = useState<string>('all')
+  const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [isSidebarOpenMobile, setIsSidebarOpenMobile] = useState(false)
+
+  // Reset filters when switching languages
+  useEffect(() => {
+    setSelectedLevel('all')
+    setSelectedCategory('all')
+    setSearchQuery('')
+  }, [currentLang])
 
   // Toast Notification (e.g. when auto-jumping to next lesson)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
@@ -561,20 +581,103 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
     }
   }
 
+  // Level & Topic metadata & grouping
+  const availableLevels = useMemo(() => {
+    if (currentLang === 'ja') {
+      return ['all', 'N5', 'N4', 'N3', 'N2', 'N1']
+    }
+    const set = new Set<string>()
+    lessons.forEach((l: Lesson) => {
+      if (l.level) set.add(l.level.split(' ')[0] || l.level)
+    })
+    return ['all', ...Array.from(set)]
+  }, [lessons, currentLang])
+
+  const availableCategories = useMemo(() => {
+    const set = new Set<string>()
+    lessons.forEach((l: Lesson) => {
+      if (l.category) set.add(l.category.trim())
+    })
+    return ['all', ...Array.from(set)]
+  }, [lessons])
+
+  const getLevelBadgeClass = (level: string) => {
+    const lvl = level.toUpperCase()
+    if (lvl.includes('N5') || lvl.includes('HSK 1') || lvl.includes('A1')) {
+      return 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+    }
+    if (lvl.includes('N4') || lvl.includes('HSK 2') || lvl.includes('A2')) {
+      return 'bg-teal-500/15 text-teal-400 border border-teal-500/30'
+    }
+    if (lvl.includes('N3') || lvl.includes('HSK 3') || lvl.includes('B1')) {
+      return 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+    }
+    if (lvl.includes('N2') || lvl.includes('HSK 4') || lvl.includes('B2')) {
+      return 'bg-indigo-500/15 text-indigo-400 border border-indigo-500/30'
+    }
+    if (lvl.includes('N1') || lvl.includes('HSK 5') || lvl.includes('HSK 6') || lvl.includes('C1')) {
+      return 'bg-purple-500/15 text-purple-400 border border-purple-500/30'
+    }
+    return 'bg-slate-800 text-slate-300 border border-slate-700'
+  }
+
   // Filter lessons in sidebar
-  const filteredLessons = lessons.filter((l) => {
-    const matchSearch =
-      !searchQuery.trim() ||
-      l.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      l.level.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (l.category && l.category.toLowerCase().includes(searchQuery.toLowerCase()))
+  const filteredLessons = useMemo(() => {
+    return lessons.filter((l: Lesson) => {
+      const matchSearch =
+        !searchQuery.trim() ||
+        l.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        l.level.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (l.category && l.category.toLowerCase().includes(searchQuery.toLowerCase()))
 
-    if (!matchSearch) return false
+      if (!matchSearch) return false
 
-    if (lessonFilter === 'native') return Boolean(l.originalAudioUrl || l.audioBlobId)
-    if (lessonFilter === 'tts') return !l.originalAudioUrl && !l.audioBlobId
-    return true
-  })
+      if (selectedLevel !== 'all') {
+        const normalizedLvl = l.level.split(' ')[0] || l.level
+        if (!normalizedLvl.startsWith(selectedLevel)) return false
+      }
+
+      if (selectedCategory !== 'all' && l.category !== selectedCategory) {
+        return false
+      }
+
+      if (lessonFilter === 'native') return Boolean(l.originalAudioUrl || l.audioBlobId)
+      if (lessonFilter === 'tts') return !l.originalAudioUrl && !l.audioBlobId
+      return true
+    })
+  }, [lessons, searchQuery, selectedLevel, selectedCategory, lessonFilter])
+
+  // Group lessons by level
+  const groupedLessonsByLevel = useMemo(() => {
+    const groups: { levelKey: string; lessons: Lesson[] }[] = []
+    const map = new Map<string, Lesson[]>()
+
+    filteredLessons.forEach((l: Lesson) => {
+      const lvlKey = l.level.split(' ')[0] || l.level || 'Khác'
+      if (!map.has(lvlKey)) {
+        map.set(lvlKey, [])
+      }
+      map.get(lvlKey)!.push(l)
+    })
+
+    // If Japanese, preserve N5 -> N1 order
+    if (currentLang === 'ja') {
+      const jaOrder = ['N5', 'N4', 'N3', 'N2', 'N1']
+      jaOrder.forEach((k) => {
+        if (map.has(k)) {
+          groups.push({ levelKey: k, lessons: map.get(k)! })
+          map.delete(k)
+        }
+      })
+    }
+
+    // Add remaining groups
+    map.forEach((list, k) => {
+      groups.push({ levelKey: k, lessons: list })
+    })
+
+    return groups
+  }, [filteredLessons, currentLang])
 
   // Callback when a new lesson with native audio is created
   const handleLessonCreated = (newLesson: Lesson) => {
@@ -770,13 +873,14 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
             </button>
           </div>
 
-          {/* Search Input & Filter Tabs */}
+          {/* Search Input, Level Selector & Topic Filters */}
           <div className="space-y-2">
+            {/* Search Input */}
             <div className="relative">
               <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
               <input
                 type="text"
-                placeholder="Tìm kiếm bài đọc..."
+                placeholder="Tìm bài theo tên, từ khóa..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-7 py-1.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
@@ -791,6 +895,80 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
               )}
             </div>
 
+            {/* Level Filter Bar (N5 đến N1) */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-[11px] text-slate-400 font-semibold px-0.5">
+                <span className="flex items-center gap-1">
+                  <GraduationCap className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Cấp độ:</span>
+                </span>
+                {selectedLevel !== 'all' && (
+                  <button
+                    onClick={() => setSelectedLevel('all')}
+                    className="text-[10px] text-emerald-400 hover:underline cursor-pointer"
+                  >
+                    Xem tất cả ({lessons.length})
+                  </button>
+                )}
+              </div>
+              <div className="flex gap-1 overflow-x-auto pb-0.5 scrollbar-none">
+                {availableLevels.map((lvl: string) => {
+                  const isSel = selectedLevel === lvl
+                  const count =
+                    lvl === 'all'
+                      ? lessons.length
+                      : lessons.filter((l: Lesson) => l.level.startsWith(lvl)).length
+
+                  return (
+                    <button
+                      key={lvl}
+                      onClick={() => setSelectedLevel(lvl)}
+                      className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                        isSel
+                          ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
+                          : 'bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-800'
+                      }`}
+                    >
+                      <span>{lvl === 'all' ? 'Tất cả' : lvl}</span>
+                      {count > 0 && (
+                        <span
+                          className={`ml-1 text-[10px] ${
+                            isSel ? 'text-slate-900 font-bold' : 'text-slate-500'
+                          }`}
+                        >
+                          {count}
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Topic / Category Filter Dropdown */}
+            {availableCategories.length > 1 && (
+              <div className="flex items-center gap-1.5 text-xs bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5">
+                <Tag className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="bg-transparent text-slate-200 text-xs w-full focus:outline-none cursor-pointer"
+                >
+                  <option value="all" className="bg-slate-900 text-slate-200">
+                    Tất cả chủ đề ({lessons.length} bài)
+                  </option>
+                  {availableCategories
+                    .filter((c: string) => c !== 'all')
+                    .map((cat: string) => (
+                      <option key={cat} value={cat} className="bg-slate-900 text-slate-200">
+                        {cat} ({lessons.filter((l: Lesson) => l.category === cat).length})
+                      </option>
+                    ))}
+                </select>
+              </div>
+            )}
+
+            {/* Audio Source Filters */}
             <div className="flex gap-1 text-[11px] bg-slate-950 p-1 rounded-xl border border-slate-800/80">
               <button
                 onClick={() => setLessonFilter('all')}
@@ -825,88 +1003,203 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
             </div>
           </div>
 
-          {/* LESSONS LIST (SCROLLABLE) */}
+          {/* LESSONS LIST (SCROLLABLE & GROUPED) */}
           <div className="space-y-2 max-h-[calc(100vh-320px)] min-h-[350px] overflow-y-auto pr-1">
             {filteredLessons.length === 0 ? (
               <div className="p-4 text-center text-xs text-slate-500 border border-dashed border-slate-800 rounded-2xl">
-                Không tìm thấy bài học nào phù hợp
+                Không tìm thấy bài học nào phù hợp với bộ lọc hiện tại
               </div>
-            ) : (
-              filteredLessons.map((l, idx) => {
-                const isActive = l.id === activeLessonId
-                const hasOriginal = Boolean(l.originalAudioUrl || l.audioBlobId)
+            ) : selectedLevel === 'all' && groupedLessonsByLevel.length > 1 ? (
+              groupedLessonsByLevel.map((group: { levelKey: string; lessons: Lesson[] }) => {
+                const meta = currentLang === 'ja' ? JA_LEVEL_INFO[group.levelKey] : undefined
 
                 return (
-                  <div
-                    key={l.id}
-                    ref={isActive ? activeLessonRef : null}
-                    onClick={() => {
-                      if (!isActive && isCurrentSentenceFailed) {
-                        triggerToast(
-                          `🔒 Chưa đạt điểm Pass ở câu hiện tại (${currentSentenceScore}/100đ, cần ≥ ${PASS_SCORE}đ). Hãy luyện tập lại câu này để đạt chuẩn trước khi chọn bài khác!`
-                        )
-                        return
-                      }
-                      setActiveLessonId(l.id)
-                      setCurrentSentenceIdx(0)
-                      setIsSidebarOpenMobile(false)
-                    }}
-                    className={`p-3 rounded-2xl border text-left cursor-pointer transition-all duration-150 relative ${
-                      isActive
-                        ? 'bg-emerald-500/15 border-emerald-500/50 shadow-md shadow-emerald-500/10 ring-1 ring-emerald-500/30'
-                        : 'bg-slate-950/70 hover:bg-slate-800/60 border-slate-800/80 hover:border-slate-700'
-                    }`}
-                  >
-                    {/* Top Row: Level & Source Badge */}
-                    <div className="flex items-center justify-between gap-1 mb-1.5">
-                      <div className="flex items-center gap-1.5">
-                        <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                            isActive
-                              ? 'bg-emerald-500 text-slate-950'
-                              : 'bg-slate-800 text-slate-300'
-                          }`}
-                        >
-                          {l.level || 'Bài đọc'}
-                        </span>
-                        {hasOriginal ? (
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                            <Headphones className="w-2.5 h-2.5" /> Gốc
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                            <Volume2 className="w-2.5 h-2.5" /> AI
+                  <div key={group.levelKey} className="space-y-1.5 pt-1">
+                    {/* Sticky Level Divider Header */}
+                    <div className="sticky top-0 z-10 my-1.5 px-3 py-1.5 rounded-xl bg-slate-900/95 backdrop-blur-md border border-slate-800 flex items-center justify-between text-xs shadow-sm">
+                      <div className="flex items-center gap-1.5 font-bold text-white min-w-0">
+                        <span>{meta?.icon || '📚'}</span>
+                        <span className="truncate">{meta?.title || group.levelKey}</span>
+                        {meta?.desc && (
+                          <span className="text-[10px] text-slate-400 font-normal hidden sm:inline truncate">
+                            • {meta.desc}
                           </span>
                         )}
                       </div>
-
-                      <span className="text-[10px] text-slate-400 font-mono">
-                        {l.sentences.length} câu
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 shrink-0">
+                        {group.lessons.length} bài
                       </span>
                     </div>
 
-                    {/* Lesson Title */}
-                    <h4
-                      className={`text-xs font-bold leading-snug line-clamp-2 ${
-                        isActive ? 'text-white' : 'text-slate-300'
-                      }`}
-                    >
-                      {l.title}
-                    </h4>
+                    {/* Group's lessons */}
+                    <div className="space-y-2">
+                      {group.lessons.map((l: Lesson) => {
+                        const isActive = l.id === activeLessonId
+                        const hasOriginal = Boolean(l.originalAudioUrl || l.audioBlobId)
+                        const lvlClass = getLevelBadgeClass(l.level)
 
-                    {/* Active Learning Progress Info */}
-                    {isActive && (
-                      <div className="mt-2 pt-2 border-t border-emerald-500/20 flex items-center justify-between text-[11px] text-emerald-300 font-semibold">
-                        <span className="flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                          <span>Đang luyện: Câu {currentSentenceIdx + 1}/{l.sentences.length}</span>
-                        </span>
-                        <ChevronRight className="w-3.5 h-3.5 text-emerald-400" />
-                      </div>
-                    )}
+                        return (
+                          <div
+                            key={l.id}
+                            ref={isActive ? activeLessonRef : null}
+                            onClick={() => {
+                              if (!isActive && isCurrentSentenceFailed) {
+                                triggerToast(
+                                  `🔒 Chưa đạt điểm Pass ở câu hiện tại (${currentSentenceScore}/100đ, cần ≥ ${PASS_SCORE}đ). Hãy luyện tập lại câu này để đạt chuẩn trước khi chọn bài khác!`
+                                )
+                                return
+                              }
+                              setActiveLessonId(l.id)
+                              setCurrentSentenceIdx(0)
+                              setIsSidebarOpenMobile(false)
+                            }}
+                            className={`p-3 rounded-2xl border text-left cursor-pointer transition-all duration-150 relative ${
+                              isActive
+                                ? 'bg-emerald-500/15 border-emerald-500/50 shadow-md shadow-emerald-500/10 ring-1 ring-emerald-500/30'
+                                : 'bg-slate-950/70 hover:bg-slate-800/60 border-slate-800/80 hover:border-slate-700'
+                            }`}
+                          >
+                            {/* Top Row: Level & Source Badge */}
+                            <div className="flex items-center justify-between gap-1 mb-1.5">
+                              <div className="flex items-center gap-1.5">
+                                <span
+                                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${lvlClass}`}
+                                >
+                                  {l.level || 'Bài đọc'}
+                                </span>
+                                {hasOriginal ? (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                                    <Headphones className="w-2.5 h-2.5" /> Gốc
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                    <Volume2 className="w-2.5 h-2.5" /> AI
+                                  </span>
+                                )}
+                              </div>
+
+                              <span className="text-[10px] text-slate-400 font-mono">
+                                {l.sentences.length} câu
+                              </span>
+                            </div>
+
+                            {/* Lesson Title */}
+                            <h4
+                              className={`text-xs font-bold leading-snug line-clamp-2 ${
+                                isActive ? 'text-white' : 'text-slate-300'
+                              }`}
+                            >
+                              {l.title}
+                            </h4>
+
+                            {/* Topic / Category Tag */}
+                            {l.category && (
+                              <div className="flex items-center gap-1 mt-1 text-[10px] text-slate-400 font-medium">
+                                <Tag className="w-2.5 h-2.5 text-teal-400 shrink-0" />
+                                <span className="truncate">{l.category}</span>
+                              </div>
+                            )}
+
+                            {/* Active Learning Progress Info */}
+                            {isActive && (
+                              <div className="mt-2 pt-2 border-t border-emerald-500/20 flex items-center justify-between text-[11px] text-emerald-300 font-semibold">
+                                <span className="flex items-center gap-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                                  <span>Đang luyện: Câu {currentSentenceIdx + 1}/{l.sentences.length}</span>
+                                </span>
+                                <ChevronRight className="w-3.5 h-3.5 text-emerald-400" />
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
                   </div>
                 )
               })
+            ) : (
+              <div className="space-y-2">
+                {filteredLessons.map((l: Lesson) => {
+                  const isActive = l.id === activeLessonId
+                  const hasOriginal = Boolean(l.originalAudioUrl || l.audioBlobId)
+                  const lvlClass = getLevelBadgeClass(l.level)
+
+                  return (
+                    <div
+                      key={l.id}
+                      ref={isActive ? activeLessonRef : null}
+                      onClick={() => {
+                        if (!isActive && isCurrentSentenceFailed) {
+                          triggerToast(
+                            `🔒 Chưa đạt điểm Pass ở câu hiện tại (${currentSentenceScore}/100đ, cần ≥ ${PASS_SCORE}đ). Hãy luyện tập lại câu này để đạt chuẩn trước khi chọn bài khác!`
+                          )
+                          return
+                        }
+                        setActiveLessonId(l.id)
+                        setCurrentSentenceIdx(0)
+                        setIsSidebarOpenMobile(false)
+                      }}
+                      className={`p-3 rounded-2xl border text-left cursor-pointer transition-all duration-150 relative ${
+                        isActive
+                          ? 'bg-emerald-500/15 border-emerald-500/50 shadow-md shadow-emerald-500/10 ring-1 ring-emerald-500/30'
+                          : 'bg-slate-950/70 hover:bg-slate-800/60 border-slate-800/80 hover:border-slate-700'
+                      }`}
+                    >
+                      {/* Top Row: Level & Source Badge */}
+                      <div className="flex items-center justify-between gap-1 mb-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${lvlClass}`}
+                          >
+                            {l.level || 'Bài đọc'}
+                          </span>
+                          {hasOriginal ? (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                              <Headphones className="w-2.5 h-2.5" /> Gốc
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                              <Volume2 className="w-2.5 h-2.5" /> AI
+                            </span>
+                          )}
+                        </div>
+
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          {l.sentences.length} câu
+                        </span>
+                      </div>
+
+                      {/* Lesson Title */}
+                      <h4
+                        className={`text-xs font-bold leading-snug line-clamp-2 ${
+                          isActive ? 'text-white' : 'text-slate-300'
+                        }`}
+                      >
+                        {l.title}
+                      </h4>
+
+                      {/* Topic / Category Tag */}
+                      {l.category && (
+                        <div className="flex items-center gap-1 mt-1 text-[10px] text-slate-400 font-medium">
+                          <Tag className="w-2.5 h-2.5 text-teal-400 shrink-0" />
+                          <span className="truncate">{l.category}</span>
+                        </div>
+                      )}
+
+                      {/* Active Learning Progress Info */}
+                      {isActive && (
+                        <div className="mt-2 pt-2 border-t border-emerald-500/20 flex items-center justify-between text-[11px] text-emerald-300 font-semibold">
+                          <span className="flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                            <span>Đang luyện: Câu {currentSentenceIdx + 1}/{l.sentences.length}</span>
+                          </span>
+                          <ChevronRight className="w-3.5 h-3.5 text-emerald-400" />
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
             )}
           </div>
         </aside>
