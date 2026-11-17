@@ -141,6 +141,15 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
   const [spokenTranscript, setSpokenTranscript] = useState<string>('')
   const [scoreResults, setScoreResults] = useState<Record<string, ScoreResult>>({})
   const recognizerRef = useRef<SpeechRecognizer | null>(null)
+  const mainContentRef = useRef<HTMLDivElement>(null)
+  const activePatternBtnRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    if (selectedPatternId) {
+      mainContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+      activePatternBtnRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    }
+  }, [selectedPatternId])
 
   useEffect(() => {
     recognizerRef.current = new SpeechRecognizer()
@@ -245,7 +254,7 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
   }, [levelPatterns, searchKeyword])
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-slate-900 text-slate-100 overflow-hidden">
+    <div className="h-[calc(100vh-115px)] min-h-[640px] flex flex-col bg-slate-900 text-slate-100 rounded-3xl border border-slate-800 shadow-2xl overflow-hidden">
       {/* Top Header Bar */}
       <div className="bg-slate-900/95 backdrop-blur border-b border-slate-800 px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
         <div className="flex items-center gap-3">
@@ -368,13 +377,14 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 min-h-0 flex overflow-hidden">
         {/* ================= TAB 1: PRACTICE FOCUS VIEW ================= */}
         {activeTab === 'practice' && (
-          <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-            {/* Sidebar list of patterns in this level */}
-            <div className="w-full md:w-80 lg:w-96 border-b md:border-b-0 md:border-r border-slate-800 flex flex-col bg-slate-900/50 shrink-0">
-              <div className="p-3 border-b border-slate-800 bg-slate-900/80">
+          <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden">
+            {/* Sidebar list of patterns in this level - Sticky on desktop */}
+            <div className="w-full md:w-80 lg:w-96 border-b md:border-b-0 md:border-r border-slate-800 flex flex-col bg-slate-950/60 shrink-0 max-h-72 md:max-h-full h-full min-h-0 md:sticky md:top-0 z-10">
+              {/* Sticky Search Header in Sidebar */}
+              <div className="p-3 border-b border-slate-800 bg-slate-900/90 backdrop-blur shrink-0">
                 <div className="relative">
                   <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                   <input
@@ -382,12 +392,27 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
                     value={searchKeyword}
                     onChange={(e) => setSearchKeyword(e.target.value)}
                     placeholder={`Tìm kiếm trong ${selectedLevel}...`}
-                    className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-slate-800/90 border border-slate-700 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500"
+                    className="w-full pl-9 pr-7 py-1.5 rounded-lg bg-slate-800/90 border border-slate-700 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500"
                   />
+                  {searchKeyword && (
+                    <button
+                      onClick={() => setSearchKeyword('')}
+                      className="absolute right-2.5 top-2 text-slate-400 hover:text-white text-xs font-bold"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1.5 px-0.5 font-medium">
+                  <span>Mẫu ngữ pháp ({selectedLevel}):</span>
+                  <span className="text-cyan-400 font-semibold">
+                    {filteredAllPatterns.length} / {levelPatterns.length} mẫu
+                  </span>
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
+              {/* Scrollable list of patterns */}
+              <div className="flex-1 min-h-0 overflow-y-auto p-2 space-y-1.5 scrollbar-thin scrollbar-thumb-slate-700">
                 {filteredAllPatterns.length === 0 ? (
                   <div className="text-center py-8 text-slate-500 text-xs">Không tìm thấy mẫu phù hợp</div>
                 ) : (
@@ -396,6 +421,7 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
                     return (
                       <button
                         key={pat.id}
+                        ref={isCur ? activePatternBtnRef : null}
                         onClick={() => setSelectedPatternId(pat.id)}
                         className={`w-full text-left p-3 rounded-xl border transition-all ${
                           isCur
@@ -423,7 +449,10 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
             </div>
 
             {/* Main Area: Pattern Formula, Notes and 3-5 Interactive Examples */}
-            <div className="flex-1 flex flex-col overflow-y-auto p-6 bg-slate-900/30">
+            <div
+              ref={mainContentRef}
+              className="flex-1 min-h-0 h-full flex flex-col overflow-y-auto p-6 lg:p-8 bg-slate-900/30 scrollbar-thin scrollbar-thumb-slate-700"
+            >
               {currentPattern ? (
                 <div className="max-w-4xl w-full mx-auto space-y-6">
                   {/* Pattern Header Card */}
@@ -599,7 +628,7 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
 
         {/* ================= TAB 2: ALL PATTERNS OF LEVEL (ACCORDION & SEARCH) ================= */}
         {activeTab === 'all-patterns' && (
-          <div className="flex-1 flex flex-col overflow-y-auto p-6 bg-slate-900/30">
+          <div className="flex-1 min-h-0 flex flex-col overflow-y-auto p-6 bg-slate-900/30">
             <div className="max-w-5xl w-full mx-auto space-y-4">
               {/* Top search & count header */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-slate-800/60 border border-slate-700/60">
@@ -743,7 +772,7 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
 
         {/* ================= TAB 3: KAIWA LIVING CONVERSATIONS ================= */}
         {activeTab === 'kaiwa' && (
-          <div className="flex-1 flex flex-col overflow-y-auto p-6 bg-slate-900/30">
+          <div className="flex-1 min-h-0 flex flex-col overflow-y-auto p-6 bg-slate-900/30">
             <div className="max-w-5xl w-full mx-auto space-y-6">
               {/* Header Info */}
               <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-900/30 to-indigo-900/30 border border-blue-700/40">
