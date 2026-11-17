@@ -16,6 +16,9 @@ import {
   Video,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  Play,
   RotateCcw,
   PlusCircle,
   HelpCircle,
@@ -154,6 +157,9 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
   const timerIntervalRef = useRef<any>(null)
   const audioCheckIntervalRef = useRef<any>(null)
   const activeLessonRef = useRef<HTMLDivElement | null>(null)
+
+  // Expanded state for lessons in sidebar (lessonId -> boolean)
+  const [expandedLessonIds, setExpandedLessonIds] = useState<Record<string, boolean>>({})
 
   // Load lessons for current language
   useEffect(() => {
@@ -733,6 +739,241 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
     triggerToast(`Đã tạo bài đọc mới: "${newLesson.title}"`)
   }
 
+  // Toggle expansion of a lesson's sentence list
+  const toggleExpandLesson = (lessonId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation()
+    setExpandedLessonIds((prev) => {
+      const isCurrentlyExpanded =
+        prev[lessonId] !== undefined ? prev[lessonId] : lessonId === activeLessonId
+      return { ...prev, [lessonId]: !isCurrentlyExpanded }
+    })
+  }
+
+  // Check if all filtered lessons are expanded
+  const areAllLessonsExpanded = useMemo(() => {
+    if (filteredLessons.length === 0) return false
+    return filteredLessons.every((l: Lesson) =>
+      expandedLessonIds[l.id] !== undefined ? expandedLessonIds[l.id] : l.id === activeLessonId
+    )
+  }, [filteredLessons, expandedLessonIds, activeLessonId])
+
+  // Toggle expand / collapse all lessons
+  const toggleExpandAllLessons = () => {
+    const nextState = !areAllLessonsExpanded
+    const newMap: Record<string, boolean> = {}
+    filteredLessons.forEach((l: Lesson) => {
+      newMap[l.id] = nextState
+    })
+    setExpandedLessonIds(newMap)
+  }
+
+  // Handle selecting a lesson
+  const handleSelectLesson = (lessonId: string) => {
+    if (lessonId === activeLessonId) {
+      toggleExpandLesson(lessonId)
+      return
+    }
+
+    if (isCurrentSentenceFailed) {
+      triggerToast(
+        `🔒 Chưa đạt điểm Pass ở câu hiện tại (${currentSentenceScore}/100đ, cần ≥ ${PASS_SCORE}đ). Hãy luyện tập lại câu này để đạt chuẩn trước khi chọn bài khác!`
+      )
+      return
+    }
+
+    setActiveLessonId(lessonId)
+    setCurrentSentenceIdx(0)
+    setExpandedLessonIds((prev) => ({ ...prev, [lessonId]: true }))
+    setIsSidebarOpenMobile(false)
+  }
+
+  // Handle selecting a specific sentence inside any lesson
+  const handleSelectSentence = (lessonId: string, sentenceIdx: number) => {
+    const isDifferentLesson = lessonId !== activeLessonId
+    const isDifferentSentence = isDifferentLesson || sentenceIdx !== currentSentenceIdx
+
+    if (isDifferentSentence && isCurrentSentenceFailed) {
+      triggerToast(
+        `🔒 Chưa đạt điểm Pass ở câu hiện tại (${currentSentenceScore}/100đ, cần ≥ ${PASS_SCORE}đ). Hãy luyện tập lại câu này để đạt chuẩn trước khi chọn bài hoặc câu khác!`
+      )
+      return
+    }
+
+    if (isDifferentLesson) {
+      setActiveLessonId(lessonId)
+      setExpandedLessonIds((prev) => ({ ...prev, [lessonId]: true }))
+    }
+    setCurrentSentenceIdx(sentenceIdx)
+    setIsSidebarOpenMobile(false)
+  }
+
+  // Render an individual Lesson Card with expandable sentence list
+  const renderLessonCard = (l: Lesson) => {
+    const isActive = l.id === activeLessonId
+    const isExpanded =
+      expandedLessonIds[l.id] !== undefined ? expandedLessonIds[l.id] : isActive
+    const hasOriginal = Boolean(l.originalAudioUrl || l.audioBlobId)
+    const lvlClass = getLevelBadgeClass(l.level)
+
+    return (
+      <div
+        key={l.id}
+        ref={isActive ? activeLessonRef : null}
+        onClick={() => handleSelectLesson(l.id)}
+        className={`p-3 rounded-2xl border text-left cursor-pointer transition-all duration-150 relative ${
+          isActive
+            ? 'bg-emerald-500/15 border-emerald-500/50 shadow-md shadow-emerald-500/10 ring-1 ring-emerald-500/30'
+            : 'bg-slate-950/70 hover:bg-slate-800/60 border-slate-800/80 hover:border-slate-700'
+        }`}
+      >
+        {/* Top Row: Level, Source Badge & Sentence Count Expand Toggle */}
+        <div className="flex items-center justify-between gap-1 mb-1.5">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span
+              className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${lvlClass}`}
+            >
+              {l.level || 'Bài đọc'}
+            </span>
+            {hasOriginal ? (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                <Headphones className="w-2.5 h-2.5" /> Gốc
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                <Volume2 className="w-2.5 h-2.5" /> AI
+              </span>
+            )}
+          </div>
+
+          {/* Expand / Collapse Button */}
+          <button
+            type="button"
+            onClick={(e) => toggleExpandLesson(l.id, e)}
+            className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold transition-all cursor-pointer ${
+              isExpanded
+                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-xs'
+                : 'bg-slate-900 text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-slate-800'
+            }`}
+            title={isExpanded ? 'Thu gọn danh sách câu' : 'Mở xem danh sách các câu trong bài'}
+          >
+            <span>{l.sentences.length} câu</span>
+            {isExpanded ? (
+              <ChevronUp className="w-3 h-3 text-emerald-400" />
+            ) : (
+              <ChevronDown className="w-3 h-3 text-slate-400" />
+            )}
+          </button>
+        </div>
+
+        {/* Lesson Title */}
+        <h4
+          className={`text-xs font-bold leading-snug line-clamp-2 ${
+            isActive ? 'text-white' : 'text-slate-300'
+          }`}
+        >
+          {l.title}
+        </h4>
+
+        {/* Topic / Category Tag */}
+        {l.category && (
+          <div className="flex items-center gap-1 mt-1 text-[10px] text-slate-400 font-medium">
+            <Tag className="w-2.5 h-2.5 text-teal-400 shrink-0" />
+            <span className="truncate">{l.category}</span>
+          </div>
+        )}
+
+        {/* Active Learning Progress Info (collapsed mode) */}
+        {isActive && !isExpanded && (
+          <div className="mt-2 pt-2 border-t border-emerald-500/20 flex items-center justify-between text-[11px] text-emerald-300 font-semibold">
+            <span className="flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+              <span>
+                Đang luyện: Câu {currentSentenceIdx + 1}/{l.sentences.length}
+              </span>
+            </span>
+            <ChevronRight className="w-3.5 h-3.5 text-emerald-400" />
+          </div>
+        )}
+
+        {/* EXPANDED SENTENCE LIST */}
+        {isExpanded && (
+          <div className="mt-2.5 pt-2 border-t border-slate-800/80 space-y-1.5">
+            <div className="flex items-center justify-between text-[10px] font-semibold text-slate-400 px-0.5">
+              <span>Danh sách {l.sentences.length} câu:</span>
+              <span className="text-[9px] text-emerald-400/90 italic font-normal">
+                Click để chọn câu
+              </span>
+            </div>
+
+            <div className="space-y-1 max-h-64 overflow-y-auto pr-0.5 scrollbar-thin">
+              {l.sentences.map((sent, sIdx) => {
+                const isCurrentSentence = isActive && currentSentenceIdx === sIdx
+
+                return (
+                  <div
+                    key={sent.id || `sent-${sIdx}`}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleSelectSentence(l.id, sIdx)
+                    }}
+                    className={`p-2 rounded-xl text-left transition-all duration-150 cursor-pointer border ${
+                      isCurrentSentence
+                        ? 'bg-emerald-500/20 border-emerald-500/50 text-white shadow-sm ring-1 ring-emerald-500/30'
+                        : 'bg-slate-900/60 hover:bg-slate-800/80 border-slate-800/60 text-slate-300 hover:border-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-1.5 mb-1">
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold ${
+                            isCurrentSentence
+                              ? 'bg-emerald-400 text-slate-950 font-black'
+                              : 'bg-slate-800 text-slate-400'
+                          }`}
+                        >
+                          {sIdx + 1}
+                        </span>
+                        {isCurrentSentence && (
+                          <span className="text-[9px] font-bold text-emerald-400 flex items-center gap-0.5">
+                            <Play className="w-2.5 h-2.5 fill-emerald-400 text-emerald-400" />
+                            Đang chọn
+                          </span>
+                        )}
+                      </div>
+
+                      {typeof sent.startTime === 'number' && typeof sent.endTime === 'number' && (
+                        <span className="text-[9px] font-mono text-slate-500">
+                          {Math.floor(sent.startTime)}s - {Math.ceil(sent.endTime)}s
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Sentence Text with Furigana if Japanese */}
+                    <div className="text-xs font-medium leading-relaxed">
+                      <FuriganaText
+                        text={sent.text}
+                        furigana={sent.furigana}
+                        lang={currentLang}
+                        showFurigana={showFurigana}
+                      />
+                    </div>
+
+                    {/* Vietnamese Translation */}
+                    {sent.translation && (
+                      <p className="text-[10px] text-slate-400 mt-1 line-clamp-2 leading-normal">
+                        {sent.translation}
+                      </p>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-4 relative">
       {/* Toast Notification Banner */}
@@ -1001,6 +1242,26 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
                 🔊 Mẫu AI
               </button>
             </div>
+
+            {/* Lessons Count & Expand All Toggle */}
+            <div className="flex items-center justify-between text-[11px] text-slate-400 px-1 pt-1">
+              <span className="font-semibold text-slate-300">
+                {filteredLessons.length} bài học
+              </span>
+              {filteredLessons.length > 0 && (
+                <button
+                  type="button"
+                  onClick={toggleExpandAllLessons}
+                  className="flex items-center gap-1 text-[10px] text-emerald-400 hover:text-emerald-300 font-semibold cursor-pointer transition-colors"
+                  title={areAllLessonsExpanded ? 'Thu gọn tất cả các câu' : 'Mở rộng hiển thị tất cả các câu'}
+                >
+                  <Layers className="w-3 h-3" />
+                  <span>
+                    {areAllLessonsExpanded ? 'Thu gọn tất cả câu' : 'Mở rộng tất cả câu'}
+                  </span>
+                </button>
+              )}
+            </div>
           </div>
 
           {/* LESSONS LIST (SCROLLABLE & GROUPED) */}
@@ -1033,172 +1294,14 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
 
                     {/* Group's lessons */}
                     <div className="space-y-2">
-                      {group.lessons.map((l: Lesson) => {
-                        const isActive = l.id === activeLessonId
-                        const hasOriginal = Boolean(l.originalAudioUrl || l.audioBlobId)
-                        const lvlClass = getLevelBadgeClass(l.level)
-
-                        return (
-                          <div
-                            key={l.id}
-                            ref={isActive ? activeLessonRef : null}
-                            onClick={() => {
-                              if (!isActive && isCurrentSentenceFailed) {
-                                triggerToast(
-                                  `🔒 Chưa đạt điểm Pass ở câu hiện tại (${currentSentenceScore}/100đ, cần ≥ ${PASS_SCORE}đ). Hãy luyện tập lại câu này để đạt chuẩn trước khi chọn bài khác!`
-                                )
-                                return
-                              }
-                              setActiveLessonId(l.id)
-                              setCurrentSentenceIdx(0)
-                              setIsSidebarOpenMobile(false)
-                            }}
-                            className={`p-3 rounded-2xl border text-left cursor-pointer transition-all duration-150 relative ${
-                              isActive
-                                ? 'bg-emerald-500/15 border-emerald-500/50 shadow-md shadow-emerald-500/10 ring-1 ring-emerald-500/30'
-                                : 'bg-slate-950/70 hover:bg-slate-800/60 border-slate-800/80 hover:border-slate-700'
-                            }`}
-                          >
-                            {/* Top Row: Level & Source Badge */}
-                            <div className="flex items-center justify-between gap-1 mb-1.5">
-                              <div className="flex items-center gap-1.5">
-                                <span
-                                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${lvlClass}`}
-                                >
-                                  {l.level || 'Bài đọc'}
-                                </span>
-                                {hasOriginal ? (
-                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                                    <Headphones className="w-2.5 h-2.5" /> Gốc
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                                    <Volume2 className="w-2.5 h-2.5" /> AI
-                                  </span>
-                                )}
-                              </div>
-
-                              <span className="text-[10px] text-slate-400 font-mono">
-                                {l.sentences.length} câu
-                              </span>
-                            </div>
-
-                            {/* Lesson Title */}
-                            <h4
-                              className={`text-xs font-bold leading-snug line-clamp-2 ${
-                                isActive ? 'text-white' : 'text-slate-300'
-                              }`}
-                            >
-                              {l.title}
-                            </h4>
-
-                            {/* Topic / Category Tag */}
-                            {l.category && (
-                              <div className="flex items-center gap-1 mt-1 text-[10px] text-slate-400 font-medium">
-                                <Tag className="w-2.5 h-2.5 text-teal-400 shrink-0" />
-                                <span className="truncate">{l.category}</span>
-                              </div>
-                            )}
-
-                            {/* Active Learning Progress Info */}
-                            {isActive && (
-                              <div className="mt-2 pt-2 border-t border-emerald-500/20 flex items-center justify-between text-[11px] text-emerald-300 font-semibold">
-                                <span className="flex items-center gap-1">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                                  <span>Đang luyện: Câu {currentSentenceIdx + 1}/{l.sentences.length}</span>
-                                </span>
-                                <ChevronRight className="w-3.5 h-3.5 text-emerald-400" />
-                              </div>
-                            )}
-                          </div>
-                        )
-                      })}
+                      {group.lessons.map((l: Lesson) => renderLessonCard(l))}
                     </div>
                   </div>
                 )
               })
             ) : (
               <div className="space-y-2">
-                {filteredLessons.map((l: Lesson) => {
-                  const isActive = l.id === activeLessonId
-                  const hasOriginal = Boolean(l.originalAudioUrl || l.audioBlobId)
-                  const lvlClass = getLevelBadgeClass(l.level)
-
-                  return (
-                    <div
-                      key={l.id}
-                      ref={isActive ? activeLessonRef : null}
-                      onClick={() => {
-                        if (!isActive && isCurrentSentenceFailed) {
-                          triggerToast(
-                            `🔒 Chưa đạt điểm Pass ở câu hiện tại (${currentSentenceScore}/100đ, cần ≥ ${PASS_SCORE}đ). Hãy luyện tập lại câu này để đạt chuẩn trước khi chọn bài khác!`
-                          )
-                          return
-                        }
-                        setActiveLessonId(l.id)
-                        setCurrentSentenceIdx(0)
-                        setIsSidebarOpenMobile(false)
-                      }}
-                      className={`p-3 rounded-2xl border text-left cursor-pointer transition-all duration-150 relative ${
-                        isActive
-                          ? 'bg-emerald-500/15 border-emerald-500/50 shadow-md shadow-emerald-500/10 ring-1 ring-emerald-500/30'
-                          : 'bg-slate-950/70 hover:bg-slate-800/60 border-slate-800/80 hover:border-slate-700'
-                      }`}
-                    >
-                      {/* Top Row: Level & Source Badge */}
-                      <div className="flex items-center justify-between gap-1 mb-1.5">
-                        <div className="flex items-center gap-1.5">
-                          <span
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${lvlClass}`}
-                          >
-                            {l.level || 'Bài đọc'}
-                          </span>
-                          {hasOriginal ? (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                              <Headphones className="w-2.5 h-2.5" /> Gốc
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                              <Volume2 className="w-2.5 h-2.5" /> AI
-                            </span>
-                          )}
-                        </div>
-
-                        <span className="text-[10px] text-slate-400 font-mono">
-                          {l.sentences.length} câu
-                        </span>
-                      </div>
-
-                      {/* Lesson Title */}
-                      <h4
-                        className={`text-xs font-bold leading-snug line-clamp-2 ${
-                          isActive ? 'text-white' : 'text-slate-300'
-                        }`}
-                      >
-                        {l.title}
-                      </h4>
-
-                      {/* Topic / Category Tag */}
-                      {l.category && (
-                        <div className="flex items-center gap-1 mt-1 text-[10px] text-slate-400 font-medium">
-                          <Tag className="w-2.5 h-2.5 text-teal-400 shrink-0" />
-                          <span className="truncate">{l.category}</span>
-                        </div>
-                      )}
-
-                      {/* Active Learning Progress Info */}
-                      {isActive && (
-                        <div className="mt-2 pt-2 border-t border-emerald-500/20 flex items-center justify-between text-[11px] text-emerald-300 font-semibold">
-                          <span className="flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                            <span>Đang luyện: Câu {currentSentenceIdx + 1}/{l.sentences.length}</span>
-                          </span>
-                          <ChevronRight className="w-3.5 h-3.5 text-emerald-400" />
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
+                {filteredLessons.map((l: Lesson) => renderLessonCard(l))}
               </div>
             )}
           </div>
