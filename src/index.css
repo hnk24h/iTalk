@@ -275,3 +275,29 @@ html.light ::-webkit-scrollbar-thumb {
 html.light ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/* ==========================================================================
+   JAPANESE FURIGANA (RUBY) STYLING
+   ========================================================================== */
+ruby.ruby-group {
+  ruby-align: center;
+  ruby-position: over;
+  display: inline-ruby;
+  margin: 0 1px;
+}
+
+ruby.ruby-group rt.ruby-rt {
+  font-size: 0.46em;
+  line-height: 1.1;
+  font-family: 'Hiragino Sans', 'Noto Sans JP', 'Meiryo', sans-serif;
+  font-weight: 600;
+  color: #34d399; /* emerald-400 */
+  letter-spacing: normal;
+  user-select: none;
+  text-align: center;
+  display: ruby-text;
+}
+
+html.light ruby.ruby-group rt.ruby-rt {
+  color: #059669; /* emerald-600 */
+}

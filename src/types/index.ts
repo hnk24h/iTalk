@@ -13,6 +13,7 @@ export interface LessonSentence {
   id: string
   text: string
   phonetic?: string // Furigana/Romaji for Japanese, Pinyin for Chinese
+  furigana?: string // Ruby format: e.g. "初[はじ]めまして、ホアンと申[もう]します。"
   translation: string
   grammarNote?: string
   startTime?: number // Seconds in original audio file

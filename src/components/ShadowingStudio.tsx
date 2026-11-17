@@ -7,6 +7,7 @@ import { evaluatePronunciation } from '../services/scoring'
 import { saveRecordingEntry, loadCustomLessons, saveCustomLesson, loadSettings } from '../services/storage'
 import { getAudioBlob } from '../services/audioDb'
 import { setAudioOutputDevice } from '../services/deviceManager'
+import { FuriganaText } from '../services/furigana'
 import { AudioImporterModal } from './AudioImporterModal'
 import {
   Volume2,
@@ -70,6 +71,25 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
     }
     return 'auto'
   })
+
+  // Japanese Furigana ruby display toggle
+  const [showFurigana, setShowFurigana] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('italk_show_furigana')
+      return saved !== null ? saved === 'true' : true
+    }
+    return true
+  })
+
+  const toggleFurigana = () => {
+    setShowFurigana((prev) => {
+      const next = !prev
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('italk_show_furigana', String(next))
+      }
+      return next
+    })
+  }
 
   // Sidebar Filter & Search
   const [searchQuery, setSearchQuery] = useState('')
@@ -1075,19 +1095,43 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
                   </div>
                 </div>
 
-                {/* Phonetic Transcription (Furigana / Romaji / Pinyin) */}
-                {currentSentence?.phonetic && (
-                  <div className="mb-2">
+                {/* Phonetic Transcription & Furigana Controls */}
+                <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+                  {currentSentence?.phonetic && (
                     <span className="text-xs font-mono text-emerald-400/90 tracking-wide bg-emerald-500/5 px-2.5 py-1 rounded-md border border-emerald-500/10">
                       {currentSentence.phonetic}
                     </span>
-                  </div>
-                )}
+                  )}
 
-                {/* Target Big Text */}
+                  {/* Furigana toggle button for Japanese */}
+                  {currentLang === 'ja' && (
+                    <button
+                      type="button"
+                      onClick={toggleFurigana}
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                        showFurigana
+                          ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-sm'
+                          : 'bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700'
+                      }`}
+                      title={showFurigana ? 'Tắt hiển thị Furigana trên chữ Kanji' : 'Bật hiển thị Furigana trên chữ Kanji'}
+                    >
+                      <span>Furigana:</span>
+                      <span className={showFurigana ? 'text-emerald-300 font-bold' : 'text-slate-400'}>
+                        {showFurigana ? 'Bật (Hiragana)' : 'Tắt'}
+                      </span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Target Big Text (With Furigana on Kanji for Japanese) */}
                 <div className="my-5">
-                  <h2 className="text-2xl sm:text-3xl xl:text-4xl 2xl:text-5xl font-extrabold text-white leading-relaxed tracking-normal font-sans">
-                    {currentSentence?.text}
+                  <h2 className="text-2xl sm:text-3xl xl:text-4xl 2xl:text-5xl font-extrabold text-white leading-loose tracking-normal font-sans">
+                    <FuriganaText
+                      text={currentSentence?.text || ''}
+                      furigana={currentSentence?.furigana}
+                      lang={currentLang}
+                      showFurigana={showFurigana}
+                    />
                   </h2>
                 </div>
 
