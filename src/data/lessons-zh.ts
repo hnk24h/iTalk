@@ -2,6 +2,616 @@ import { Lesson } from '../types'
 
 export const chineseLessons: Lesson[] = [
   {
+    "id": "zh-pin-01",
+    "language": "zh",
+    "level": "Pinyin",
+    "title": "6 Vận mẫu đơn căn bản: a, o, e, i, u, ü",
+    "category": "Bảng chữ cái & Khẩu hình",
+    "description": "6 nguyên âm đơn hạt nhân trong hệ thống ngữ âm tiếng Hán. Định hình độ mở vòm miệng và vị trí môi.",
+    "sentences": [
+      {
+        "id": "zh-pin-01-s1",
+        "text": "a — [爸爸;bàba] (Bàba: Bố)",
+        "phonetic": "a (bàba)",
+        "translation": "Vận mẫu a — Ví dụ: 爸爸 (Bố/Ba)",
+        "mouthShape": "Miệng mở to hết cỡ hình tròn đứng tự nhiên, môi thả lỏng không căng thẳng.",
+        "tonguePosition": "Lưỡi nằm bẹp tự nhiên ở đáy khoang miệng, phần giữa lưỡi hơi lõm xuống, đầu lưỡi không chạm răng.",
+        "breathGuide": "Thanh đới rung mạnh, phát âm to rõ vang dội, luồng hơi thoát thẳng không bị cản.",
+        "grammarNote": "Vận mẫu a là âm có độ mở miệng lớn nhất trong tất cả các nguyên âm tiếng Trung."
+      },
+      {
+        "id": "zh-pin-01-s2",
+        "text": "o — [我的;wǒ de] (Wǒ de: Của tôi)",
+        "phonetic": "o (wǒ de)",
+        "translation": "Vận mẫu o — Ví dụ: 我的 (Của tôi)",
+        "mouthShape": "Môi tròn lại hơi nhô nhẹ ra phía trước, độ mở miệng cỡ vừa (khoảng 1 ngón tay cái).",
+        "tonguePosition": "Cuống lưỡi nâng cao về phía ngạc mềm, thân lưỡi hơi lùi về phía sau trong họng.",
+        "breathGuide": "Dây thanh rung ấm, âm phát ra tròn trịa [o], có hơi hướng lướt nhẹ sang [u] ở phần đuôi âm.",
+        "grammarNote": "Người Bắc Kinh khi phát âm 'o' độc lập thường nghe hơi giống 'ua' hoặc 'ô' tròn môi."
+      },
+      {
+        "id": "zh-pin-01-s3",
+        "text": "e — [哥哥;gēge] (Gēge: Anh trai)",
+        "phonetic": "e (gēge)",
+        "translation": "Vận mẫu e — Ví dụ: 哥哥 (Anh trai)",
+        "mouthShape": "Khóe miệng kéo dẹt sang hai bên như đang cười hé, hai hàm răng mở cách nhau khoảng nửa ngón tay.",
+        "tonguePosition": "Vị trí lưỡi giống hệt như phát âm âm 'o' (cuống lưỡi nâng cao lùi sau), nhưng môi KHÔNG tròn mà dẹt phẳng ra.",
+        "breathGuide": "Thanh đới rung, âm thanh phát ra trầm sâu từ khoang họng [ɤ], nằm giữa âm 'ơ' và 'ưa' tiếng Việt.",
+        "grammarNote": "LƯU Ý CỰC KỲ QUAN TRỌNG: Đây KHÔNG PHẢI là âm 'e' tiếng Việt. Giữ nguyên thế lưỡi của âm O, nhưng kéo dẹt môi ra sẽ ra âm E chuẩn 100%."
+      },
+      {
+        "id": "zh-pin-01-s4",
+        "text": "i — [你;nǐ] (Nǐ: Bạn/Anh/Chị)",
+        "phonetic": "i (nǐ)",
+        "translation": "Vận mẫu i — Ví dụ: 你 (Bạn/Ngôi thứ hai)",
+        "mouthShape": "Miệng mở hẹp, khóe môi kéo bẹt căng sang hai bên, răng trên và răng dưới khép gần sát nhau.",
+        "tonguePosition": "Thân lưỡi nâng rất cao ép sát vòm ngạc cứng phía trước, đầu lưỡi tì vào mặt sau răng cửa hàm dưới.",
+        "breathGuide": "Âm thanh thanh mảnh, sắc nét, dây thanh rung với tần số cao [i].",
+        "grammarNote": "Khi đi sau z, c, s, zh, ch, sh, r, chữ i được phát âm đặc biệt (âm đầu lưỡi không phải là 'i' thông thường)."
+      },
+      {
+        "id": "zh-pin-01-s5",
+        "text": "u — [不;bù] (Bù: Không)",
+        "phonetic": "u (bù)",
+        "translation": "Vận mẫu u — Ví dụ: 不 (Không/Chẳng)",
+        "mouthShape": "Môi chu tròn lại rất nhỏ nhô ra phía trước như đang huýt sáo, để lại một lỗ hở tròn nhỏ li ti.",
+        "tonguePosition": "Cuống lưỡi nâng cao về phía ngạc mềm, đầu lưỡi hạ thấp lùi về phía sau đáy miệng.",
+        "breathGuide": "Luồng hơi thoát qua lỗ tròn nhỏ giữa hai môi, âm thanh trầm đặc [u].",
+        "grammarNote": "Phát âm tròn môi hơn nhiều so với âm 'U' trong tiếng Nhật."
+      },
+      {
+        "id": "zh-pin-01-s6",
+        "text": "ü — [绿;lǜ] (Lǜ: Màu xanh lá cây)",
+        "phonetic": "ü (lǜ)",
+        "translation": "Vận mẫu ü (U có 2 chấm) — Ví dụ: 绿 (Màu xanh lục)",
+        "mouthShape": "GIỮ NGUYÊN KHẨU HÌNH TRÒN NHỎ NHÔ RA CỦA ÂM 'U', nhưng bên trong khoang miệng lại phát âm 'I'. TUYỆT ĐỐI KHÔNG DI CHUYỂN MÔI.",
+        "tonguePosition": "Mặt lưỡi nâng cao áp sát vòm ngạc cứng (y hệt vị trí của âm 'I').",
+        "breathGuide": "Dây thanh rung liên tục, âm thanh vang sắc và thanh thoát [y].",
+        "grammarNote": "Mẹo vàng bản xứ: Hãy phát âm 'I' kéo dài, trong lúc đang phát âm 'I' thì từ từ chu tròn môi lại thành chữ 'U' mà vị trí lưỡi bên trong không hề xê dịch!"
+      }
+    ]
+  },
+  {
+    "id": "zh-pin-02",
+    "language": "zh",
+    "level": "Pinyin",
+    "title": "Thanh mẫu âm hai môi & âm môi răng: b, p, m, f",
+    "category": "Bảng chữ cái & Khẩu hình",
+    "description": "Bốn phụ âm đầu tiên. Điểm mấu chốt: Phân biệt b (không bật hơi) và p (bật hơi bùng nổ làm bay tờ giấy).",
+    "sentences": [
+      {
+        "id": "zh-pin-02-s1",
+        "text": "b — [八;bā] (Bā: Số tám)",
+        "phonetic": "b (bā)",
+        "translation": "Thanh mẫu b — Ví dụ: 八 (Số 8)",
+        "mouthShape": "Hai môi khép chặt lại với nhau chặn hoàn toàn luồng hơi trong miệng.",
+        "tonguePosition": "Lưỡi thả lỏng tự nhiên.",
+        "breathGuide": "Mở nhanh hai môi để luồng hơi thoát ra dứt khoát, KHÔNG BẬT HƠI (luồng hơi rất yếu, không làm lay động tờ giấy trước miệng), thanh đới không rung ở phụ âm [p].",
+        "grammarNote": "LƯU Ý: Chữ 'b' trong pinyin phát âm giống chữ 'p' nhẹ không bật hơi của tiếng Việt, tuyệt đối không đọc là 'bê' rung thanh quản."
+      },
+      {
+        "id": "zh-pin-02-s2",
+        "text": "p — [苹果;píngguǒ] (Píngguǒ: Quả táo)",
+        "phonetic": "p (píngguǒ)",
+        "translation": "Thanh mẫu p — Ví dụ: 苹果 (Quả táo)",
+        "mouthShape": "Hai môi mím chặt nén luồng hơi rất mạnh phía sau cánh môi.",
+        "tonguePosition": "Lưỡi thả lỏng.",
+        "breathGuide": "BẬT HƠI CỰC MẠNH: Bung mở hai môi đột ngột, tống một luồng khí nén cực mạnh ra ngoài [pʰ], đủ làm bay phần phật tờ khăn giấy để trước miệng.",
+        "grammarNote": "Mẹo kiểm tra: Cầm một tờ khăn giấy mỏng trước miệng 5cm. Đọc 'b' giấy đứng yên, đọc 'p' giấy phải bay tung lên!"
+      },
+      {
+        "id": "zh-pin-02-s3",
+        "text": "m — [妈妈;māma] (Māma: Mẹ)",
+        "phonetic": "m (māma)",
+        "translation": "Thanh mẫu m — Ví dụ: 妈妈 (Mẹ yêu)",
+        "mouthShape": "Hai môi khép mím nhẹ lại với nhau.",
+        "tonguePosition": "Lưỡi thả lỏng tự nhiên.",
+        "breathGuide": "Hạ ngạc mềm, luồng hơi đi hoàn toàn qua khoang mũi làm rung rền thanh đới tạo âm mũi hữu thanh [m], sau đó mở môi sang nguyên âm.",
+        "grammarNote": "Phát âm tương đồng âm 'M' trong tiếng Việt."
+      },
+      {
+        "id": "zh-pin-02-s4",
+        "text": "f — [飞机;fēijī] (Fēijī: Máy bay)",
+        "phonetic": "f (fēijī)",
+        "translation": "Thanh mẫu f — Ví dụ: 飞机 (Máy bay)",
+        "mouthShape": "RĂNG CỬA HÀM TRÊN CHẠM NHẸ VÀO MẶT TRONG CỦA MÔI DƯỚI, tạo khe hẹp xát.",
+        "tonguePosition": "Lưỡi thả lỏng nằm thấp.",
+        "breathGuide": "Đẩy luồng hơi ma sát qua khe hẹp giữa răng trên và môi dưới tạo âm xát vô thanh [f], thanh đới không rung.",
+        "grammarNote": "Phát âm tương tự âm 'Ph' trong tiếng Việt."
+      }
+    ]
+  },
+  {
+    "id": "zh-pin-03",
+    "language": "zh",
+    "level": "Pinyin",
+    "title": "Thanh mẫu âm đầu lưỡi giữa: d, t, n, l",
+    "category": "Bảng chữ cái & Khẩu hình",
+    "description": "Vị trí phát âm: Đầu lưỡi tiếp xúc với chân răng hàm trên (lợi trên). Phân biệt d (không bật hơi) vs t (bật hơi mạnh).",
+    "sentences": [
+      {
+        "id": "zh-pin-03-s1",
+        "text": "d — [弟弟;dìdi] (Dìdi: Em trai)",
+        "phonetic": "d (dìdi)",
+        "translation": "Thanh mẫu d — Ví dụ: 弟弟 (Em trai)",
+        "mouthShape": "Miệng hé mở tự nhiên theo nguyên âm đi sau.",
+        "tonguePosition": "Đầu lưỡi dán chặt vào chân răng trên (lợi trên) chặn kín luồng hơi.",
+        "breathGuide": "Đầu lưỡi hạ xuống đột ngột giải phóng hơi, KHÔNG BẬT HƠI [t], thanh đới không rung ở phụ âm.",
+        "grammarNote": "LƯU Ý: Chữ 'd' trong pinyin phát âm giống chữ 't' trong tiếng Việt (ví dụ: 'đi' nghe như 'ti'). Tuyệt đối không đọc là 'đê'."
+      },
+      {
+        "id": "zh-pin-03-s2",
+        "text": "t — [天气;tiānqì] (Tiānqì: Thời tiết)",
+        "phonetic": "t (tiānqì)",
+        "translation": "Thanh mẫu t — Ví dụ: 天气 (Thời tiết)",
+        "mouthShape": "Miệng mở tự nhiên.",
+        "tonguePosition": "Đầu lưỡi dán chặt vào chân răng trên chặn khí nén.",
+        "breathGuide": "BẬT HƠI CỰC MẠNH: Hạ đầu lưỡi thật nhanh và phóng luồng khí nén cực mạnh qua kẽ răng [tʰ], làm bay tờ giấy.",
+        "grammarNote": "Phát âm gần giống âm 'th' trong tiếng Việt nhưng dứt khoát và sắc sảo hơn rất nhiều."
+      },
+      {
+        "id": "zh-pin-03-s3",
+        "text": "n — [牛奶;niúnǎi] (Niúnǎi: Sữa bò tươi)",
+        "phonetic": "n (niúnǎi)",
+        "translation": "Thanh mẫu n — Ví dụ: 牛奶 (Sữa bò)",
+        "mouthShape": "Miệng hé mở.",
+        "tonguePosition": "Đầu lưỡi chạm chặt vào lợi răng trên bịt kín khoang miệng.",
+        "breathGuide": "Hạ ngạc mềm để khí thoát hoàn toàn qua khoang mũi, thanh đới rung rền âm mũi hữu thanh [n].",
+        "grammarNote": "Phát âm tương đương âm 'N' tiếng Việt."
+      },
+      {
+        "id": "zh-pin-03-s4",
+        "text": "l — [老师;lǎoshī] (Lǎoshī: Thầy cô giáo)",
+        "phonetic": "l (lǎoshī)",
+        "translation": "Thanh mẫu l — Ví dụ: 老师 (Giáo viên)",
+        "mouthShape": "Miệng mở nhẹ.",
+        "tonguePosition": "Đầu lưỡi chạm vào lợi răng trên, nhưng HAI BÊN CẠNH LƯỠI HẠ THẤP MỞ RỘNG (âm bên - lateral consonant).",
+        "breathGuide": "Luồng khí thoát lướt qua hai bên rìa lưỡi, thanh đới rung liên tục [l].",
+        "grammarNote": "Phân biệt N vs L: N thoát hơi qua mũi (bịt mũi sẽ tắc), L thoát hơi qua hai bên mép lưỡi (bịt mũi vẫn phát âm được)."
+      }
+    ]
+  },
+  {
+    "id": "zh-pin-04",
+    "language": "zh",
+    "level": "Pinyin",
+    "title": "Thanh mẫu âm gốc lưỡi: g, k, h",
+    "category": "Bảng chữ cái & Khẩu hình",
+    "description": "Phát âm sâu trong vòm họng. Cuống lưỡi tiếp xúc với ngạc mềm. Phân biệt g (không bật hơi) vs k (bật hơi họng).",
+    "sentences": [
+      {
+        "id": "zh-pin-04-s1",
+        "text": "g — [哥哥;gēge] (Gēge: Anh trai)",
+        "phonetic": "g (gēge)",
+        "translation": "Thanh mẫu g — Ví dụ: 哥哥 (Anh trai)",
+        "mouthShape": "Miệng mở tự nhiên theo nguyên âm.",
+        "tonguePosition": "Cuống lưỡi nâng cao chạm chặt vào ngạc mềm (phần thịt mềm trên vòm họng sâu) chặn hơi.",
+        "breathGuide": "Hạ nhanh cuống lưỡi xuống để hơi bật ra, KHÔNG BẬT HƠI MẠNH [k], thanh đới không rung lúc phụ âm.",
+        "grammarNote": "LƯU Ý: Chữ 'g' trong pinyin phát âm tương đương chữ 'c / k' trong tiếng Việt (ví dụ: 'gē' đọc như 'cơ'). Không đọc là 'gờ'."
+      },
+      {
+        "id": "zh-pin-04-s2",
+        "text": "k — [咖啡;kāfēi] (Kāfēi: Cà phê)",
+        "phonetic": "k (kāfēi)",
+        "translation": "Thanh mẫu k — Ví dụ: 咖啡 (Cà phê)",
+        "mouthShape": "Miệng mở tự nhiên.",
+        "tonguePosition": "Cuống lưỡi ép sát ngạc mềm chặn nén khí trong cổ họng.",
+        "breathGuide": "BẬT HƠI MẠNH TỪ CỔ HỌNG: Cuống lưỡi bật tách ra phóng một luồng hơi cực mạnh từ cuống họng [kʰ], làm bay tờ giấy.",
+        "grammarNote": "Âm này bật hơi sâu trong họng, gần giống âm 'kh' tiếng Việt nhưng có độ nổ và dứt khoát hơn nhiều."
+      },
+      {
+        "id": "zh-pin-04-s3",
+        "text": "h — [汉语;hànyǔ] (Hànyǔ: Tiếng Hán)",
+        "phonetic": "h (hànyǔ)",
+        "translation": "Thanh mẫu h — Ví dụ: 汉语 (Tiếng Hán)",
+        "mouthShape": "Miệng mở tự nhiên, cơ họng hơi thắt nhẹ.",
+        "tonguePosition": "Cuống lưỡi nâng lên gần ngạc mềm nhưng KHÔNG CHẠM HẲN, để lại một khe hở hẹp.",
+        "breathGuide": "Đẩy luồng hơi ma sát cọ xát qua khe giữa cuống lưỡi và ngạc mềm tạo âm xát [x], thanh đới không rung.",
+        "grammarNote": "Âm 'h' tiếng Trung nặng hơn âm 'h' tiếng Việt một chút, có độ ma sát nhẹ nơi cuống họng (nằm giữa 'h' và 'kh' nhẹ)."
+      }
+    ]
+  },
+  {
+    "id": "zh-pin-05",
+    "language": "zh",
+    "level": "Pinyin",
+    "title": "Thanh mẫu âm mặt lưỡi: j, q, x",
+    "category": "Bảng chữ cái & Khẩu hình",
+    "description": "Nhóm âm mặt lưỡi trước tiếp xúc ngạc cứng. LUÔN LUÔN đi kèm vận mẫu i và ü, không bao giờ đi với a, o, e, u.",
+    "sentences": [
+      {
+        "id": "zh-pin-05-s1",
+        "text": "j — [家;jiā] (Jiā: Gia đình/Nhà)",
+        "phonetic": "j (jiā)",
+        "translation": "Thanh mẫu j — Ví dụ: 家 (Nhà/Gia đình)",
+        "mouthShape": "Khóe miệng kéo dẹt sang hai bên như đang mỉm cười tươi.",
+        "tonguePosition": "MẶT LƯỠI TRƯỚC NÂNG CAO ÁP SÁT VÒM NGẠC CỨNG chặn kín hơi, đầu lưỡi tì vào mặt sau răng cửa dưới.",
+        "breathGuide": "Mặt lưỡi hạ nhẹ tạo khe hẹp để khí xát ra, KHÔNG BẬT HƠI [tɕ], thanh đới không rung.",
+        "grammarNote": "Phát âm gần giống âm 'ch' nhẹ tiếng Việt (như 'chờ' nhưng môi dẹt bẹt sang hai bên)."
+      },
+      {
+        "id": "zh-pin-05-s2",
+        "text": "q — [去;qù] (Qù: Đi đến)",
+        "phonetic": "q (qù)",
+        "translation": "Thanh mẫu q — Ví dụ: 去 (Đi đến)",
+        "mouthShape": "Khóe miệng giữ dẹt bẹt sang hai bên.",
+        "tonguePosition": "Mặt lưỡi trước ép chặt vòm ngạc cứng nén luồng hơi.",
+        "breathGuide": "BẬT HƠI SẮC LẸM: Mặt lưỡi mở ra phóng một luồng hơi cực mạnh và sắc qua kẽ răng [tɕʰ], tạo tiếng xì gió đanh giòn.",
+        "grammarNote": "LƯU Ý: Phân biệt j vs q: j êm ái không có hơi thừa, q bắn hơi gió sắc lẹm làm bay tờ giấy."
+      },
+      {
+        "id": "zh-pin-05-s3",
+        "text": "x — [谢谢;xièxie] (Xièxie: Cảm ơn)",
+        "phonetic": "x (xièxie)",
+        "translation": "Thanh mẫu x — Ví dụ: 谢谢 (Cảm ơn bạn)",
+        "mouthShape": "Khóe miệng kéo dẹt sang hai bên như đang mỉm cười.",
+        "tonguePosition": "Mặt lưỡi nâng cao sát ngạc cứng nhưng KHÔNG CHẠM CHẶN HƠI, để lại một khe hở hẹp dài.",
+        "breathGuide": "Đẩy luồng hơi ma sát êm dịu qua khe mặt lưỡi tạo âm xát êm ái [ɕ], giống âm 'x' rất nhẹ và êm trong tiếng Việt.",
+        "grammarNote": "Khi j, q, x đi với vận mẫu ü (ví dụ: ju, qu, xu), hai dấu chấm trên đầu chữ ü sẽ được lược bỏ nhưng VẪN PHÁT ÂM LÀ 'Ü' TRÒN MÔI!"
+      }
+    ]
+  },
+  {
+    "id": "zh-pin-06",
+    "language": "zh",
+    "level": "Pinyin",
+    "title": "Thanh mẫu âm đầu lưỡi trước: z, c, s",
+    "category": "Bảng chữ cái & Khẩu hình",
+    "description": "Lưỡi duỗi thẳng hoàn toàn, đầu lưỡi tiếp xúc mặt sau răng cửa trên/dưới. Răng khép sát.",
+    "sentences": [
+      {
+        "id": "zh-pin-06-s1",
+        "text": "z — [字;zì] (Zì: Chữ viết/Hán tự)",
+        "phonetic": "z (zì)",
+        "translation": "Thanh mẫu z — Ví dụ: 字 (Chữ Hán)",
+        "mouthShape": "Hai hàm răng khép gần sát nhau, môi hơi hé mở phẳng.",
+        "tonguePosition": "ĐẦU LƯỠI DUỖI THẲNG chạm vào mặt sau của răng cửa hàm trên chặn hơi.",
+        "breathGuide": "Đầu lưỡi rút nhẹ lùi lại hé một khe hẹp để khí xát ra, KHÔNG BẬT HƠI [ts], thanh đới không rung.",
+        "grammarNote": "Phát âm gần giống âm 'tr/ch' cụt và dẹt lưỡi, răng cắn nhẹ."
+      },
+      {
+        "id": "zh-pin-06-s2",
+        "text": "c — [菜;cài] (Cài: Món ăn/Rau củ)",
+        "phonetic": "c (cài)",
+        "translation": "Thanh mẫu c — Ví dụ: 菜 (Món ăn)",
+        "mouthShape": "Răng khép sát nhau, khóe miệng kéo ngang.",
+        "tonguePosition": "Đầu lưỡi thẳng chạm mặt sau răng trên chặn hơi nén.",
+        "breathGuide": "BẬT HƠI BÙNG NỔ QUA KẼ RĂNG: Bật dứt khoát đầu lưỡi phóng luồng khí mạnh qua kẽ răng [tsʰ], tạo tiếng xì hơi sắc bén.",
+        "grammarNote": "Giống âm 'ts' trong tiếng Nhật (tsunami) hoặc 't-xì' bật hơi mạnh."
+      },
+      {
+        "id": "zh-pin-06-s3",
+        "text": "s — [三;sān] (Sān: Số ba)",
+        "phonetic": "s (sān)",
+        "translation": "Thanh mẫu s — Ví dụ: 三 (Số 3)",
+        "mouthShape": "Hai hàm răng khép sát, môi mở phẳng tự nhiên.",
+        "tonguePosition": "Đầu lưỡi thẳng tiếp cận rất gần mặt sau răng trên/dưới nhưng không chạm.",
+        "breathGuide": "Thổi luồng khí ma sát trơn tru qua kẽ răng tạo âm xát gió [s] êm dịu.",
+        "grammarNote": "Phát âm giống âm 'X' thẳng lưỡi nhẹ nhàng trong tiếng Việt (xe cộ, sạch sẽ)."
+      }
+    ]
+  },
+  {
+    "id": "zh-pin-07",
+    "language": "zh",
+    "level": "Pinyin",
+    "title": "Thanh mẫu âm đầu lưỡi sau (Uốn lưỡi): zh, ch, sh, r",
+    "category": "Bảng chữ cái & Khẩu hình",
+    "description": "Nhóm âm uốn lưỡi đặc trưng tiếng Trung phổ thông (Retroflex). Đầu lưỡi uốn cong lên chạm vòm ngạc cứng.",
+    "sentences": [
+      {
+        "id": "zh-pin-07-s1",
+        "text": "zh — [中国;zhōngguó] (Zhōngguó: Trung Quốc)",
+        "phonetic": "zh (zhōngguó)",
+        "translation": "Thanh mẫu zh (Uốn lưỡi không bật hơi) — Ví dụ: 中国 (Trung Quốc)",
+        "mouthShape": "Miệng hé mở vừa phải, môi hơi khum nhẹ tự nhiên theo độ cong của vòm họng.",
+        "tonguePosition": "ĐẦU LƯỠI UỐN CONG LÊN PHÍA TRÊN chạm chặt vào phần trước của ngạc cứng (vòm họng trên) chặn luồng hơi.",
+        "breathGuide": "Hạ nhẹ đầu lưỡi để khí xát thoát ra, KHÔNG BẬT HƠI MẠNH [ʈʂ], thanh đới không rung ở phụ âm.",
+        "grammarNote": "Phát âm giống âm 'Tr' nặng uốn cong lưỡi trong tiếng miền Nam/miền Trung Việt Nam."
+      },
+      {
+        "id": "zh-pin-07-s2",
+        "text": "ch — [吃饭;chīfàn] (Chīfàn: Ăn cơm)",
+        "phonetic": "ch (chīfàn)",
+        "translation": "Thanh mẫu ch (Uốn lưỡi BẬT HƠI MẠNH) — Ví dụ: 吃饭 (Ăn cơm)",
+        "mouthShape": "Khẩu hình giống hệt 'zh'.",
+        "tonguePosition": "Đầu lưỡi uốn cong lên chạm ngạc cứng nén luồng khí chặt.",
+        "breathGuide": "BẬT HƠI CỰC MẠNH: Hạ đầu lưỡi uốn cong phóng một luồng hơi vũ bão qua vòm ngạc [ʈʂʰ], làm bay tờ giấy tức thì.",
+        "grammarNote": "Đây là âm khó nhất trong thanh mẫu: Vừa phải uốn cong đầu lưỡi, vừa phải bật luồng hơi gió thật mạnh!"
+      },
+      {
+        "id": "zh-pin-07-s3",
+        "text": "sh — [老师;lǎoshī] (Lǎoshī: Thầy cô giáo)",
+        "phonetic": "sh (lǎoshī)",
+        "translation": "Thanh mẫu sh (Uốn lưỡi xát hơi) — Ví dụ: 老师 (Giáo viên)",
+        "mouthShape": "Miệng hơi khum tự nhiên.",
+        "tonguePosition": "Đầu lưỡi uốn cong lên sát ngạc cứng nhưng KHÔNG CHẠM CHẶN HƠI, để lại một khe hẹp rộng.",
+        "breathGuide": "Thổi luồng hơi ma sát đều đặn qua vòm ngạc uốn cong tạo âm xát gió trầm dày [ʂ].",
+        "grammarNote": "Phát âm giống âm 'S' nặng uốn lưỡi (sấm sét, sung sướng) trong tiếng Việt chuẩn."
+      },
+      {
+        "id": "zh-pin-07-s4",
+        "text": "r — [热;rè] (Rè: Nóng nực)",
+        "phonetic": "r (rè)",
+        "translation": "Thanh mẫu r (Uốn lưỡi rung thanh đới) — Ví dụ: 热 (Nóng bức)",
+        "mouthShape": "Miệng hé mở vừa phải.",
+        "tonguePosition": "Thế lưỡi giống hệt âm 'sh' (uốn cong đầu lưỡi lên ngạc cứng).",
+        "breathGuide": "RUNG MẠNH DÂY THANH QUẢN trong khi luồng khí xát qua vòm ngạc [ʐ], tạo âm thanh ma sát hữu thanh trầm ấm.",
+        "grammarNote": "LƯU Ý: Không rung đầu lưỡi như 'r' tiếng Nga hay tiếng Tây Ban Nha. Giữ cố định đầu lưỡi uốn cong và rung thanh quản trong họng."
+      }
+    ]
+  },
+  {
+    "id": "zh-pin-08",
+    "language": "zh",
+    "level": "Pinyin",
+    "title": "4 Thanh điệu căn bản & Khinh thanh (Thanh nhẹ)",
+    "category": "Bảng chữ cái & Khẩu hình",
+    "description": "4 thanh điệu quyết định hoàn toàn ý nghĩa chữ Hán: Thanh 1 (55), Thanh 2 (35), Thanh 3 (214), Thanh 4 (51) và Thanh nhẹ.",
+    "sentences": [
+      {
+        "id": "zh-pin-08-s1",
+        "text": "Thanh 1 (阴平 - 55) — [妈;mā] (Mā: Mẹ)",
+        "phonetic": "mā (cao bằng)",
+        "translation": "Thanh 1: Âm cao và bằng phẳng (Độ cao 5-5) — Ví dụ: 妈 (Mẹ)",
+        "mouthShape": "Khẩu hình mở ổn định suốt quá trình phát âm, không thay đổi.",
+        "tonguePosition": "Lưỡi giữ cố định vị trí.",
+        "breathGuide": "Duy trì cao độ giọng ở mức cao nhất (như nốt Sol trong âm nhạc), ngân đều và thẳng tắp, không rơi giọng.",
+        "grammarNote": "Mẹo: Tưởng tượng đang đi trên một con đường bằng phẳng trên đỉnh núi cao 5-5."
+      },
+      {
+        "id": "zh-pin-08-s2",
+        "text": "Thanh 2 (阳平 - 35) — [麻;má] (Má: Cây gai dầu)",
+        "phonetic": "má (bổng lên)",
+        "translation": "Thanh 2: Âm đi lên cao vút (Độ cao 3-5) — Ví dụ: 麻 (Cây gai)",
+        "mouthShape": "Khẩu hình hơi mở rộng nhẹ khi giọng vút lên.",
+        "tonguePosition": "Lưỡi hơi nâng nhẹ theo âm điệu.",
+        "breathGuide": "Bắt đầu từ độ cao trung bình (3) rồi vút mạnh giọng lên đỉnh cao nhất (5), giống ngữ điệu khi hỏi ngạc nhiên: 'Hả?! Cái gì?!'.",
+        "grammarNote": "LƯU Ý: Thanh 2 tiếng Trung đi lên cao và dốc hơn dấu Sắc của tiếng Việt."
+      },
+      {
+        "id": "zh-pin-08-s3",
+        "text": "Thanh 3 (上声 - 214) — [马;mǎ] (Mǎ: Con ngựa)",
+        "phonetic": "mǎ (uốn lượn)",
+        "translation": "Thanh 3: Âm hạ trầm rồi uốn lên (Độ cao 2-1-4) — Ví dụ: 马 (Con ngựa)",
+        "mouthShape": "Khẩu hình mở sâu khi giọng hạ trầm xuống đáy.",
+        "tonguePosition": "Hạ thấp cuống họng.",
+        "breathGuide": "Bắt đầu ở mức 2, hạ sâu xuống mức đáy 1 của âm vực giọng, rồi uốn lượn nhẹ lên mức 4.",
+        "grammarNote": "Trong thực tế giao tiếp nhanh, phần lớn thanh 3 chỉ cần phát âm nửa đầu (hạ thật trầm xuống mức 1) là người bản xứ đã hiểu chuẩn xác."
+      },
+      {
+        "id": "zh-pin-08-s4",
+        "text": "Thanh 4 (去声 - 51) — [骂;mà] (Mà: Mắng mỏ)",
+        "phonetic": "mà (rơi dứt khoát)",
+        "translation": "Thanh 4: Âm rơi dốc dứt khoát (Độ cao 5-1) — Ví dụ: 骂 (Mắng chửi)",
+        "mouthShape": "Khẩu hình khép ngắt dứt khoát ở cuối âm.",
+        "tonguePosition": "Lưỡi rơi nhanh.",
+        "breathGuide": "Bắt đầu từ độ cao tột đỉnh (5) RƠI DỐC DỨT KHOÁT xuống đáy vực (1), giống như đang ra lệnh dứt khoát hoặc tiếng chặt rìu chém xuống.",
+        "grammarNote": "Lỗi người Việt: Đọc giống dấu Huyền (2-1) khiến câu bị mềm yếu. Thanh 4 phải rơi từ đỉnh 5 xuống 1 cực kỳ dứt khoát và mạnh mẽ!"
+      },
+      {
+        "id": "zh-pin-08-s5",
+        "text": "Khinh thanh (轻声) — [妈妈;māma] (Māma: Mẹ)",
+        "phonetic": "ma (thanh nhẹ ngắn)",
+        "translation": "Thanh nhẹ: Phát âm cực ngắn và nhẹ nhàng — Ví dụ: Chữ ma thứ 2 trong 妈妈",
+        "mouthShape": "Khẩu hình thư giãn thả lỏng hoàn toàn.",
+        "tonguePosition": "Lưỡi thả lỏng.",
+        "breathGuide": "Luồng hơi rất ngắn, nhẹ như một tiếng đệm thoảng qua, không nhấn trọng âm.",
+        "grammarNote": "Khinh thanh thường xuất hiện ở âm tiết lặp lại (māma, gēge) hoặc các trợ từ (de, ma, ba, le)."
+      }
+    ]
+  },
+  {
+    "id": "zh-pin-09",
+    "language": "zh",
+    "level": "Pinyin",
+    "title": "Vận mẫu kép lướt môi: ai, ei, ao, ou, ia, ie, ua, uo, üe",
+    "category": "Bảng chữ cái & Khẩu hình",
+    "description": "Kết hợp từ 2 nguyên âm. Nguyên tắc cốt lõi: Âm trước to dài rõ ràng, lướt thật nhanh và mượt sang âm sau.",
+    "sentences": [
+      {
+        "id": "zh-pin-09-s1",
+        "text": "ai / ei — [爱;ài] (Ài: Tình yêu) / [杯子;bēizi] (Bēizi: Cái ly)",
+        "phonetic": "ai / ei",
+        "translation": "Cặp vận mẫu ai và ei — Ví dụ: 爱 (Yêu thương) / 杯子 (Cái cốc)",
+        "mouthShape": "ai: Mở rộng 'a' lướt nhanh sang dẹt mép của 'i'; ei: Mở 'e' lướt sang 'i'.",
+        "tonguePosition": "Lưỡi nâng từ thấp lên cao theo hướng nguyên âm [i].",
+        "breathGuide": "Luồng hơi chuyển động liền mạch không ngắt quãng.",
+        "grammarNote": "Trọng âm luôn rơi vào nguyên âm đầu tiên có độ mở miệng lớn hơn."
+      },
+      {
+        "id": "zh-pin-09-s2",
+        "text": "ao / ou — [包;bāo] (Bāo: Cái túi) / [后;hòu] (Hòu: Phía sau)",
+        "phonetic": "ao / ou",
+        "translation": "Cặp vận mẫu ao và ou — Ví dụ: 包 (Túi xách) / 后 (Phía sau)",
+        "mouthShape": "ao: Mở 'a' rồi thu tròn môi lại thành 'o'; ou: Khẩu hình từ 'o' thu tròn môi thành 'u'.",
+        "tonguePosition": "Cuống lưỡi nâng cao về phía sau.",
+        "breathGuide": "Âm thanh tròn trịa, ấm áp.",
+        "grammarNote": "Âm 'ou' trong tiếng Trung phát âm gần giống âm 'âu' trong tiếng Việt nhưng tròn môi hơn."
+      },
+      {
+        "id": "zh-pin-09-s3",
+        "text": "ia / ie — [家;jiā] (Jiā: Nhà) / [谢;xiè] (Xiè: Cảm ơn)",
+        "phonetic": "ia / ie",
+        "translation": "Cặp vận mẫu ia và ie — Ví dụ: 家 (Gia đình) / 谢谢 (Cảm ơn)",
+        "mouthShape": "ia: Từ khóe miệng dẹt [i] mở bung sang [a]; ie: Từ [i] lướt nhẹ sang nguyên âm [ɛ].",
+        "tonguePosition": "Mặt lưỡi hạ nhanh từ cao xuống thấp.",
+        "breathGuide": "Lướt âm mềm mại, dứt khoát.",
+        "grammarNote": "Trong 'ie', nguyên âm e phát âm là [ɛ] (giống âm 'e' mở của tiếng Việt), không phát âm là 'ơ'."
+      },
+      {
+        "id": "zh-pin-09-s4",
+        "text": "üe — [月;yuè] (Yuè: Mặt trăng/Tháng)",
+        "phonetic": "üe",
+        "translation": "Vận mẫu üe — Ví dụ: 月 (Mặt trăng)",
+        "mouthShape": "Khởi đầu từ môi tròn nhỏ của [y] lướt mở sang nguyên âm dẹt [ɛ].",
+        "tonguePosition": "Mặt lưỡi lướt nhanh.",
+        "breathGuide": "Âm thanh lộng lẫy và tinh tế.",
+        "grammarNote": "Khi đứng một mình không có phụ âm đầu, üe được viết thành 'yue'."
+      }
+    ]
+  },
+  {
+    "id": "zh-pin-10",
+    "language": "zh",
+    "level": "Pinyin",
+    "title": "Vận mẫu mũi trước: an, en, in, un, ün",
+    "category": "Bảng chữ cái & Khẩu hình",
+    "description": "Kết thúc bằng âm mũi [n]. ĐẦU LƯỠI CHẠM VÀO LỢI RĂNG TRÊN ĐÓNG KÍN KHOANG MIỆNG để hơi thoát qua mũi.",
+    "sentences": [
+      {
+        "id": "zh-pin-10-s1",
+        "text": "an / en — [看;kàn] (Kàn: Nhìn xem) / [门;mén] (Mén: Cánh cửa)",
+        "phonetic": "an / en",
+        "translation": "Vận mẫu an và en — Ví dụ: 看 (Xem) / 门 (Cửa)",
+        "mouthShape": "an: Mở 'a' rồi khép dần miệng lại; en: Miệng hé vừa rồi khép.",
+        "tonguePosition": "KẾT THÚC BẰNG VIỆC ĐẦU LƯỠI CHẠM CHẶT VÀO LỢI TRÊN (chân răng trên).",
+        "breathGuide": "Toàn bộ luồng khí cuối âm bị chặn trong miệng và thoát êm ra qua đường mũi.",
+        "grammarNote": "Âm mũi trước nhẹ và hướng về phía trước khoang miệng."
+      },
+      {
+        "id": "zh-pin-10-s2",
+        "text": "in / un / ün — [心;xīn] (Xīn: Trái tim) / [云;yún] (Yún: Mây bay)",
+        "phonetic": "in / un / ün",
+        "translation": "Vận mẫu in, un, ün — Ví dụ: 心 (Trái tim) / 云 (Đám mây)",
+        "mouthShape": "Định hình theo nguyên âm đầu rồi kết thúc bằng khép răng đầu lưỡi chạm lợi.",
+        "tonguePosition": "Đầu lưỡi dán chặt vào ngạc trên.",
+        "breathGuide": "Khí thoát qua mũi thanh thoát.",
+        "grammarNote": "un thực chất là viết tắt của 'uen' (ví dụ: cūn phát âm là c-u-en)."
+      }
+    ]
+  },
+  {
+    "id": "zh-pin-11",
+    "language": "zh",
+    "level": "Pinyin",
+    "title": "Vận mẫu mũi sau: ang, eng, ing, ong",
+    "category": "Bảng chữ cái & Khẩu hình",
+    "description": "Kết thúc bằng âm ngạc mềm mũi [ŋ]. CUỐNG LƯỠI NÂNG LÊN CHẶN NGẠC MỀM PHÍA SAU, khoang miệng vẫn mở.",
+    "sentences": [
+      {
+        "id": "zh-pin-11-s1",
+        "text": "ang / eng — [忙;máng] (Máng: Bận rộn) / [风;fēng] (Fēng: Ngọn gió)",
+        "phonetic": "ang / eng",
+        "translation": "Vận mẫu ang và eng — Ví dụ: 忙 (Bận) / 风 (Gió)",
+        "mouthShape": "Khoang miệng vẫn mở tự nhiên, không khép miệng.",
+        "tonguePosition": "Cuống lưỡi nâng cao ép chặt vào ngạc mềm (vòm họng mềm sâu bên trong) chặn hơi.",
+        "breathGuide": "Âm vang dội sâu trong khoang mũi và vòm họng [ŋ], âm vực trầm và vang xa.",
+        "grammarNote": "Phân biệt mũi trước (an) vs mũi sau (ang): an đầu lưỡi chạm răng trên; ang cuống lưỡi kéo sâu về sau chạm ngạc mềm."
+      },
+      {
+        "id": "zh-pin-11-s2",
+        "text": "ing / ong — [北京;běijīng] (Běijīng) / [中;zhōng] (Zhōng: Ở giữa)",
+        "phonetic": "ing / ong",
+        "translation": "Vận mẫu ing và ong — Ví dụ: 北京 (Bắc Kinh) / 中国 (Trung Quốc)",
+        "mouthShape": "ing khóe miệng kéo ngang; ong môi tròn khum nhô ra.",
+        "tonguePosition": "Gốc lưỡi tiếp xúc ngạc mềm.",
+        "breathGuide": "Âm vang tròn đầy, ngân vang trong họng mũi.",
+        "grammarNote": "Âm 'ong' phát âm giống 'ung' trong tiếng Việt nhưng có độ vang vòm họng tròn hơn."
+      }
+    ]
+  },
+  {
+    "id": "zh-pin-12",
+    "language": "zh",
+    "level": "Pinyin",
+    "title": "Quy tắc biến điệu thực chiến: Hai Thanh 3, '一' (Yī) & '不' (Bù)",
+    "category": "Bảng chữ cái & Khẩu hình",
+    "description": "Ba quy tắc biến điệu quan trọng bậc nhất giúp người học nói tiếng Trung trôi chảy tự nhiên như người bản xứ.",
+    "sentences": [
+      {
+        "id": "zh-pin-12-s1",
+        "text": "Nǐ hǎo ➔ Ní hǎo — [你好;nǐhǎo] (Nǐ hǎo: Xin chào)",
+        "phonetic": "Nǐ hǎo -> Ní hǎo",
+        "translation": "Biến điệu hai Thanh 3: 3 + 3 ➔ 2 + 3 (Ví dụ: 你好 đọc là Ní hǎo)",
+        "mouthShape": "Âm tiết đầu vút lên theo Thanh 2, âm tiết sau hạ trầm theo Thanh 3.",
+        "tonguePosition": "Lưỡi di chuyển linh hoạt mềm mại.",
+        "breathGuide": "Hai thanh 3 đi liền nhau sẽ rất nặng nề cho thanh quản, vì vậy thanh 3 đầu tiên biến thành Thanh 2 nhẹ nhàng.",
+        "grammarNote": "Quy tắc kinh điển: Khi hai chữ mang Thanh 3 đi liền kề nhau, chữ phía trước bắt buộc phải đọc thành Thanh 2 (ví dụ: Nǐ hǎo ➔ Ní hǎo; měi hǎo ➔ méi hǎo)."
+      },
+      {
+        "id": "zh-pin-12-s2",
+        "text": "Biến điệu của '一' (Yī) — [一个;yí gè] / [一天;yì tiān]",
+        "phonetic": "yí gè (trước thanh 4) / yì tiān (trước thanh 1,2,3)",
+        "translation": "Biến điệu chữ 一 (Yī): Trước thanh 4 đọc thành 'yí'; trước thanh 1,2,3 đọc thành 'yì'",
+        "mouthShape": "Thay đổi thanh điệu dứt khoát theo từ đi sau.",
+        "tonguePosition": "Vị trí của nguyên âm i.",
+        "breathGuide": "Trước thanh 4 (như gè): Yī biến thành Yí (thanh 2); trước thanh 1,2,3 (như tiān, nián, běn): Yī biến thành Yì (thanh 4).",
+        "grammarNote": "Khi đứng một mình hoặc đọc số đếm thứ tự, chữ 一 vẫn giữ nguyên Thanh 1 (Yī)."
+      },
+      {
+        "id": "zh-pin-12-s3",
+        "text": "Biến điệu của '不' (Bù) — [不去;bú qù] (Bù qù ➔ Bú qù)",
+        "phonetic": "Bù qù -> Bú qù",
+        "translation": "Biến điệu chữ 不 (Bù): Đứng trước một chữ mang Thanh 4, 不 biến thành 'Bú' (Thanh 2)",
+        "mouthShape": "Chuyển khẩu hình từ vút lên (Bú) sang rơi dứt khoát (Qù).",
+        "tonguePosition": "Lưỡi linh hoạt theo âm.",
+        "breathGuide": "Tránh hai thanh 4 đi liền nhau quá gắt: 'Bù shì' ➔ 'Bú shì', 'Bù qù' ➔ 'Bú qù'.",
+        "grammarNote": "Trong các trường hợp còn lại (trước thanh 1, 2, 3), chữ 不 vẫn giữ nguyên Thanh 4 (bù gāo, bù lái, bù hǎo)."
+      }
+    ]
+  },
+  {
+    "id": "zh-pin-13",
+    "language": "zh",
+    "level": "Pinyin",
+    "title": "Kỹ thuật uốn lưỡi Nhi hóa Erhua (儿化音)",
+    "category": "Bảng chữ cái & Khẩu hình",
+    "description": "Nét đặc trưng quyến rũ của giọng chuẩn Bắc Kinh. Thêm âm uốn lưỡi 'r' vào cuối từ vựng.",
+    "sentences": [
+      {
+        "id": "zh-pin-13-s1",
+        "text": "这儿 (Zhèr) — [这儿;zhèr] (Zhèr: Ở đây/Chỗ này)",
+        "phonetic": "zhèr (zhè + er)",
+        "translation": "Từ uốn lưỡi: 这儿 (Ở chỗ này/Nơi đây)",
+        "mouthShape": "Phát âm âm chính 'zhè', trong khi âm chính chưa dứt thì ĐẦU LƯỠI ĐỒNG THỜI UỐN CONG NHANH LÊN PHÍA NGẠC CỨNG.",
+        "tonguePosition": "Đầu lưỡi cuộn cong lên trên vòm ngạc.",
+        "breathGuide": "Luồng hơi được cuộn lại trong khoang miệng tạo âm thanh dày ấm đặc trưng Bắc Kinh.",
+        "grammarNote": "Nhi hóa làm cho câu nói nghe thân mật, tự nhiên và trôi chảy hơn rất nhiều."
+      },
+      {
+        "id": "zh-pin-13-s2",
+        "text": "一点儿 (Yìdiǎnr) — [一点儿;yìdiǎnr] (Yìdiǎnr: Một chút/Một ít)",
+        "phonetic": "yìdiǎnr (yì-diǎnr)",
+        "translation": "Từ uốn lưỡi: 一点儿 (Một chút xíu)",
+        "mouthShape": "Khi phát âm 'diǎn', âm 'n' cuối bị triệt tiêu, thay thế bằng động tác uốn cong đầu lưỡi lên ngạc.",
+        "tonguePosition": "Uốn cong đầu lưỡi ngay tại nguyên âm.",
+        "breathGuide": "Dây thanh rung mượt mà.",
+        "grammarNote": "Trong khẩu ngữ miền Bắc Trung Quốc, rất nhiều danh từ nhỏ bé dễ thương được thêm âm cuốn lưỡi 'r'."
+      }
+    ]
+  },
+  {
+    "id": "zh-pin-14",
+    "language": "zh",
+    "level": "Pinyin",
+    "title": "Bài vè líu lưỡi kinh điển: Bốn là bốn, mười là mười (四是四，十是十)",
+    "category": "Bảng chữ cái & Khẩu hình",
+    "description": "Bài tập luyện phát âm kinh điển phân biệt âm đầu lưỡi phẳng s vs âm uốn lưỡi sh, kết hợp Thanh 4 và Thanh 2.",
+    "sentences": [
+      {
+        "id": "zh-pin-14-s1",
+        "text": "四是四，十是十，十四是十四，四十是四十。",
+        "phonetic": "Sì shì sì, shí shì shí, shísì shì shísì, sìshí shì sìshí.",
+        "translation": "Bốn là bốn, mười là mười, mười bốn là mười bốn, bốn mươi là bốn mươi.",
+        "mouthShape": "Chuyển đổi liên tục giữa miệng dẹt kẽ răng (Sì) và miệng khum uốn lưỡi (Shí).",
+        "tonguePosition": "Đầu lưỡi luân phiên: Duỗi thẳng sát răng dưới (Sì) ➔ Uốn cong lên ngạc cứng (Shí).",
+        "breathGuide": "Kiểm soát thanh điệu chuẩn: Sì (Thanh 4 rơi dứt khoát) vs Shí (Thanh 2 vút lên).",
+        "grammarNote": "Đây là bài kiểm tra trình độ phát âm khắt khe nhất của các phát thanh viên đài truyền hình CCTV Trung Quốc!"
+      },
+      {
+        "id": "zh-pin-14-s2",
+        "text": "要想说对四和十，得靠舌头和牙齿。",
+        "phonetic": "Yào xiǎng shuō duì sì hé shí, děi kào shétou hé yáchǐ.",
+        "translation": "Muốn nói đúng số bốn và số mười, phải dựa vào sự phối hợp giữa đầu lưỡi và hàm răng.",
+        "mouthShape": "Khẩu hình thư giãn, cơ hàm linh hoạt.",
+        "tonguePosition": "Lưỡi di chuyển cực kỳ nhạy bén.",
+        "breathGuide": "Duy trì nhịp thở vững vàng, không hụt hơi.",
+        "grammarNote": "Luyện tập hàng ngày từ tốc độ chậm tới tốc độ phản xạ thần tốc để làm chủ hoàn toàn ngữ âm tiếng Hán."
+      }
+    ]
+  },
+  {
     "id": "zh-hsk1-01",
     "language": "zh",
     "level": "HSK 1",

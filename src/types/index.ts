@@ -16,6 +16,9 @@ export interface LessonSentence {
   furigana?: string // Ruby format: e.g. "初[はじ]めまして、ホアンと申[もう]します。"
   translation: string
   grammarNote?: string
+  mouthShape?: string      // Hướng dẫn khẩu hình miệng (mở rộng, môi tròn, môi dẹt...)
+  tonguePosition?: string  // Hướng dẫn cách đặt lưỡi (đầu lưỡi chạm răng trên, uốn cong...)
+  breathGuide?: string     // Hướng dẫn luồng hơi & thanh quản (bật hơi, rung thanh đới...)
   startTime?: number // Seconds in original audio file
   endTime?: number   // Seconds in original audio file
 }

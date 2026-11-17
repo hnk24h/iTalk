@@ -51,6 +51,7 @@ import {
 export const PASS_SCORE = 70
 
 export const JA_LEVEL_INFO: Record<string, { title: string; desc: string; icon: string }> = {
+  Kana: { title: 'Bảng chữ cái Kana', desc: 'Hiragana, Katakana & Khẩu hình miệng', icon: '🔤' },
   N5: { title: 'Cấp độ N5', desc: 'Cơ bản & Nhập môn giao tiếp', icon: '🔰' },
   N4: { title: 'Cấp độ N4', desc: 'Sơ trung cấp & Đời sống', icon: '📘' },
   N3: { title: 'Cấp độ N3', desc: 'Trung cấp & Công sở', icon: '📙' },
@@ -59,12 +60,19 @@ export const JA_LEVEL_INFO: Record<string, { title: string; desc: string; icon: 
 }
 
 export const ZH_LEVEL_INFO: Record<string, { title: string; desc: string; icon: string }> = {
+  Pinyin: { title: 'Bính âm & Ngữ âm', desc: 'Thanh mẫu, Vận mẫu & 4 Thanh điệu', icon: '🔤' },
   'HSK 1': { title: 'Cấp độ HSK 1', desc: 'Sơ cấp cơ bản (150 từ)', icon: '🌱' },
   'HSK 2': { title: 'Cấp độ HSK 2', desc: 'Giao tiếp hàng ngày (300 từ)', icon: '🌿' },
   'HSK 3': { title: 'Cấp độ HSK 3', desc: 'Trung cấp đời sống (600 từ)', icon: '📘' },
   'HSK 4': { title: 'Cấp độ HSK 4', desc: 'Thành thạo công sở (1200 từ)', icon: '📙' },
   'HSK 5': { title: 'Cấp độ HSK 5', desc: 'Nâng cao & Báo chí (2500 từ)', icon: '📕' },
   'HSK 6': { title: 'Cấp độ HSK 6', desc: 'Chuyên gia & Bản xứ (5000+ từ)', icon: '👑' },
+}
+
+export const VI_LEVEL_INFO: Record<string, { title: string; desc: string; icon: string }> = {
+  'Chữ cái': { title: 'Bảng chữ cái & Thanh điệu', desc: 'Nguyên âm, Phụ âm & Khẩu hình chuẩn', icon: '🔤' },
+  'Cơ bản': { title: 'Cơ bản', desc: 'Ngữ âm chuẩn & Luyện dấu', icon: '🌱' },
+  'Nâng cao': { title: 'Nâng cao', desc: 'Thuyết trình chuyên nghiệp', icon: '👑' },
 }
 
 export type LessonAdvanceMode = 'auto' | 'manual'
@@ -599,10 +607,13 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
   // Level & Topic metadata & grouping
   const availableLevels = useMemo(() => {
     if (currentLang === 'ja') {
-      return ['all', 'N5', 'N4', 'N3', 'N2', 'N1']
+      return ['all', 'Kana', 'N5', 'N4', 'N3', 'N2', 'N1']
     }
     if (currentLang === 'zh') {
-      return ['all', 'HSK 1', 'HSK 2', 'HSK 3', 'HSK 4', 'HSK 5', 'HSK 6']
+      return ['all', 'Pinyin', 'HSK 1', 'HSK 2', 'HSK 3', 'HSK 4', 'HSK 5', 'HSK 6']
+    }
+    if (currentLang === 'vi') {
+      return ['all', 'Chữ cái', 'Cơ bản', 'Nâng cao']
     }
     const set = new Set<string>()
     lessons.forEach((l: Lesson) => {
@@ -621,6 +632,9 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
 
   const getLevelBadgeClass = (level: string) => {
     const lvl = level.toUpperCase()
+    if (lvl.includes('KANA') || lvl.includes('PINYIN') || lvl.includes('CHỮ CÁI')) {
+      return 'bg-pink-500/15 text-pink-400 border border-pink-500/30'
+    }
     if (lvl.includes('N5') || lvl.includes('HSK 1') || lvl.includes('A1')) {
       return 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
     }
@@ -654,7 +668,7 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
         const normalizedLvl = l.level.startsWith('HSK')
           ? (l.level.match(/HSK\s*\d+/)?.[0] || l.level)
           : (l.level.split(' ')[0] || l.level)
-        if (!normalizedLvl.startsWith(selectedLevel)) return false
+        if (!normalizedLvl.startsWith(selectedLevel) && !l.level.toLowerCase().includes(selectedLevel.toLowerCase())) return false
       }
 
       if (selectedCategory !== 'all' && l.category !== selectedCategory) {
@@ -682,9 +696,9 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
       map.get(lvlKey)!.push(l)
     })
 
-    // If Japanese, preserve N5 -> N1 order
+    // If Japanese, preserve Kana -> N5 -> N1 order
     if (currentLang === 'ja') {
-      const jaOrder = ['N5', 'N4', 'N3', 'N2', 'N1']
+      const jaOrder = ['Kana', 'N5', 'N4', 'N3', 'N2', 'N1']
       jaOrder.forEach((k) => {
         if (map.has(k)) {
           groups.push({ levelKey: k, lessons: map.get(k)! })
@@ -693,10 +707,21 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
       })
     }
 
-    // If Chinese, preserve HSK 1 -> HSK 6 order
+    // If Chinese, preserve Pinyin -> HSK 1 -> HSK 6 order
     if (currentLang === 'zh') {
-      const zhOrder = ['HSK 1', 'HSK 2', 'HSK 3', 'HSK 4', 'HSK 5', 'HSK 6']
+      const zhOrder = ['Pinyin', 'HSK 1', 'HSK 2', 'HSK 3', 'HSK 4', 'HSK 5', 'HSK 6']
       zhOrder.forEach((k) => {
+        if (map.has(k)) {
+          groups.push({ levelKey: k, lessons: map.get(k)! })
+          map.delete(k)
+        }
+      })
+    }
+
+    // If Vietnamese, preserve Chữ cái -> Cơ bản -> Nâng cao order
+    if (currentLang === 'vi') {
+      const viOrder = ['Chữ cái', 'Cơ bản', 'Nâng cao']
+      viOrder.forEach((k) => {
         if (map.has(k)) {
           groups.push({ levelKey: k, lessons: map.get(k)! })
           map.delete(k)
@@ -1233,7 +1258,7 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
                     ? JA_LEVEL_INFO[group.levelKey]
                     : currentLang === 'zh'
                     ? ZH_LEVEL_INFO[group.levelKey]
-                    : undefined
+                    : VI_LEVEL_INFO[group.levelKey]
 
                 return (
                   <div key={group.levelKey} className="space-y-1.5 pt-1">
@@ -1546,6 +1571,45 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
                   <div className="mt-4 p-3.5 rounded-xl bg-slate-950/70 border border-slate-800/80">
                     <div className="text-xs font-semibold text-slate-400 mb-1">Dịch nghĩa:</div>
                     <div className="text-sm text-slate-200">{currentSentence.translation}</div>
+                  </div>
+                )}
+
+                {/* Pronunciation, Mouth & Tongue Guide Card */}
+                {(currentSentence?.mouthShape || currentSentence?.tonguePosition || currentSentence?.breathGuide) && (
+                  <div className="mt-3.5 p-3.5 rounded-2xl bg-gradient-to-br from-indigo-950/40 via-purple-950/20 to-slate-900 border border-indigo-500/25 shadow-lg shadow-indigo-950/30">
+                    <div className="flex items-center gap-2 mb-2.5 text-xs font-bold text-indigo-300 uppercase tracking-wider">
+                      <span className="text-base">👄</span>
+                      <span>Hướng dẫn phát âm & Khẩu hình chuẩn</span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 text-xs">
+                      {currentSentence.mouthShape && (
+                        <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20">
+                          <div className="flex items-center gap-1.5 font-bold text-indigo-300 mb-1">
+                            <span>👄</span>
+                            <span>Khẩu hình miệng</span>
+                          </div>
+                          <div className="text-slate-200 leading-relaxed">{currentSentence.mouthShape}</div>
+                        </div>
+                      )}
+                      {currentSentence.tonguePosition && (
+                        <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20">
+                          <div className="flex items-center gap-1.5 font-bold text-purple-300 mb-1">
+                            <span>👅</span>
+                            <span>Cách đặt lưỡi</span>
+                          </div>
+                          <div className="text-slate-200 leading-relaxed">{currentSentence.tonguePosition}</div>
+                        </div>
+                      )}
+                      {currentSentence.breathGuide && (
+                        <div className="p-2.5 rounded-xl bg-teal-500/10 border border-teal-500/20">
+                          <div className="flex items-center gap-1.5 font-bold text-teal-300 mb-1">
+                            <span>💨</span>
+                            <span>Luồng hơi & Dây thanh</span>
+                          </div>
+                          <div className="text-slate-200 leading-relaxed">{currentSentence.breathGuide}</div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
 
