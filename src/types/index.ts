@@ -53,7 +53,7 @@ export interface GrammarPattern {
   pattern: string
   meaning: string
   formula: string
-  note?: string
+  note?: string | null
   examples: GrammarExample[] // 3-5 ví dụ
 }
 
