@@ -1043,77 +1043,6 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
             </button>
           </div>
 
-          {/* 2-MODE SWITCHER (AUTO JUMP VS MANUAL SELECTION) */}
-          <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
-            <div className="flex items-center justify-between text-[11px] text-slate-400 font-semibold uppercase tracking-wider px-1">
-              <span>Chuyển bài (Mode)</span>
-              <span
-                className={`text-[10px] font-bold ${
-                  advanceMode === 'auto' ? 'text-emerald-400' : 'text-indigo-400'
-                }`}
-              >
-                {advanceMode === 'auto' ? '⚡ Tự động' : '👆 Tự chọn'}
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-900 rounded-xl border border-slate-800 text-xs">
-              <button
-                type="button"
-                onClick={() => handleSetAdvanceMode('auto')}
-                className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg font-bold transition-all ${
-                  advanceMode === 'auto'
-                    ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-                title="Tự động nhảy sang bài kế tiếp sau khi học hết câu cuối cùng"
-              >
-                <Zap className="w-3.5 h-3.5" />
-                <span>Tự động</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleSetAdvanceMode('manual')}
-                className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg font-bold transition-all ${
-                  advanceMode === 'manual'
-                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-                title="Người dùng tự bấm vào danh sách để chọn bài theo ý muốn"
-              >
-                <MousePointer className="w-3.5 h-3.5" />
-                <span>Tự chọn</span>
-              </button>
-            </div>
-
-            <p className="text-[10px] text-slate-400 px-1 leading-relaxed">
-              {advanceMode === 'auto'
-                ? '⚡ Khi luyện hết câu cuối, app sẽ tự động nhảy sang bài tiếp theo để bạn luyện tập liên tục.'
-                : '👆 App sẽ ở nguyên bài hiện tại, bạn tự click vào danh sách bên dưới khi muốn chuyển bài.'}
-            </p>
-          </div>
-
-          {/* Action Buttons: Import Audio & Add Custom Text */}
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => setShowAudioImporter(true)}
-              className="flex items-center justify-center gap-1 py-2 px-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-[11px] font-bold shadow-md shadow-indigo-500/20 transition-all active:scale-95"
-              title="Nạp file nghe MP3/WAV gốc và lời phụ đề"
-            >
-              <FileAudio className="w-3.5 h-3.5" />
-              <span>+ Nạp audio gốc</span>
-            </button>
-
-            <button
-              onClick={() => setShowAddCustom(true)}
-              className="flex items-center justify-center gap-1 py-2 px-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-medium border border-slate-700 transition-colors"
-              title="Dán đoạn văn bản để luyện đọc"
-            >
-              <PlusCircle className="w-3.5 h-3.5 text-emerald-400" />
-              <span>+ Soạn chữ</span>
-            </button>
-          </div>
-
           {/* Search Input, Level Selector & Topic Filters */}
           <div className="space-y-2">
             {/* Search Input */}
@@ -1265,7 +1194,7 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
           </div>
 
           {/* LESSONS LIST (SCROLLABLE & GROUPED) */}
-          <div className="space-y-2 max-h-[calc(100vh-320px)] min-h-[350px] overflow-y-auto pr-1">
+          <div className="space-y-2 max-h-[calc(100vh-230px)] min-h-[460px] overflow-y-auto pr-1">
             {filteredLessons.length === 0 ? (
               <div className="p-4 text-center text-xs text-slate-500 border border-dashed border-slate-800 rounded-2xl">
                 Không tìm thấy bài học nào phù hợp với bộ lọc hiện tại
@@ -1343,16 +1272,6 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
                       <Headphones className="w-3 h-3" /> Audio gốc
                     </span>
                   )}
-                  <span
-                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                      advanceMode === 'auto'
-                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                        : 'bg-indigo-500/10 text-indigo-300 border-indigo-500/30'
-                    }`}
-                  >
-                    {advanceMode === 'auto' ? <Zap className="w-3 h-3" /> : <MousePointer className="w-3 h-3" />}
-                    <span>{advanceMode === 'auto' ? 'Auto nhảy bài' : 'Tự chọn bài'}</span>
-                  </span>
                 </div>
                 <h3 className="text-base sm:text-lg font-bold text-white truncate">
                   {activeLesson?.title}
@@ -1360,27 +1279,86 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
               </div>
             </div>
 
-            {/* Right: Record Mode Switch (Webcam vs Mic) */}
-            <div className="flex items-center gap-2 self-end md:self-center">
-              <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
+            {/* Right: Toolbar (Advance Mode, Action Buttons & Record Mode) */}
+            <div className="flex flex-wrap items-center gap-2 self-start md:self-center">
+              {/* Advance Mode Switcher (Auto vs Manual) */}
+              <div
+                className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs shrink-0"
+                title="Chế độ chuyển bài khi kết thúc câu cuối"
+              >
                 <button
+                  type="button"
+                  onClick={() => handleSetAdvanceMode('auto')}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg font-bold text-xs transition-all cursor-pointer ${
+                    advanceMode === 'auto'
+                      ? 'bg-emerald-500 text-slate-950 shadow-xs'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                  title="Tự động nhảy sang bài kế tiếp sau khi hoàn thành câu cuối"
+                >
+                  <Zap className="w-3.5 h-3.5" />
+                  <span>Auto bài</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSetAdvanceMode('manual')}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg font-bold text-xs transition-all cursor-pointer ${
+                    advanceMode === 'manual'
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                  title="Tự chọn bài trong danh sách theo ý muốn"
+                >
+                  <MousePointer className="w-3.5 h-3.5" />
+                  <span>Tự chọn</span>
+                </button>
+              </div>
+
+              {/* Action Buttons: Import Audio & Add Custom Text */}
+              <button
+                type="button"
+                onClick={() => setShowAudioImporter(true)}
+                className="flex items-center gap-1.5 py-2 px-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold shadow-sm transition-all active:scale-95 cursor-pointer shrink-0"
+                title="Nạp file nghe MP3/WAV gốc và lời phụ đề"
+              >
+                <FileAudio className="w-3.5 h-3.5" />
+                <span>+ Nạp audio</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowAddCustom(true)}
+                className="flex items-center gap-1.5 py-2 px-3 rounded-xl bg-slate-950 hover:bg-slate-800 text-slate-200 text-xs font-semibold border border-slate-800 transition-colors cursor-pointer shrink-0"
+                title="Dán đoạn văn bản để tự luyện đọc"
+              >
+                <PlusCircle className="w-3.5 h-3.5 text-emerald-400" />
+                <span>+ Soạn chữ</span>
+              </button>
+
+              {/* Record Mode Switch (Webcam vs Mic) */}
+              <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs shrink-0">
+                <button
+                  type="button"
                   onClick={() => setRecordMode('video')}
-                  className={`flex items-center gap-1 px-3 py-1.5 rounded-lg font-semibold transition-colors ${
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg font-semibold transition-colors cursor-pointer ${
                     recordMode === 'video'
                       ? 'bg-emerald-500 text-slate-950 font-bold'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
+                  title="Luyện nói ghi hình khuôn mặt với Webcam"
                 >
                   <Video className="w-3.5 h-3.5" />
                   <span>Webcam</span>
                 </button>
                 <button
+                  type="button"
                   onClick={() => setRecordMode('audio')}
-                  className={`flex items-center gap-1 px-3 py-1.5 rounded-lg font-semibold transition-colors ${
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg font-semibold transition-colors cursor-pointer ${
                     recordMode === 'audio'
                       ? 'bg-emerald-500 text-slate-950 font-bold'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
+                  title="Chỉ thu âm giọng nói với Micro"
                 >
                   <Mic className="w-3.5 h-3.5" />
                   <span>Micro</span>
