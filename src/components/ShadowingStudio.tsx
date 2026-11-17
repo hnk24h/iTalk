@@ -37,7 +37,11 @@ import {
   CameraOff,
   AlertTriangle,
   Lock,
+  CheckCircle2,
+  AlertCircle,
 } from 'lucide-react'
+
+export const PASS_SCORE = 70
 
 export type LessonAdvanceMode = 'auto' | 'manual'
 
@@ -56,6 +60,8 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
   const [lessons, setLessons] = useState<Lesson[]>([])
   const [activeLessonId, setActiveLessonId] = useState<string>('')
   const [currentSentenceIdx, setCurrentSentenceIdx] = useState<number>(0)
+  // Tracking scores for each sentence: key = `${lessonId}_${sentenceIdx}`
+  const [sentenceScores, setSentenceScores] = useState<Record<string, number>>({})
 
   // 2 Transition Modes: Auto next lesson vs Manual user selection
   const [advanceMode, setAdvanceMode] = useState<LessonAdvanceMode>(() => {
@@ -448,6 +454,15 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
         mimeType: recResult.mimeType,
       })
 
+      // Track score for current sentence
+      const sKey = activeLesson ? `${activeLesson.id}_${currentSentenceIdx}` : ''
+      if (sKey) {
+        setSentenceScores((prev) => ({
+          ...prev,
+          [sKey]: score.overallScore,
+        }))
+      }
+
       // Notify parent to show Scoring Modal
       onScoreReady(score, recResult.blobUrl, savedEntry.localPath)
     } catch (err: any) {
@@ -460,8 +475,21 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
   const isLastSentenceOfLesson =
     Boolean(activeLesson) && currentSentenceIdx >= (activeLesson.sentences.length - 1)
 
+  const currentSentenceKey = activeLesson ? `${activeLesson.id}_${currentSentenceIdx}` : ''
+  const currentSentenceScore = sentenceScores[currentSentenceKey]
+  const isCurrentSentencePassed =
+    typeof currentSentenceScore === 'number' && currentSentenceScore >= PASS_SCORE
+  const isCurrentSentenceFailed =
+    typeof currentSentenceScore === 'number' && currentSentenceScore < PASS_SCORE
+
   const handleNextSentence = () => {
     if (!activeLesson) return
+    if (isCurrentSentenceFailed) {
+      triggerToast(
+        `🔒 Bạn chưa đạt điểm Pass (${currentSentenceScore}/100đ, cần ≥ ${PASS_SCORE}đ). Hãy luyện tập lại câu này để mở khóa câu kế tiếp!`
+      )
+      return
+    }
     const total = activeLesson.sentences.length
     if (currentSentenceIdx < total - 1) {
       setCurrentSentenceIdx((prev) => prev + 1)
@@ -482,6 +510,12 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
   }
 
   const goToNextLesson = () => {
+    if (isCurrentSentenceFailed) {
+      triggerToast(
+        `🔒 Bạn chưa đạt điểm Pass (${currentSentenceScore}/100đ, cần ≥ ${PASS_SCORE}đ). Hãy luyện tập lại để mở khóa bài tiếp theo!`
+      )
+      return
+    }
     const currentIdx = lessons.findIndex((l) => l.id === activeLessonId)
     if (currentIdx !== -1 && currentIdx < lessons.length - 1) {
       const next = lessons[currentIdx + 1]
@@ -787,6 +821,12 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
                     key={l.id}
                     ref={isActive ? activeLessonRef : null}
                     onClick={() => {
+                      if (!isActive && isCurrentSentenceFailed) {
+                        triggerToast(
+                          `🔒 Chưa đạt điểm Pass ở câu hiện tại (${currentSentenceScore}/100đ, cần ≥ ${PASS_SCORE}đ). Hãy luyện tập lại câu này để đạt chuẩn trước khi chọn bài khác!`
+                        )
+                        return
+                      }
                       setActiveLessonId(l.id)
                       setCurrentSentenceIdx(0)
                       setIsSidebarOpenMobile(false)
@@ -936,11 +976,11 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
           {/* Main Studio Grid: Target Sentence (Left) + Webcam & Shadowing (Right) */}
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-5">
             {/* Target Sentence & Audio Player */}
-            <div className="xl:col-span-7 space-y-4">
+            <div className="xl:col-span-8 space-y-4">
               <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 relative overflow-hidden shadow-xl">
                 {/* Sentence Header & Pager */}
-                <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800 gap-2 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                       Câu {currentSentenceIdx + 1} / {activeLesson?.sentences.length || 1}
                     </span>
@@ -948,6 +988,20 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
                       <span className="text-[11px] font-mono text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md border border-indigo-500/20">
                         ⏱ {currentSentence.startTime.toFixed(1)}s
                         {currentSentence.endTime ? ` - ${currentSentence.endTime.toFixed(1)}s` : ''}
+                      </span>
+                    )}
+
+                    {/* Pass / Fail Status Pill on Sentence */}
+                    {isCurrentSentencePassed && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                        <CheckCircle2 className="w-3 h-3" />
+                        Đạt Pass ({currentSentenceScore}đ)
+                      </span>
+                    )}
+                    {isCurrentSentenceFailed && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-rose-500/15 text-rose-400 border border-rose-500/30 animate-pulse">
+                        <Lock className="w-3 h-3" />
+                        Chưa đạt ({currentSentenceScore}/{PASS_SCORE}đ) — Khóa qua bài
                       </span>
                     )}
                   </div>
@@ -967,24 +1021,55 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
                       {currentSentenceIdx + 1}/{activeLesson?.sentences.length || 1}
                     </span>
 
-                    {/* Next Sentence or Next Lesson Button */}
+                    {/* Next Sentence or Next Lesson Button (Locked if failed) */}
                     {isLastSentenceOfLesson && advanceMode === 'auto' ? (
                       <button
                         onClick={handleNextSentence}
-                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow-md transition-all active:scale-95 animate-pulse"
-                        title="Hết bài - Tự động chuyển sang bài tiếp theo"
+                        className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold shadow-md transition-all active:scale-95 ${
+                          isCurrentSentenceFailed
+                            ? 'bg-rose-500/15 text-rose-400 border border-rose-500/30 hover:bg-rose-500/25'
+                            : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 animate-pulse'
+                        }`}
+                        title={
+                          isCurrentSentenceFailed
+                            ? `Khóa: Chưa đạt điểm Pass (${currentSentenceScore}/${PASS_SCORE}đ). Hãy luyện tập lại câu này để mở khóa bài tiếp!`
+                            : 'Hết bài - Tự động chuyển sang bài tiếp theo'
+                        }
                       >
-                        <span>Bài tiếp</span>
-                        <FastForward className="w-3.5 h-3.5" />
+                        {isCurrentSentenceFailed ? (
+                          <>
+                            <Lock className="w-3.5 h-3.5" />
+                            <span>Khóa</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>Bài tiếp</span>
+                            <FastForward className="w-3.5 h-3.5" />
+                          </>
+                        )}
                       </button>
                     ) : (
                       <button
                         disabled={isLastSentenceOfLesson && advanceMode === 'manual'}
                         onClick={handleNextSentence}
-                        className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none text-slate-300 transition-colors"
-                        title={isLastSentenceOfLesson ? 'Câu cuối của bài' : 'Câu kế tiếp'}
+                        className={`p-1.5 rounded-lg transition-colors ${
+                          isCurrentSentenceFailed
+                            ? 'bg-rose-500/15 text-rose-400 border border-rose-500/30 hover:bg-rose-500/25'
+                            : 'bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none text-slate-300'
+                        }`}
+                        title={
+                          isCurrentSentenceFailed
+                            ? `Khóa: Chưa đạt điểm Pass (${currentSentenceScore}/${PASS_SCORE}đ). Hãy luyện tập lại câu này để mở khóa!`
+                            : isLastSentenceOfLesson
+                            ? 'Câu cuối của bài'
+                            : 'Câu kế tiếp'
+                        }
                       >
-                        <ChevronRight className="w-4 h-4" />
+                        {isCurrentSentenceFailed ? (
+                          <Lock className="w-4 h-4" />
+                        ) : (
+                          <ChevronRight className="w-4 h-4" />
+                        )}
                       </button>
                     )}
                   </div>
@@ -1128,11 +1213,11 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
               </div>
             </div>
 
-            {/* Webcam Preview, Live Mic Meter & Shadowing Action */}
-            <div className="xl:col-span-5 space-y-4">
-              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl flex flex-col justify-between h-full min-h-[440px]">
+            {/* Webcam Preview, Live Mic Meter & Shadowing Action (Compact & Refined) */}
+            <div className="xl:col-span-4 space-y-4">
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl flex flex-col justify-between">
                 {/* Webcam / Audio Visualizer Box */}
-                <div className="relative w-full aspect-video xl:aspect-[16/10] 2xl:aspect-video rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center">
+                <div className="relative w-full aspect-video max-h-52 sm:max-h-56 rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center">
                   {recordMode === 'video' ? (
                     <>
                       <video
@@ -1140,39 +1225,39 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
                         autoPlay
                         muted
                         playsInline
-                        className={`w-full h-full object-cover transform -scale-x-100 ${
+                        className={`w-full h-full max-h-52 sm:max-h-56 object-cover transform -scale-x-100 ${
                           !isRecording && !isPreviewCam ? 'opacity-70' : 'opacity-100'
                         }`}
                       />
                       {!isRecording && !isPreviewCam && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/60 p-4 text-center">
-                          <Video className="w-10 h-10 text-slate-400 mb-2 opacity-50" />
-                          <p className="text-xs text-slate-300 font-medium">
-                            Webcam đang tắt
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/70 p-3 text-center">
+                          <Video className="w-8 h-8 text-slate-400 mb-1 opacity-60" />
+                          <p className="text-xs text-slate-200 font-semibold">
+                            Webcam xem khẩu hình
                           </p>
-                          <p className="text-[11px] text-slate-500 mt-1 mb-3">
-                            Quan sát khẩu hình miệng giúp bạn sửa âm chuẩn như người bản xứ
+                          <p className="text-[10px] text-slate-400 mt-0.5 mb-2.5">
+                            Quan sát khẩu hình miệng khi nói
                           </p>
                           <button
                             type="button"
                             onClick={toggleCamPreview}
-                            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-600/30 transition-all cursor-pointer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-semibold shadow-md transition-all cursor-pointer"
                           >
                             <Camera className="w-3.5 h-3.5" />
-                            Bật xem trước Webcam
+                            Bật xem trước
                           </button>
                         </div>
                       )}
                       {!isRecording && isPreviewCam && (
-                        <div className="absolute top-3 left-3 flex items-center gap-2">
-                          <span className="flex items-center gap-1.5 bg-emerald-500/90 text-white text-[11px] font-bold px-2.5 py-1 rounded-full shadow-lg backdrop-blur-sm">
-                            <span className="w-2 h-2 rounded-full bg-white animate-ping" />
-                            Xem trước Webcam
+                        <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
+                          <span className="flex items-center gap-1 bg-emerald-500/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md backdrop-blur-sm">
+                            <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                            Xem trước
                           </span>
                           <button
                             type="button"
                             onClick={toggleCamPreview}
-                            className="p-1 rounded-full bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700 text-xs flex items-center gap-1 px-2 cursor-pointer"
+                            className="p-0.5 rounded-full bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700 text-[10px] flex items-center gap-1 px-1.5 cursor-pointer"
                             title="Tắt xem trước"
                           >
                             <CameraOff className="w-3 h-3 text-rose-400" />
@@ -1182,26 +1267,26 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
                       )}
                     </>
                   ) : (
-                    <div className="flex flex-col items-center justify-center p-6 text-center">
+                    <div className="flex flex-col items-center justify-center p-4 text-center">
                       <div
-                        className={`w-20 h-20 rounded-full flex items-center justify-center transition-all duration-200 ${
+                        className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 ${
                           isRecording
-                            ? 'bg-rose-500/20 text-rose-400 scale-110 shadow-lg shadow-rose-500/20 animate-pulse'
+                            ? 'bg-rose-500/20 text-rose-400 scale-105 shadow-md shadow-rose-500/20 animate-pulse'
                             : 'bg-slate-800 text-slate-400'
                         }`}
                       >
-                        <Mic className="w-10 h-10" />
+                        <Mic className="w-7 h-7" />
                       </div>
-                      <p className="text-xs text-slate-300 mt-3 font-semibold">Chế độ ghi âm qua Micro</p>
-                      <p className="text-[11px] text-slate-500 mt-1">
-                        Tập trung tối đa vào độ vang và ngữ điệu câu nói
+                      <p className="text-xs text-slate-200 mt-2 font-semibold">Ghi âm qua Micro</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">
+                        Tập trung vào ngữ điệu câu nói
                       </p>
                     </div>
                   )}
 
                   {/* Recording indicator badge */}
                   {isRecording && (
-                    <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-rose-500/90 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg backdrop-blur-sm animate-pulse">
+                    <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 bg-rose-500/90 text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full shadow-md backdrop-blur-sm animate-pulse">
                       <div className="w-2 h-2 rounded-full bg-white" />
                       <span>REC {recordingSeconds}s</span>
                     </div>
@@ -1210,11 +1295,11 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
 
                 {/* Inline Permission / Device Error Banner */}
                 {mediaPermissionError && (
-                  <div className="mt-3 p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-start gap-2.5">
-                    <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-                    <div className="flex-1 space-y-1">
-                      <p className="font-semibold text-rose-200">Không thể truy cập Microphone hoặc Camera</p>
-                      <p className="whitespace-pre-line text-[11px] leading-relaxed text-rose-300/90">
+                  <div className="mt-2.5 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-start gap-2">
+                    <AlertTriangle className="w-3.5 h-3.5 text-rose-400 shrink-0 mt-0.5" />
+                    <div className="flex-1 space-y-0.5">
+                      <p className="font-semibold text-rose-200 text-xs">Lỗi Microphone / Camera</p>
+                      <p className="whitespace-pre-line text-[10px] leading-relaxed text-rose-300/90">
                         {mediaPermissionError}
                       </p>
                     </div>
@@ -1222,11 +1307,11 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
                 )}
 
                 {/* Live Mic Audio Level VU Meter */}
-                <div className="mt-4">
+                <div className="mt-2.5">
                   {isRecording && (
-                    <div className="space-y-1.5 mb-2">
+                    <div className="space-y-1 mb-1.5">
                       <div className="flex justify-between text-[11px] text-slate-400">
-                        <span>Âm lượng giọng nói:</span>
+                        <span>Âm lượng giọng:</span>
                         <span className="font-mono text-emerald-400 font-bold">{audioLevel}%</span>
                       </div>
                       <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
@@ -1241,31 +1326,31 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
 
                 {/* Realtime STT transcript preview */}
                 {isRecording && realtimeTranscript && (
-                  <div className="mt-3 p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs">
+                  <div className="mt-2 p-2 rounded-xl bg-slate-950 border border-slate-800 text-xs">
                     <span className="text-slate-400 block text-[10px] font-semibold uppercase mb-0.5">
                       Nhận diện trực tiếp:
                     </span>
-                    <span className="text-emerald-300 font-medium">{realtimeTranscript}</span>
+                    <span className="text-emerald-300 font-medium text-xs">{realtimeTranscript}</span>
                   </div>
                 )}
 
                 {/* Big Action Buttons */}
-                <div className="mt-4">
+                <div className="mt-3">
                   {!isRecording ? (
                     <button
                       onClick={handleStartRecording}
-                      className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500 hover:opacity-95 text-slate-950 font-extrabold text-base flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/25 transition-transform active:scale-[0.99]"
+                      className="w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500 hover:opacity-95 text-slate-950 font-extrabold text-sm flex items-center justify-center gap-2 shadow-md shadow-emerald-500/20 transition-transform active:scale-[0.99]"
                     >
-                      <Radio className="w-5 h-5 animate-pulse" />
+                      <Radio className="w-4 h-4 animate-pulse" />
                       <span>BẮT ĐẦU SHADOWING</span>
                     </button>
                   ) : (
                     <button
                       onClick={handleStopRecording}
-                      className="w-full py-4 rounded-2xl bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white font-extrabold text-base flex items-center justify-center gap-2 shadow-lg shadow-rose-500/25 transition-transform active:scale-[0.99] animate-pulse"
+                      className="w-full py-3 rounded-2xl bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-md shadow-rose-500/20 transition-transform active:scale-[0.99] animate-pulse"
                     >
-                      <CheckCircle className="w-5 h-5" />
-                      <span>DỪNG & CHẤM ĐIỂM PHÁT ÂM</span>
+                      <CheckCircle className="w-4 h-4" />
+                      <span>DỪNG & CHẤM ĐIỂM</span>
                     </button>
                   )}
                 </div>

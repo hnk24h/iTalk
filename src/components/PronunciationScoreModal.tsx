@@ -11,7 +11,10 @@ import {
   ArrowRight,
   Sparkles,
   Play,
+  Lock,
 } from 'lucide-react'
+
+export const PASS_SCORE = 70
 
 interface PronunciationScoreModalProps {
   scoreResult: ScoreResult | null
@@ -31,7 +34,8 @@ export const PronunciationScoreModal: React.FC<PronunciationScoreModalProps> = (
   if (!scoreResult) return null
 
   const isElectron = Boolean(window.electronAPI?.isElectron)
-  const isExcellent = scoreResult.overallScore >= 80
+  const isPassed = scoreResult.overallScore >= PASS_SCORE
+  const isExcellent = scoreResult.overallScore >= 85
 
   useEffect(() => {
     if (isExcellent) {
@@ -53,8 +57,8 @@ export const PronunciationScoreModal: React.FC<PronunciationScoreModalProps> = (
 
   // Get score color
   const getScoreColor = (score: number) => {
-    if (score >= 85) return 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10'
-    if (score >= 65) return 'text-amber-400 border-amber-500/30 bg-amber-500/10'
+    if (score >= 80) return 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10'
+    if (score >= PASS_SCORE) return 'text-teal-400 border-teal-500/30 bg-teal-500/10'
     return 'text-rose-400 border-rose-500/30 bg-rose-500/10'
   }
 
@@ -89,6 +93,37 @@ export const PronunciationScoreModal: React.FC<PronunciationScoreModalProps> = (
             <span>Độ chính xác: {scoreResult.accuracyPercent}%</span>
           </div>
         </div>
+
+        {/* Passing Status Alert Banner */}
+        {!isPassed ? (
+          <div className="mt-4 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-start gap-3">
+            <div className="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center shrink-0 mt-0.5">
+              <Lock className="w-4 h-4" />
+            </div>
+            <div className="text-xs space-y-1">
+              <div className="font-bold text-rose-300 text-sm flex items-center gap-2">
+                <span>Chưa đạt điểm Pass ({scoreResult.overallScore}/{PASS_SCORE} điểm)</span>
+              </div>
+              <p className="text-slate-300 leading-relaxed">
+                Bạn cần đạt từ <span className="font-bold text-emerald-400">{PASS_SCORE} điểm trở lên</span> để được mở khóa chuyển sang bài tiếp theo. Hãy bấm nút <b>&quot;Luyện tập lại ngay&quot;</b> để cải thiện phát âm tốt hơn nhé!
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-4 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-3">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
+              <CheckCircle2 className="w-4 h-4" />
+            </div>
+            <div className="text-xs space-y-1">
+              <div className="font-bold text-emerald-300 text-sm">
+                Đã đạt chuẩn ({scoreResult.overallScore}/100 điểm) — Đã mở khóa bài tiếp!
+              </div>
+              <p className="text-slate-300 leading-relaxed">
+                Rất tốt! Bạn đã vượt qua bài tập này và có thể tiếp tục chuyển sang câu hoặc bài học tiếp theo.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Word-by-Word Breakdown */}
         <div className="my-6">
@@ -178,25 +213,60 @@ export const PronunciationScoreModal: React.FC<PronunciationScoreModalProps> = (
         )}
 
         {/* Bottom Actions */}
-        <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
-          <button
-            onClick={() => {
-              onClose()
-              onRetry()
-            }}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold transition-colors"
-          >
-            <RotateCcw className="w-4 h-4" />
-            <span>Đọc lại lần nữa</span>
-          </button>
-
+        <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-800">
           <button
             onClick={onClose}
-            className="flex items-center gap-1.5 px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-sm font-bold shadow-md transition-colors"
+            className="text-xs text-slate-400 hover:text-slate-200 transition-colors py-2 px-2"
           >
-            <span>Tiếp tục bài học</span>
-            <ArrowRight className="w-4 h-4" />
+            Đóng xem câu mẫu
           </button>
+
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+            {!isPassed ? (
+              <>
+                <button
+                  disabled
+                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-800/60 border border-slate-800 text-slate-500 text-xs sm:text-sm font-medium cursor-not-allowed opacity-60"
+                  title="Cần đạt tối thiểu 70 điểm để mở khóa bài tiếp theo"
+                >
+                  <Lock className="w-4 h-4 text-slate-500" />
+                  <span>Khóa bài tiếp (Cần ≥ 70đ)</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    onClose()
+                    onRetry()
+                  }}
+                  className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:opacity-95 text-slate-950 text-xs sm:text-sm font-bold shadow-lg shadow-emerald-500/20 transition-all active:scale-95"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  <span>Luyện tập lại ngay</span>
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => {
+                    onClose()
+                    onRetry()
+                  }}
+                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-semibold transition-colors"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  <span>Đọc lại</span>
+                </button>
+
+                <button
+                  onClick={onClose}
+                  className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs sm:text-sm font-bold shadow-md transition-colors"
+                >
+                  <span>Tiếp tục bài học</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>
