@@ -1298,84 +1298,56 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
               )}
             </div>
 
-            {/* Overall Learning Progress Card */}
-            <div className="p-3 rounded-2xl bg-slate-950/90 border border-slate-800 space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-white flex items-center gap-1.5">
-                  <Trophy className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Tiến độ học tập</span>
-                </span>
-                <span className="text-[11px] font-bold text-emerald-400 font-mono">
-                  {progressStats.completed}/{progressStats.total} ({progressStats.completionPercent}%)
-                </span>
-              </div>
-
-              {/* Progress Bar */}
-              <div className="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden border border-slate-800/80">
-                <div
-                  className="bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 h-full rounded-full transition-all duration-500"
-                  style={{ width: `${progressStats.completionPercent}%` }}
-                />
-              </div>
-
-              {/* Status Filter Buttons */}
-              <div className="grid grid-cols-4 gap-1 pt-0.5 text-[11px]">
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter('all')}
-                  className={`py-1 rounded-lg font-semibold transition-all text-center ${
-                    statusFilter === 'all'
-                      ? 'bg-slate-800 text-white shadow-xs ring-1 ring-slate-700'
-                      : 'text-slate-400 hover:text-white hover:bg-slate-900'
-                  }`}
-                  title="Hiển thị tất cả bài học"
-                >
-                  <span>Tất cả</span>
-                  <span className="block text-[9px] opacity-75 font-normal">{progressStats.total}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter('unviewed')}
-                  className={`py-1 rounded-lg font-semibold transition-all text-center ${
-                    statusFilter === 'unviewed'
-                      ? 'bg-rose-950/70 text-rose-300 ring-1 ring-rose-500/50 shadow-xs'
-                      : 'text-slate-400 hover:text-rose-300 hover:bg-slate-900'
-                  }`}
-                  title="Chỉ hiển thị bài chưa học / chưa xem"
-                >
-                  <span>Chưa học</span>
-                  <span className="block text-[9px] opacity-75 font-normal">{progressStats.unviewed}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter('in_progress')}
-                  className={`py-1 rounded-lg font-semibold transition-all text-center ${
-                    statusFilter === 'in_progress'
-                      ? 'bg-amber-950/70 text-amber-300 ring-1 ring-amber-500/50 shadow-xs'
-                      : 'text-slate-400 hover:text-amber-300 hover:bg-slate-900'
-                  }`}
-                  title="Chỉ hiển thị bài đang học"
-                >
-                  <span>Đang học</span>
-                  <span className="block text-[9px] opacity-75 font-normal">{progressStats.inProgress}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter('completed')}
-                  className={`py-1 rounded-lg font-semibold transition-all text-center ${
-                    statusFilter === 'completed'
-                      ? 'bg-emerald-950/70 text-emerald-300 ring-1 ring-emerald-500/50 shadow-xs'
-                      : 'text-slate-400 hover:text-emerald-300 hover:bg-slate-900'
-                  }`}
-                  title="Chỉ hiển thị bài đã hoàn thành"
-                >
-                  <span>Đã xong</span>
-                  <span className="block text-[9px] opacity-75 font-normal">{progressStats.completed}</span>
-                </button>
-              </div>
+            {/* Learning Status Filter Pills */}
+            <div className="grid grid-cols-4 gap-1 text-[11px] bg-slate-950 p-1 rounded-xl border border-slate-800/80">
+              <button
+                type="button"
+                onClick={() => setStatusFilter('all')}
+                className={`py-1 rounded-lg font-semibold transition-all text-center ${
+                  statusFilter === 'all'
+                    ? 'bg-slate-800 text-white shadow-xs'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+                title="Hiển thị tất cả bài học"
+              >
+                Tất cả
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter('unviewed')}
+                className={`py-1 rounded-lg font-semibold transition-all text-center ${
+                  statusFilter === 'unviewed'
+                    ? 'bg-rose-950/70 text-rose-300 ring-1 ring-rose-500/50'
+                    : 'text-slate-400 hover:text-rose-300'
+                }`}
+                title="Chỉ hiển thị bài chưa học / chưa xem"
+              >
+                Chưa học
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter('in_progress')}
+                className={`py-1 rounded-lg font-semibold transition-all text-center ${
+                  statusFilter === 'in_progress'
+                    ? 'bg-amber-950/70 text-amber-300 ring-1 ring-amber-500/50'
+                    : 'text-slate-400 hover:text-amber-300'
+                }`}
+                title="Chỉ hiển thị bài đang học"
+              >
+                Đang học
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter('completed')}
+                className={`py-1 rounded-lg font-semibold transition-all text-center ${
+                  statusFilter === 'completed'
+                    ? 'bg-emerald-950/70 text-emerald-300 ring-1 ring-emerald-500/50'
+                    : 'text-slate-400 hover:text-emerald-300'
+                }`}
+                title="Chỉ hiển thị bài đã hoàn thành"
+              >
+                Đã xong
+              </button>
             </div>
 
             {/* Level Filter Bar (N5 đến N1) */}
@@ -1575,7 +1547,81 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
         {/* ======================================================== */}
         {/* 2. MAIN WORKSPACE: SHADOWING STUDIO                      */}
         {/* ======================================================== */}
-        <main className="flex-1 min-w-0 w-full space-y-5">
+        <main className="flex-1 min-w-0 w-full space-y-4">
+          {/* Main Workspace Header: Overall Learning Progress Bar */}
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-3.5 sm:px-5 sm:py-3 shadow-xl flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <div className="p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 shrink-0">
+                <Trophy className="w-5 h-5" />
+              </div>
+              <div className="flex-1 min-w-0 space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-white text-sm">Tiến độ bài học</span>
+                    <span className="text-[11px] text-slate-400 font-medium">
+                      ({selectedLevel === 'all' ? 'Tất cả cấp độ' : selectedLevel})
+                    </span>
+                  </div>
+                  <span className="text-xs font-bold text-emerald-400 font-mono">
+                    {progressStats.completed}/{progressStats.total} bài hoàn thành ({progressStats.completionPercent}%)
+                  </span>
+                </div>
+                {/* Progress Bar */}
+                <div className="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
+                  <div
+                    className="bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 h-full rounded-full transition-all duration-500 shadow-xs"
+                    style={{ width: `${progressStats.completionPercent}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Status Filter Chips */}
+            <div className="flex items-center gap-2 shrink-0 self-end md:self-center text-xs">
+              <button
+                type="button"
+                onClick={() => setStatusFilter(statusFilter === 'completed' ? 'all' : 'completed')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer flex items-center gap-1.5 ${
+                  statusFilter === 'completed'
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50 shadow-xs'
+                    : 'bg-slate-950/70 border-slate-800 text-slate-400 hover:text-emerald-300 hover:bg-slate-900'
+                }`}
+                title="Bấm để lọc các bài đã hoàn thành"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Đã xong: <strong className="text-emerald-300 font-mono">{progressStats.completed}</strong></span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setStatusFilter(statusFilter === 'in_progress' ? 'all' : 'in_progress')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer flex items-center gap-1.5 ${
+                  statusFilter === 'in_progress'
+                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-xs'
+                    : 'bg-slate-950/70 border-slate-800 text-slate-400 hover:text-amber-300 hover:bg-slate-900'
+                }`}
+                title="Bấm để lọc các bài đang học dở dang"
+              >
+                <Clock className="w-3.5 h-3.5 text-amber-400" />
+                <span>Đang học: <strong className="text-amber-300 font-mono">{progressStats.inProgress}</strong></span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setStatusFilter(statusFilter === 'unviewed' ? 'all' : 'unviewed')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer flex items-center gap-1.5 ${
+                  statusFilter === 'unviewed'
+                    ? 'bg-rose-500/20 text-rose-300 border-rose-500/50 shadow-xs'
+                    : 'bg-slate-950/70 border-slate-800 text-slate-400 hover:text-rose-300 hover:bg-slate-900'
+                }`}
+                title="Bấm để lọc các bài chưa học / chưa xem"
+              >
+                <Circle className="w-3 h-3 text-slate-500" />
+                <span>Chưa học: <strong className="text-slate-300 font-mono">{progressStats.unviewed}</strong></span>
+              </button>
+            </div>
+          </div>
+
           {/* Top Bar of Studio: Current Lesson Details, Advance Mode Pill & Record Mode */}
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 shadow-xl">
             {/* Active Lesson Meta & Mobile Sidebar Toggle */}
