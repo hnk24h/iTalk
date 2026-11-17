@@ -39,6 +39,32 @@ export interface Lesson {
   audioDuration?: number        // Total seconds
 }
 
+export interface GrammarExample {
+  text: string
+  furigana?: string // Ruby format (Japanese): 学生[がくせい]です。
+  reading?: string  // Pinyin (Chinese) hoặc ghi chú phát âm
+  translation: string
+}
+
+export interface GrammarPattern {
+  id: string
+  language: Language
+  level: string // N5..N1, HSK 1..HSK 6, Cơ bản, Nâng cao
+  pattern: string
+  meaning: string
+  formula: string
+  note?: string
+  examples: GrammarExample[] // 3-5 ví dụ
+}
+
+export interface KaiwaGroup {
+  id: string
+  language: Language
+  level: string
+  situation: string
+  phrases: GrammarExample[]
+}
+
 export interface WordTokenComparison {
   word: string
   status: 'correct' | 'close' | 'missed' | 'extra'
