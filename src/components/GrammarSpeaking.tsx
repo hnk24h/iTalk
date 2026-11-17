@@ -18,6 +18,7 @@ import {
   Search,
   Award,
   Layers,
+  ChevronLeft,
   ChevronDown,
   ChevronUp,
   RotateCcw,
@@ -88,6 +89,9 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
 
   // Active view tab: 'practice' | 'all-patterns' | 'kaiwa'
   const [activeTab, setActiveTab] = useState<'practice' | 'all-patterns' | 'kaiwa'>('practice')
+
+  // Mobile sub-tab in Tab 1 (list vs detail)
+  const [mobileTab1View, setMobileTab1View] = useState<'list' | 'detail'>('detail')
 
   // Furigana toggle for Japanese
   const [showFurigana, setShowFurigana] = useState<boolean>(true)
@@ -268,28 +272,28 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
   }, [levelPatterns, searchKeyword])
 
   return (
-    <div className="h-[calc(100vh-115px)] min-h-[640px] flex flex-col bg-slate-900 text-slate-100 rounded-3xl border border-slate-800 shadow-2xl overflow-hidden">
+    <div className="h-auto md:h-[calc(100vh-115px)] min-h-[520px] md:min-h-[640px] flex flex-col bg-slate-900 text-slate-100 rounded-2xl md:rounded-3xl border border-slate-800 shadow-2xl overflow-hidden">
       {/* Top Header Bar */}
-      <div className="bg-slate-900/95 backdrop-blur border-b border-slate-800 px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
+      <div className="bg-slate-900/95 backdrop-blur border-b border-slate-800 px-4 py-3 sm:px-6 sm:py-4 flex flex-col md:flex-row md:items-center justify-between gap-3 shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-xl shadow-lg shadow-cyan-500/20">
             {currentLangMeta.flag}
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-lg font-bold text-white tracking-tight">Luyện Ngữ Pháp & Kaiwa Đời Sống</h1>
+              <h1 className="text-base sm:text-lg font-bold text-white tracking-tight">Luyện Ngữ Pháp & Kaiwa</h1>
               <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
                 {currentLangMeta.name}
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-slate-400 mt-0.5 hidden sm:block">
               Phân cấp theo Level • Mẫu câu giao tiếp thực tế • 3-5 Ví dụ trực quan & Luyện phát âm
             </p>
           </div>
         </div>
 
         {/* Global Controls: Japanese Furigana Toggle & Tab switchers */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           {currentLang === 'ja' && (
             <button
               onClick={() => setShowFurigana(!showFurigana)}
@@ -309,39 +313,42 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
           )}
 
           {/* Tab Selector */}
-          <div className="flex p-1 bg-slate-800/80 rounded-xl border border-slate-700/70 text-xs">
+          <div className="flex p-1 bg-slate-800/80 rounded-xl border border-slate-700/70 text-xs overflow-x-auto scrollbar-none max-w-full">
             <button
               onClick={() => setActiveTab('practice')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg font-medium transition-all shrink-0 ${
                 activeTab === 'practice'
                   ? 'bg-cyan-500 text-slate-950 shadow-md font-semibold'
                   : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
               }`}
             >
               <BookOpen className="w-3.5 h-3.5" />
-              <span>Luyện Từng Mẫu (3-5 Ví Dụ)</span>
+              <span className="hidden sm:inline">Luyện Từng Mẫu (3-5 Ví Dụ)</span>
+              <span className="sm:hidden">Luyện Mẫu</span>
             </button>
             <button
               onClick={() => setActiveTab('all-patterns')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg font-medium transition-all shrink-0 ${
                 activeTab === 'all-patterns'
                   ? 'bg-cyan-500 text-slate-950 shadow-md font-semibold'
                   : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
               }`}
             >
               <Layers className="w-3.5 h-3.5" />
-              <span>Tất Cả Mẫu Của Level ({levelPatterns.length})</span>
+              <span className="hidden sm:inline">Tất Cả Mẫu Của Level ({levelPatterns.length})</span>
+              <span className="sm:hidden">Tất Cả ({levelPatterns.length})</span>
             </button>
             <button
               onClick={() => setActiveTab('kaiwa')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg font-medium transition-all shrink-0 ${
                 activeTab === 'kaiwa'
                   ? 'bg-cyan-500 text-slate-950 shadow-md font-semibold'
                   : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
               }`}
             >
               <MessageCircle className="w-3.5 h-3.5" />
-              <span>Kaiwa Đời Sống ({levelKaiwa.length} Chủ Đề)</span>
+              <span className="hidden sm:inline">Kaiwa Đời Sống ({levelKaiwa.length} Chủ Đề)</span>
+              <span className="sm:hidden">Kaiwa ({levelKaiwa.length})</span>
             </button>
           </div>
         </div>
@@ -396,7 +403,11 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
         {activeTab === 'practice' && (
           <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden">
             {/* Sidebar list of patterns in this level - Sticky on desktop */}
-            <div className="w-full md:w-80 lg:w-96 border-b md:border-b-0 md:border-r border-slate-800 flex flex-col bg-slate-950/60 shrink-0 max-h-72 md:max-h-full h-full min-h-0 md:sticky md:top-0 z-10">
+            <div
+              className={`w-full md:w-80 lg:w-96 border-b md:border-b-0 md:border-r border-slate-800 flex flex-col bg-slate-950/60 shrink-0 h-full min-h-0 md:sticky md:top-0 z-10 ${
+                mobileTab1View === 'list' ? 'flex' : 'hidden md:flex'
+              }`}
+            >
               {/* Sticky Search Header in Sidebar */}
               <div className="p-3 border-b border-slate-800 bg-slate-900/90 backdrop-blur shrink-0">
                 <div className="relative">
@@ -440,7 +451,10 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
                       <button
                         key={pat.id}
                         ref={isCur ? activePatternBtnRef : null}
-                        onClick={() => setSelectedPatternId(pat.id)}
+                        onClick={() => {
+                          setSelectedPatternId(pat.id)
+                          setMobileTab1View('detail')
+                        }}
                         className={`w-full text-left p-3 rounded-xl border transition-all ${
                           isCur
                             ? 'bg-cyan-950/40 border-cyan-500/50 shadow-md ring-1 ring-cyan-500/20'
@@ -479,10 +493,27 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
             {/* Main Area: Pattern Formula, Notes and 3-5 Interactive Examples */}
             <div
               ref={mainContentRef}
-              className="flex-1 min-h-0 h-full flex flex-col overflow-y-auto p-6 lg:p-8 bg-slate-900/30 scrollbar-thin scrollbar-thumb-slate-700"
+              className={`flex-1 min-h-0 h-full flex flex-col overflow-y-auto p-4 sm:p-6 lg:p-8 bg-slate-900/30 scrollbar-thin scrollbar-thumb-slate-700 ${
+                mobileTab1View === 'detail' ? 'flex' : 'hidden md:flex'
+              }`}
             >
               {currentPattern ? (
-                <div className="max-w-4xl w-full mx-auto space-y-6">
+                <div className="max-w-4xl w-full mx-auto space-y-5 sm:space-y-6">
+                  {/* Mobile Navigation Header: Back to list */}
+                  <div className="md:hidden flex items-center justify-between pb-2 border-b border-slate-800/80">
+                    <button
+                      type="button"
+                      onClick={() => setMobileTab1View('list')}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 text-cyan-300 text-xs font-semibold border border-slate-700 active:scale-95 transition-all cursor-pointer"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                      <span>Danh sách mẫu ({filteredAllPatterns.length})</span>
+                    </button>
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                      {currentPattern.level}
+                    </span>
+                  </div>
+
                   {/* Pattern Header Card */}
                   <div className="bg-gradient-to-br from-slate-800/80 to-slate-800/40 border border-slate-700/80 rounded-2xl p-6 shadow-xl relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 rounded-full blur-3xl -z-10" />

@@ -8,6 +8,7 @@ import { ScheduleTracker } from './components/ScheduleTracker'
 import { PronunciationScoreModal } from './components/PronunciationScoreModal'
 import { SettingsModal } from './components/SettingsModal'
 import { loadSchedule, loadSettings } from './services/storage'
+import { Mic, BookOpen, FolderOpen, Calendar } from 'lucide-react'
 
 export function App() {
   const initialSettings = loadSettings()
@@ -48,7 +49,7 @@ export function App() {
       />
 
       {/* Main Content Area - Full Width responsive */}
-      <main className="flex-1 w-full px-3 sm:px-6 lg:px-8 xl:px-10 py-5">
+      <main className="flex-1 w-full px-2 sm:px-6 lg:px-8 xl:px-10 py-3 sm:py-5 pb-24 md:pb-6">
         {activeTab === 'shadowing' && (
           <ShadowingStudio
             currentLang={currentLang}
@@ -69,13 +70,66 @@ export function App() {
         )}
       </main>
 
-      {/* Footer - Full Width */}
-      <footer className="border-t border-slate-900 bg-slate-950/80 py-4 text-center text-xs text-slate-500">
+      {/* Footer - Full Width Desktop */}
+      <footer className="hidden md:block border-t border-slate-900 bg-slate-950/80 py-4 text-center text-xs text-slate-500">
         <div className="w-full px-3 sm:px-6 lg:px-8 xl:px-10 flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>iTalk Language Studio © 2026 — Luyện Shadowing Tiếng Nhật, Tiếng Trung & Tiếng Việt</span>
           <span>Hỗ trợ Web & Electron Desktop Native Recording</span>
         </div>
       </footer>
+
+      {/* Mobile Bottom Navigation Bar (iOS HIG compliant & Safe Area) */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur-xl border-t border-slate-800 pb-safe shadow-2xl">
+        <div className="grid grid-cols-4 h-15">
+          <button
+            onClick={() => setActiveTab('shadowing')}
+            className={`flex flex-col items-center justify-center gap-0.5 transition-colors cursor-pointer ${
+              activeTab === 'shadowing'
+                ? 'text-emerald-400 font-bold'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Mic className="w-5 h-5" />
+            <span className="text-[10px]">Shadowing</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('speaking')}
+            className={`flex flex-col items-center justify-center gap-0.5 transition-colors cursor-pointer ${
+              activeTab === 'speaking'
+                ? 'text-emerald-400 font-bold'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <BookOpen className="w-5 h-5" />
+            <span className="text-[10px]">Ngữ Pháp</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('recordings')}
+            className={`flex flex-col items-center justify-center gap-0.5 transition-colors cursor-pointer ${
+              activeTab === 'recordings'
+                ? 'text-emerald-400 font-bold'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <FolderOpen className="w-5 h-5" />
+            <span className="text-[10px]">Bản Ghi</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('schedule')}
+            className={`flex flex-col items-center justify-center gap-0.5 transition-colors cursor-pointer ${
+              activeTab === 'schedule'
+                ? 'text-emerald-400 font-bold'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Calendar className="w-5 h-5" />
+            <span className="text-[10px]">Tiến Độ</span>
+          </button>
+        </div>
+      </nav>
 
       {/* Pronunciation Scoring Modal */}
       {activeScoreResult && (

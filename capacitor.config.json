@@ -1,0 +1,11 @@
+{
+  "appId": "com.italk.app",
+  "appName": "iTalk",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "ios": {
+    "contentInset": "always"
+  }
+}

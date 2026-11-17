@@ -1,0 +1,18 @@
+{
+  "name": "iTalk - Luyện Nghe Nói & Shadowing",
+  "short_name": "iTalk",
+  "description": "Ứng dụng luyện phát âm, shadowing và ngữ pháp đa ngôn ngữ (Tiếng Nhật, Tiếng Trung, Tiếng Việt)",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#020617",
+  "theme_color": "#020617",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

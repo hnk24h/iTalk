@@ -1242,12 +1242,22 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
 
       {/* Responsive Layout: Sidebar on Left + Studio Workspace on Right */}
       <div className="flex flex-col lg:flex-row gap-5 items-start">
+        {/* Mobile Backdrop Overlay */}
+        {isSidebarOpenMobile && (
+          <div
+            onClick={() => setIsSidebarOpenMobile(false)}
+            className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 lg:hidden transition-opacity"
+          />
+        )}
+
         {/* ======================================================== */}
         {/* 1. SIDEBAR: LESSONS LIST & 2-MODE SWITCH                  */}
         {/* ======================================================== */}
         <aside
-          className={`w-full lg:w-80 xl:w-96 2xl:w-[420px] flex-shrink-0 bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-xl flex flex-col space-y-4 ${
-            isSidebarOpenMobile ? 'block' : 'hidden lg:flex'
+          className={`w-full lg:w-80 xl:w-96 2xl:w-[420px] flex-shrink-0 bg-slate-900 border border-slate-800 shadow-xl flex flex-col space-y-4 transition-all duration-300 ${
+            isSidebarOpenMobile
+              ? 'fixed inset-y-0 left-0 z-50 w-[88vw] max-w-sm p-4 sm:p-5 rounded-r-3xl overflow-y-auto bg-slate-900/98 shadow-2xl pt-safe pb-safe border-r border-slate-700'
+              : 'hidden lg:flex rounded-3xl p-4 sm:p-5'
           }`}
         >
           {/* Sidebar Header */}
