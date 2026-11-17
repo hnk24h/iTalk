@@ -353,10 +353,184 @@ export const japaneseLessons: Lesson[] = [
       {
         id: 'ja-010-s3',
         text: 'テクノロジーと人間性が調和した持続可能な未来社会を構築すべく、多角的な議論が求められています。',
-        furigana: 'テクノロジーと人[にん]間[げん]性[せい]が調[ちょう]和[わ]した持[じ]続[ぞく]可[か]能[のう]な未[み]来[らい]社[しゃ]会[かい]を構[こう]築[ちく]すべく、多[た]角[かく]的[てき]な議[ぎ]論[ろん]が求[มอ]められています。',
+        furigana: 'テクノロジーと人[にん]間[げん]性[せい]が調[ちょう]和[わ]した持[じ]続[ぞく]可[か]能[のう]な未[み]来[らい]社[しゃ]会[かい]を構[こう]築[ちく]すべく、多[た]角[かく]的[てき]な議[ぎ]論[ろん]が求[も]められています。',
         phonetic: 'Tekunorojii to ningensei ga chouwa shita jizoku kanou na mirai shakai wo kouchiku subeku, takakuteki na giron ga motomerarete imasu.',
         translation: 'Để kiến tạo một xã hội tương lai bền vững nơi công nghệ và tính nhân bản hòa hợp, chúng ta cần phải có những cuộc thảo luận đa chiều.',
         grammarNote: '〜すべく (subeku): Nhằm mục đích, để... (văn viết trang trọng cổ điển).'
+      }
+    ]
+  },
+
+  // ==========================================
+  // BÀI MỞ RỘNG (AUTHENTIC SHADOWING CURRICULUM)
+  // ==========================================
+  {
+    id: 'ja-11',
+    language: 'ja',
+    title: 'Mua sắm & Thanh toán ở cửa hàng tiện lợi (Konbini)',
+    level: 'N5',
+    category: 'Mua sắm & Đời sống',
+    description: 'Hội thoại thực tế tại quầy thu ngân Konbini: hâm nóng cơm hộp, lấy túi nilong và tích điểm.',
+    sentences: [
+      {
+        id: 'ja-11-s1',
+        text: 'お弁当温めますか？レジ袋はお持ちですか？',
+        furigana: 'お弁[べん]当[とう]温[あたた]めますか？レジ袋[ぶくろ]はお持[も]ちですか？',
+        phonetic: 'Obentou atatamemasu ka? Rejibukuro wa omochi desu ka?',
+        translation: 'Quý khách có cần hâm nóng cơm hộp không ạ? Bạn có mang theo túi đựng đồ chưa?',
+        grammarNote: 'お〜 (O-): Tiền tố lịch sự; 温める (atatameru): Làm nóng, hâm nóng đồ ăn.'
+      },
+      {
+        id: 'ja-11-s2',
+        text: 'はい、温めてください。袋は大丈夫です、自分で持っています。',
+        furigana: 'はい、温[あたた]めてください。袋[ぶくろ]は大[だい]丈[じょう]夫[ぶ]です、自[じ]分[ぶん]で持[も]っています。',
+        phonetic: 'Hai, atatamete kudasai. Fukuro wa daijoubu desu, jibun de motte imasu.',
+        translation: 'Vâng, làm ơn hâm nóng giùm tôi. Túi thì không cần đâu ạ, tôi tự mang theo túi rồi.',
+        grammarNote: '〜は大丈夫です (wa daijoubu desu): Cách từ chối lịch sự, tự nhiên trong tiếng Nhật (nghĩa là "không cần/tôi ổn rồi").'
+      },
+      {
+        id: 'ja-11-s3',
+        text: 'お会計は八百五十円です。ポイントカードはございますか？',
+        furigana: 'お会[かい]計[けい]は八[はち]百[ひゃく]五[ご]十[じゅう]円[えん]です。ポイントカードはございますか？',
+        phonetic: 'Okaikei wa happyaku gojuu-en desu. Pointo kaado wa gozaimasu ka?',
+        translation: 'Tổng tiền thanh toán là 850 yên. Quý khách có thẻ tích điểm không ạ?',
+        grammarNote: 'ございます (gozaimasu): Thể lịch sự cao cấp (Kính ngữ Teinei-go) của あります (arimasu).'
+      }
+    ]
+  },
+  {
+    id: 'ja-12',
+    language: 'ja',
+    title: 'Rủ rê, Mời mọc & Từ chối khéo léo',
+    level: 'N4',
+    category: 'Giao tiếp hàng ngày',
+    description: 'Học cách mời bạn bè đi chơi và cách từ chối lịch thiệp không làm mất lòng đối phương.',
+    sentences: [
+      {
+        id: 'ja-12-s1',
+        text: '今週末、新しい映画を見に行かない？チケットが二枚あるんだ。',
+        furigana: '今[こん]週[しゅう]末[まつ]、新[あたら]しい映[えい]画[が]を見[み]に行[い]かない？チケットが二[に]枚[まい]あるんだ。',
+        phonetic: 'Konshuumatsu, atarashii eiga wo mi ni ikanai? Chiketto ga nimai arun da.',
+        translation: 'Cuối tuần này đi xem phim mới với mình không? Mình đang có 2 vé nè.',
+        grammarNote: '〜に行かない (ni ikanai): Cách rủ rê thân mật (Kudaketa); 〜んだ (n da): Đưa ra lý do, bối cảnh.'
+      },
+      {
+        id: 'ja-12-s2',
+        text: '誘ってくれてありがとう！でも、今週はちょっと用事があって…。',
+        furigana: '誘[さそ]ってくれてありがとう！でも、今[こん]週[しゅう]はちょっと用[よう]事[じ]があって…。',
+        phonetic: 'Sasotte kurete arigatou! Demo, konshuu wa chotto youji ga atte...',
+        translation: 'Cảm ơn cậu đã rủ mình nha! Nhưng mà cuối tuần này mình lỡ có chút việc bận mất rồi...',
+        grammarNote: '〜てくれてありがとう: Cảm ơn vì đã làm gì cho mình; ちょっと〜があって: Cách từ chối bỏ lửng khéo léo điển hình của người Nhật.'
+      },
+      {
+        id: 'ja-12-s3',
+        text: 'そうなんだ、残念！じゃあ、また今度時間がある時に行こうね。',
+        furigana: 'そうなんだ、残[ざん]念[ねん]！じゃあ、また今[こん]度[ど]時[じ]間[かん]がある時[とき]に行[い]こうね。',
+        phonetic: 'Sou nan da, zannen! Jaa, mata kondo jikan ga aru toki ni ikou ne.',
+        translation: 'Thế à, tiếc quá ha! Vậy thôi để lần tới khi nào có thời gian tụi mình cùng đi nhé.',
+        grammarNote: 'また今度 (mata kondo): Hẹn dịp tới, lần sau; 〜行こう (ikou): Thể ý chí rủ rê thân mật.'
+      }
+    ]
+  },
+  {
+    id: 'ja-13',
+    language: 'ja',
+    title: 'Đặt phòng lữ quán suối nước nóng Onsen Ryokan',
+    level: 'N3',
+    category: 'Du lịch & Dịch vụ',
+    description: 'Hội thoại đặt phòng nghỉ truyền thống Nhật Bản, thưởng thức bữa tối Kaiseki và tắm khoáng.',
+    sentences: [
+      {
+        id: 'ja-13-s1',
+        text: '来月の連休に、露天風呂付きの和室を一泊予約したいのですが。',
+        furigana: '来[らい]月[げつ]の連[れん]休[きゅう]に、露[ろ]天[てん]風[ぶ]呂[ろ]付[つ]きの和[わ]室[しつ]を一[いっ]泊[ぱく]予[よ]約[やく]したいのですが。',
+        phonetic: 'Raigetsu no renkyuu ni, rotenburo-tsuki no washitsu wo ippaku yoyaku shitai no desu ga.',
+        translation: 'Tôi muốn đặt một đêm phòng kiểu Nhật có bồn tắm suối nước nóng ngoài trời vào đợt nghỉ lễ tháng sau ạ.',
+        grammarNote: '露天風呂付き (rotenburo-tsuki): Có kèm bồn tắm lộ thiên; 和室 (washitsu): Phòng trải chiếu tatami truyền thống.'
+      },
+      {
+        id: 'ja-13-s2',
+        text: 'かしこまりました。ご夕食は季節の会席料理をご用意いたしましょうか？',
+        furigana: 'かしこまりました。ご夕[ゆう]食[しょく]は季[き]節[せつ]の会[かい]席[せき]料[りょう]理[り]をご用[よう]意[い]いたしましょうか？',
+        phonetic: 'Kashikomarimashita. Goyuushoku wa kisetsu no kaiseki ryouri wo goyoui itashimashou ka?',
+        translation: 'Tôi đã hiểu rõ rồi ạ. Bữa tối quý khách có muốn chúng tôi chuẩn bị set ẩm thực truyền thống Kaiseki theo mùa không ạ?',
+        grammarNote: 'かしこまりました: Khiêm nhường ngữ nhận lệnh từ khách; ご〜いたしましょうか: Khiêm nhường ngữ phục vụ.'
+      },
+      {
+        id: 'ja-13-s3',
+        text: 'はい、楽しみにしています。最寄り駅からの送迎バスは利用できますか？',
+        furigana: 'はい、楽[たの]しみにしています。最[も寄]り駅[えき]からの送[そう]迎[げい]バスは利[り]用[よう]できますか？',
+        phonetic: 'Hai, tanoshimi ni shite imasu. Moyori eki kara no sougei basu wa riyou dekimasu ka?',
+        translation: 'Vâng, tôi rất háo hức chờ đợi. Liệu tôi có thể sử dụng xe buýt đưa đón từ nhà ga gần nhất không ạ?',
+        grammarNote: '楽しみにしています: Rất trông chờ; 送迎バス (sougei basu): Xe buýt đưa đón khách hai chiều.'
+      }
+    ]
+  },
+  {
+    id: 'ja-14',
+    language: 'ja',
+    title: 'Tiếp khách đối tác & Trao đổi danh thiếp (Keigo)',
+    level: 'N2',
+    category: 'Môi trường công sở',
+    description: 'Thực hành các nghi thức tiếp khách kinh doanh, kính ngữ trao danh thiếp và chào hỏi đối tác.',
+    sentences: [
+      {
+        id: 'ja-14-s1',
+        text: '本日はお忙しい中、弊社まで足をお運びいただき誠にありがとうございます。',
+        furigana: '本[ほん]日[じつ]はお忙[いそが]しい中[なか]、弊[へい]社[しゃ]まで足[あし]をお運[はこ]びいただき誠[まこと]にありがとうございます。',
+        phonetic: 'Honjitsu wa oisogashii naka, heisha made ashi wo o-hakobi itadaki makoto ni arigatou gozaimasu.',
+        translation: 'Rất cảm ơn quý vị hôm nay dù bận rộn vẫn dành thời gian cất công đến thăm công ty chúng tôi.',
+        grammarNote: '足をお運びいただく: Tôn kính ngữ của "đến thăm"; 弊社 (heisha): Khiêm nhường ngữ chỉ "công ty chúng tôi".'
+      },
+      {
+        id: 'ja-14-s2',
+        text: '頂戴いたしましたお名刺を拝見し、改めてご挨拶申し上げます。',
+        furigana: '頂[ちょう]戴[だい]いたしましたお名[めい]刺[し]を拝[はい]見[けん]し、改[あらた]めてご挨[あい]拶[さつ]申[もう]し上[あ]げます。',
+        phonetic: 'Choudai itashimashita omeishi wo haiken shi, aratamete go-aisatsu moushiagemasu.',
+        translation: 'Sau khi xin phép xem qua danh thiếp quý vị vừa trao, tôi xin trân trọng gửi lời chào chính thức.',
+        grammarNote: '頂戴する (choudai suru): Khiêm nhường ngữ của "nhận"; 拝見する (haiken suru): Khiêm nhường ngữ của "xem".'
+      },
+      {
+        id: 'ja-14-s3',
+        text: '今後とも末永いお付き合いを賜りますよう、何卒よろしくお願い申し上げます。',
+        furigana: '今[こん]後[ご]とも末[すえ]永[なが]いお付[つ]き合[あ]いを賜[たまわ]りますよう、何[なに]卒[とぞ]よろしくお願[ねが]い申[もう]し上[あ]げます。',
+        phonetic: 'Kongo tomo suenagai o-tsukiai wo tamawarimasu you, nanitozo yoroshiku onegai moushiagemasu.',
+        translation: 'Rất mong nhận được sự đồng hành gắn bó dài lâu từ quý công ty, kính mong quý vị chiếu cố giúp đỡ.',
+        grammarNote: '賜る (tamawaru): Tôn kính ngữ thượng cấp của "nhận được"; 何卒 (nanitozo): Trân trọng khẩn xin.'
+      }
+    ]
+  },
+  {
+    id: 'ja-15',
+    language: 'ja',
+    title: 'Phát triển bền vững (SDGs) & Năng lượng tái tạo',
+    level: 'N1',
+    category: 'Kinh tế & Xã hội',
+    description: 'Thuyết trình về trách nhiệm xã hội doanh nghiệp (CSR), giảm phát thải carbon và tương lai xanh.',
+    sentences: [
+      {
+        id: 'ja-15-s1',
+        text: '地球温暖化に歯止めをかけるべく、カーボンニュートラルの実現は企業の責務となっております。',
+        furigana: '地[ち]球[きゅう]温[おん]暖[だん]化[か]に歯[は]止[ど]めをかけるべく、カーボンニュートラルの実[じつ]現[げん]は企[き]業[ぎょう]の責[せき]務[む]となっております。',
+        phonetic: 'Chikyuu ondanka ni hadome wo kakeru beku, kaabon nyuutoraru no jitsugen wa kigyou no sekimu to natte orimasu.',
+        translation: 'Nhằm chặn đứng sự nóng lên toàn cầu, việc hiện thực hóa mục tiêu trung hòa carbon đã trở thành trách nhiệm mang tính sống còn của mọi doanh nghiệp.',
+        grammarNote: '歯止めをかける (hadome wo kakeru): Chặn đứng, kiềm chế đà suy thoái; 〜となっております: Khiêm nhường trang trọng.'
+      },
+      {
+        id: 'ja-15-s2',
+        text: '再生可能エネルギーへの転換は単なる環境対策にとどまらず、新たな経済成長の起爆剤となり得ます。',
+        furigana: '再[さい]生[せい]可[か]能[のう]エネルギーへの転[てん]換[かん]は単[たん]なる環[かん]境[きょう]対[たい]策[さく]にとどまらず、新[あら]たな経[けい]済[ざい]成[せい]長[ちょう]の起[き]爆[ばく]剤[ざい]となり得[え]ます。',
+        phonetic: 'Saisei kanou enerugii e no tenkan wa tannaru kankyou taisaku ni todomarazu, arata na keizai seichou no kibakuzai to nariemasu.',
+        translation: 'Sự chuyển đổi sang năng lượng tái tạo không chỉ dừng lại ở mức độ bảo vệ môi trường đơn thuần, mà hoàn toàn có thể trở thành ngòi nổ kích thích tăng trưởng kinh tế mới.',
+        grammarNote: '〜にとどまらず (ni todomarazu): Không dừng lại ở...; 〜得ます (emasu): Có khả năng, có thể trở thành.'
+      },
+      {
+        id: 'ja-15-s3',
+        text: '次世代へ豊かな地球を受け継ぐために、官民が一体となって果敢な変革を推進すべきであります。',
+        furigana: '次[じ]世[せい]代[だい]へ豊[ゆた]かな地[ち]球[きゅう]を受[う]け継[つ]ぐために、官[かん]民[みん]が一[いっ]体[たい]となって果[か]敢[かん]な変[へん]革[かく]を推[すい]進[しん]すべきであります。',
+        phonetic: 'Jisedai e yutaka na chikyuu wo uketsugu tame ni, kammin ga ittai to natte kakan na henkaku wo suishin subeki de arimasu.',
+        translation: 'Để truyền lại một địa cầu trù phú cho thế hệ mai sau, chính quyền và người dân cần phải đồng lòng nhất trí thúc đẩy những cuộc cải cách quả cảm.',
+        grammarNote: '受け継ぐ (uketsugu): Kế thừa, trao truyền lại; 官民一体 (kammin ittai): Nhà nước và nhân dân cùng chung một lòng.'
       }
     ]
   }

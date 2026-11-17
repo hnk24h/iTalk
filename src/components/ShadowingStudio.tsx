@@ -58,6 +58,15 @@ export const JA_LEVEL_INFO: Record<string, { title: string; desc: string; icon: 
   N1: { title: 'Cấp độ N1', desc: 'Cao cấp & Chiến lược', icon: '👑' },
 }
 
+export const ZH_LEVEL_INFO: Record<string, { title: string; desc: string; icon: string }> = {
+  'HSK 1': { title: 'Cấp độ HSK 1', desc: 'Sơ cấp cơ bản (150 từ)', icon: '🌱' },
+  'HSK 2': { title: 'Cấp độ HSK 2', desc: 'Giao tiếp hàng ngày (300 từ)', icon: '🌿' },
+  'HSK 3': { title: 'Cấp độ HSK 3', desc: 'Trung cấp đời sống (600 từ)', icon: '📘' },
+  'HSK 4': { title: 'Cấp độ HSK 4', desc: 'Thành thạo công sở (1200 từ)', icon: '📙' },
+  'HSK 5': { title: 'Cấp độ HSK 5', desc: 'Nâng cao & Báo chí (2500 từ)', icon: '📕' },
+  'HSK 6': { title: 'Cấp độ HSK 6', desc: 'Chuyên gia & Bản xứ (5000+ từ)', icon: '👑' },
+}
+
 export type LessonAdvanceMode = 'auto' | 'manual'
 
 interface ShadowingStudioProps {
@@ -592,6 +601,9 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
     if (currentLang === 'ja') {
       return ['all', 'N5', 'N4', 'N3', 'N2', 'N1']
     }
+    if (currentLang === 'zh') {
+      return ['all', 'HSK 1', 'HSK 2', 'HSK 3', 'HSK 4', 'HSK 5', 'HSK 6']
+    }
     const set = new Set<string>()
     lessons.forEach((l: Lesson) => {
       if (l.level) set.add(l.level.split(' ')[0] || l.level)
@@ -639,7 +651,9 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
       if (!matchSearch) return false
 
       if (selectedLevel !== 'all') {
-        const normalizedLvl = l.level.split(' ')[0] || l.level
+        const normalizedLvl = l.level.startsWith('HSK')
+          ? (l.level.match(/HSK\s*\d+/)?.[0] || l.level)
+          : (l.level.split(' ')[0] || l.level)
         if (!normalizedLvl.startsWith(selectedLevel)) return false
       }
 
@@ -659,7 +673,9 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
     const map = new Map<string, Lesson[]>()
 
     filteredLessons.forEach((l: Lesson) => {
-      const lvlKey = l.level.split(' ')[0] || l.level || 'Khác'
+      const lvlKey = l.level.startsWith('HSK')
+        ? (l.level.match(/HSK\s*\d+/)?.[0] || l.level)
+        : (l.level.split(' ')[0] || l.level || 'Khác')
       if (!map.has(lvlKey)) {
         map.set(lvlKey, [])
       }
@@ -670,6 +686,17 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
     if (currentLang === 'ja') {
       const jaOrder = ['N5', 'N4', 'N3', 'N2', 'N1']
       jaOrder.forEach((k) => {
+        if (map.has(k)) {
+          groups.push({ levelKey: k, lessons: map.get(k)! })
+          map.delete(k)
+        }
+      })
+    }
+
+    // If Chinese, preserve HSK 1 -> HSK 6 order
+    if (currentLang === 'zh') {
+      const zhOrder = ['HSK 1', 'HSK 2', 'HSK 3', 'HSK 4', 'HSK 5', 'HSK 6']
+      zhOrder.forEach((k) => {
         if (map.has(k)) {
           groups.push({ levelKey: k, lessons: map.get(k)! })
           map.delete(k)
@@ -1201,7 +1228,12 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
               </div>
             ) : selectedLevel === 'all' && groupedLessonsByLevel.length > 1 ? (
               groupedLessonsByLevel.map((group: { levelKey: string; lessons: Lesson[] }) => {
-                const meta = currentLang === 'ja' ? JA_LEVEL_INFO[group.levelKey] : undefined
+                const meta =
+                  currentLang === 'ja'
+                    ? JA_LEVEL_INFO[group.levelKey]
+                    : currentLang === 'zh'
+                    ? ZH_LEVEL_INFO[group.levelKey]
+                    : undefined
 
                 return (
                   <div key={group.levelKey} className="space-y-1.5 pt-1">
