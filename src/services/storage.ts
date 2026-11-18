@@ -49,8 +49,8 @@ export const defaultSettings: AppSettings = {
   edgeVoiceZh: 'zh-CN-XiaoxiaoNeural',
   edgeVoiceVi: 'vi-VN-HoaiMyNeural',
   voiceStudioEndpoint: 'http://127.0.0.1:3900',
-  voiceStudioModel: 'cosyvoice',
-  voiceStudioVoice: 'ja_female',
+  voiceStudioModel: 'tts-1',
+  voiceStudioVoice: 'default',
   openaiEndpoint: 'https://api.openai.com/v1',
   openaiApiKey: '',
   openaiModel: 'tts-1',
@@ -63,7 +63,15 @@ export function loadSettings(): AppSettings {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY)
     if (!raw) return defaultSettings
-    return { ...defaultSettings, ...JSON.parse(raw) }
+    const parsed = JSON.parse(raw)
+    // Migrate legacy default values
+    if (parsed.voiceStudioVoice === 'ja_female') {
+      parsed.voiceStudioVoice = 'default'
+    }
+    if (parsed.voiceStudioModel === 'cosyvoice') {
+      parsed.voiceStudioModel = 'tts-1'
+    }
+    return { ...defaultSettings, ...parsed }
   } catch {
     return defaultSettings
   }

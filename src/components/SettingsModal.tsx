@@ -88,6 +88,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   // VoiceStudio status
   const [isCheckingVs, setIsCheckingVs] = useState(false)
   const [vsStatus, setVsStatus] = useState<'idle' | 'online' | 'offline'>('idle')
+  const [vsDetail, setVsDetail] = useState<{
+    engine?: string
+    version?: string
+    models?: string[]
+    voices?: any[]
+    error?: string
+  }>({})
 
   // Sample audio testing state
   const [isPlayingTestVoice, setIsPlayingTestVoice] = useState(false)
@@ -249,18 +256,36 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   }
 
   const handleCheckVoiceStudio = async () => {
-    if (!window.electronAPI?.checkVoiceStudioStatus) {
-      alert('Kiểm tra VoiceStudio trực tiếp từ Desktop app.')
-      return
-    }
     setIsCheckingVs(true)
+    const endpoint = settings.voiceStudioEndpoint || 'http://127.0.0.1:3900'
     try {
-      const res = await window.electronAPI.checkVoiceStudioStatus(
-        settings.voiceStudioEndpoint || 'http://127.0.0.1:3900'
-      )
-      setVsStatus(res.online ? 'online' : 'offline')
-    } catch {
+      if (window.electronAPI?.checkVoiceStudioStatus) {
+        const res = await window.electronAPI.checkVoiceStudioStatus(endpoint)
+        setVsStatus(res.online ? 'online' : 'offline')
+        setVsDetail({
+          engine: res.engine,
+          version: res.version,
+          models: res.models,
+          voices: res.voices,
+          error: res.error,
+        })
+      } else {
+        // Direct browser test for Web
+        let clean = endpoint.trim().replace(/\/+$/, '')
+        if (!clean.startsWith('http://') && !clean.startsWith('https://')) clean = `http://${clean}`
+        const r = await fetch(`${clean}/health`).catch(() => null)
+        if (r && (r.ok || r.status === 503)) {
+          const data = await r.json().catch(() => ({}))
+          setVsStatus('online')
+          setVsDetail({ engine: data.engine || data.status, version: data.version })
+        } else {
+          setVsStatus('offline')
+          setVsDetail({ error: `Không thể kết nối đến ${clean}. Hãy đảm bảo VoiceStudio đang chạy.` })
+        }
+      }
+    } catch (err: any) {
       setVsStatus('offline')
+      setVsDetail({ error: err.message || 'Kết nối thất bại' })
     } finally {
       setIsCheckingVs(false)
     }
@@ -616,7 +641,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <div className="p-3 rounded-xl bg-purple-950/30 border border-purple-500/20 text-xs text-purple-200 flex items-start gap-2">
                       <Radio className="w-4 h-4 text-purple-400 mt-0.5 shrink-0" />
                       <div className="leading-relaxed">
-                        VoiceStudio cung cấp các mô hình AI TTS hàng đầu (CosyVoice 3, IndexTTS). Đảm bảo VoiceStudio đang chạy trên máy (port 3900) để iTalk kết nối.
+                        VoiceStudio cung cấp các mô hình AI TTS hàng đầu (OmniVoice, CosyVoice 3, IndexTTS, Supertonic). Đảm bảo VoiceStudio đang chạy trên máy (port 3900) để iTalk kết nối.
                       </div>
                     </div>
 
@@ -646,36 +671,104 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
                       <div>
                         <label className="text-[11px] font-semibold text-slate-300 block mb-1">
-                          Mô hình AI (Model):
+                          Mô hình AI (Model ID):
                         </label>
                         <input
                           type="text"
-                          value={settings.voiceStudioModel || 'cosyvoice'}
+                          value={settings.voiceStudioModel || 'tts-1'}
                           onChange={(e) => handleUpdate({ voiceStudioModel: e.target.value })}
-                          placeholder="cosyvoice"
+                          placeholder="tts-1 (Tự động) hoặc omnivoice"
                           className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono text-xs"
                         />
                       </div>
                     </div>
 
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+                          Giọng đọc (Voice / Profile ID):
+                        </label>
+                        <input
+                          type="text"
+                          value={settings.voiceStudioVoice || 'default'}
+                          onChange={(e) => handleUpdate({ voiceStudioVoice: e.target.value })}
+                          placeholder="default (chuẩn của model)"
+                          className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-300 block mb-1">
+                          Chọn nhanh Model khả dụng:
+                        </label>
+                        <div className="flex flex-wrap gap-1 mt-0.5">
+                          {[
+                            { id: 'tts-1', label: 'Tự động (Khuyên dùng)' },
+                            { id: 'omnivoice', label: 'OmniVoice' },
+                            { id: 'cosyvoice', label: 'CosyVoice 3' },
+                            { id: 'indextts2', label: 'IndexTTS 2' },
+                            { id: 'supertonic3', label: 'Supertonic 3' },
+                          ].map((item) => (
+                            <button
+                              key={item.id}
+                              type="button"
+                              onClick={() => handleUpdate({ voiceStudioModel: item.id })}
+                              className={`px-2 py-0.5 rounded text-[10px] font-medium border transition-colors cursor-pointer ${
+                                (settings.voiceStudioModel || 'tts-1') === item.id
+                                  ? 'bg-purple-600 text-white border-purple-500'
+                                  : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700 hover:text-white'
+                              }`}
+                            >
+                              {item.id}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
                     {vsStatus !== 'idle' && (
                       <div
-                        className={`flex items-center gap-2 p-2.5 rounded-xl text-xs font-semibold ${
+                        className={`flex flex-col gap-1.5 p-3 rounded-xl text-xs font-medium border ${
                           vsStatus === 'online'
                             ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                             : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
                         }`}
                       >
-                        {vsStatus === 'online' ? (
-                          <>
-                            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                            <span>Kết nối VoiceStudio thành công! Đã sẵn sàng phát âm thanh AI.</span>
-                          </>
-                        ) : (
-                          <>
-                            <AlertCircle className="w-4 h-4 text-rose-400" />
-                            <span>Chưa kết nối được. Hãy đảm bảo bạn đã khởi chạy VoiceStudio ở cổng 3900.</span>
-                          </>
+                        <div className="flex items-center gap-2 font-bold">
+                          {vsStatus === 'online' ? (
+                            <>
+                              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                              <span>Kết nối VoiceStudio thành công! Đã sẵn sàng phát âm thanh AI.</span>
+                            </>
+                          ) : (
+                            <>
+                              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                              <span>Chưa kết nối được với VoiceStudio.</span>
+                            </>
+                          )}
+                        </div>
+                        {vsStatus === 'online' && (
+                          <div className="text-[11px] text-slate-300 pl-6 space-y-0.5">
+                            {vsDetail.engine && (
+                              <div>
+                                • Engine đang chạy: <span className="text-emerald-300 font-mono font-bold">{vsDetail.engine}</span>
+                              </div>
+                            )}
+                            {vsDetail.version && (
+                              <div>
+                                • Phiên bản: <span className="font-mono">{vsDetail.version}</span>
+                              </div>
+                            )}
+                            {vsDetail.models && vsDetail.models.length > 0 && (
+                              <div>
+                                • Models khả dụng: <span className="text-purple-300 font-mono">{vsDetail.models.join(', ')}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {vsStatus === 'offline' && vsDetail.error && (
+                          <div className="text-[11px] text-rose-300/90 pl-6">
+                            Chi tiết: {vsDetail.error}
+                          </div>
                         )}
                       </div>
                     )}

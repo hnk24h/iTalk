@@ -185,6 +185,63 @@ function playWebBrowserSpeech({
 }
 
 /**
+ * High-quality fallback speech execution:
+ * On Electron, falls back to Edge Natural Neural TTS; on Web, falls back to Web Speech API.
+ */
+function fallbackSpeech(options: {
+  text: string
+  lang: string
+  rate?: number
+  pitch?: number
+  voiceUri?: string
+  sinkId?: string
+  onStart?: () => void
+  onEnd?: () => void
+  onError?: (err: any) => void
+}) {
+  const inElectron = isElectron()
+  if (inElectron && window.electronAPI?.synthesizeEdgeSpeech) {
+    const langPrefix = options.lang.split('-')[0].toLowerCase()
+    const edgeVoice =
+      langPrefix === 'ja'
+        ? 'ja-JP-NanamiNeural'
+        : langPrefix === 'zh'
+        ? 'zh-CN-XiaoxiaoNeural'
+        : langPrefix === 'vi'
+        ? 'vi-VN-HoaiMyNeural'
+        : 'en-US-JennyNeural'
+
+    window.electronAPI
+      .synthesizeEdgeSpeech({
+        text: options.text,
+        voice: edgeVoice,
+        rate: options.rate || 1.0,
+      })
+      .then((res) => {
+        if (res.success && res.audioDataUrl) {
+          playAudioDataUrl({
+            dataUrl: res.audioDataUrl,
+            rate: options.rate,
+            sinkId: options.sinkId,
+            onStart: options.onStart,
+            onEnd: options.onEnd,
+            onError: () => {
+              playWebBrowserSpeech(options)
+            },
+          })
+        } else {
+          playWebBrowserSpeech(options)
+        }
+      })
+      .catch(() => {
+        playWebBrowserSpeech(options)
+      })
+  } else {
+    playWebBrowserSpeech(options)
+  }
+}
+
+/**
  * Play Speech with Multi-Engine Support:
  * - On Web Browser: Native Chrome "Google 日本語" / Edge Natural (Original standard pronunciation)
  * - On Electron Desktop: Microsoft Edge Natural Neural (NanamiNeural/KeitaNeural) or VoiceStudio
@@ -218,52 +275,70 @@ export async function playTextToSpeech({
   const inElectron = isElectron()
   const engine = settings.ttsEngine || 'edge'
 
-  // 1. VoiceStudio Local AI Engine (CosyVoice / IndexTTS) - Available on Desktop and Web
+  // 1. VoiceStudio Local AI Engine (OmniVoice / CosyVoice / IndexTTS) - Available on Desktop and Web
   if (engine === 'voicestudio') {
+    let vsHandled = false
+
     if (inElectron && window.electronAPI?.synthesizeVoiceStudioSpeech) {
       try {
         const res = await window.electronAPI.synthesizeVoiceStudioSpeech({
           endpoint: settings.voiceStudioEndpoint || 'http://127.0.0.1:3900',
           text,
-          model: settings.voiceStudioModel || 'cosyvoice',
-          voice: settings.voiceStudioVoice || 'ja_female',
+          model: settings.voiceStudioModel || 'tts-1',
+          voice: settings.voiceStudioVoice || 'default',
           speed: rate,
+          language: lang,
+          responseFormat: 'wav',
         })
 
         if (res.success && res.audioDataUrl) {
+          vsHandled = true
           playAudioDataUrl({
             dataUrl: res.audioDataUrl,
             rate,
             sinkId,
             onStart,
             onEnd,
-            onError: () => {
-              playWebBrowserSpeech({ text, lang, rate, pitch, voiceUri, onStart, onEnd, onError })
+            onError: (playErr) => {
+              console.warn('[VoiceStudio] Audio playback failed, falling back:', playErr)
+              fallbackSpeech({ text, lang, rate, pitch, voiceUri, sinkId, onStart, onEnd, onError })
             },
           })
           return
+        } else if (res.error) {
+          console.warn('[VoiceStudio] Synthesis error from server:', res.error)
         }
       } catch (err) {
-        console.warn('VoiceStudio Electron IPC error:', err)
+        console.warn('[VoiceStudio] Electron IPC error:', err)
       }
     } else if (!inElectron) {
       // Direct fetch on Web (VoiceStudio has CORS enabled)
       try {
-        const endpoint = (settings.voiceStudioEndpoint || 'http://127.0.0.1:3900').replace(/\/+$/, '')
+        let endpoint = (settings.voiceStudioEndpoint || 'http://127.0.0.1:3900').trim().replace(/\/+$/, '')
+        if (!endpoint.startsWith('http://') && !endpoint.startsWith('https://')) {
+          endpoint = `http://${endpoint}`
+        }
+        const langCode = lang ? lang.split('-')[0].toLowerCase() : undefined
+        let voice = settings.voiceStudioVoice || 'default'
+        if (voice === 'ja_female') voice = 'default'
+
         const resp = await fetch(`${endpoint}/v1/audio/speech`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            model: settings.voiceStudioModel || 'cosyvoice',
+            model: settings.voiceStudioModel || 'tts-1',
             input: text,
-            voice: settings.voiceStudioVoice || 'ja_female',
-            response_format: 'mp3',
+            voice,
+            response_format: 'wav',
             speed: rate,
+            ...(langCode ? { language: langCode } : {}),
           }),
         })
+
         if (resp.ok) {
           const blob = await resp.blob()
           const blobUrl = URL.createObjectURL(blob)
+          vsHandled = true
           playAudioDataUrl({
             dataUrl: blobUrl,
             rate,
@@ -275,14 +350,23 @@ export async function playTextToSpeech({
             },
             onError: () => {
               URL.revokeObjectURL(blobUrl)
-              playWebBrowserSpeech({ text, lang, rate, pitch, voiceUri, onStart, onEnd, onError })
+              fallbackSpeech({ text, lang, rate, pitch, voiceUri, sinkId, onStart, onEnd, onError })
             },
           })
           return
+        } else {
+          const errText = await resp.text().catch(() => '')
+          console.warn('[VoiceStudio Web] HTTP error:', resp.status, errText)
         }
       } catch (err) {
-        console.warn('VoiceStudio Web fetch error, falling back to Web Speech:', err)
+        console.warn('[VoiceStudio Web] fetch error:', err)
       }
+    }
+
+    if (!vsHandled) {
+      console.warn('[VoiceStudio] Server unreachable or returned error. Falling back to backup TTS...')
+      fallbackSpeech({ text, lang, rate, pitch, voiceUri, sinkId, onStart, onEnd, onError })
+      return
     }
   }
 

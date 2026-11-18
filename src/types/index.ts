@@ -175,6 +175,8 @@ export interface ElectronAPI {
     voice?: string
     model?: string
     speed?: number
+    language?: string
+    responseFormat?: 'wav' | 'mp3'
   }) => Promise<{ success: boolean; audioDataUrl?: string; error?: string }>
   synthesizeOpenAISpeech: (params: {
     endpoint?: string
@@ -184,7 +186,15 @@ export interface ElectronAPI {
     model?: string
     speed?: number
   }) => Promise<{ success: boolean; audioDataUrl?: string; error?: string }>
-  checkVoiceStudioStatus: (endpoint?: string) => Promise<{ online: boolean; endpoint: string; error?: string }>
+  checkVoiceStudioStatus: (endpoint?: string) => Promise<{
+    online: boolean
+    endpoint: string
+    engine?: string
+    version?: string
+    models?: string[]
+    voices?: any[]
+    error?: string
+  }>
 }
 
 declare global {

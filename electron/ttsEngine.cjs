@@ -129,21 +129,57 @@ function synthesizeEdgeTTS({ text, voice = 'ja-JP-NanamiNeural', rate = 1.0, pit
 }
 
 /**
- * Local AI VoiceStudio Engine (CosyVoice / IndexTTS / Supertonic)
+ * Local AI VoiceStudio Engine (OmniVoice / CosyVoice / IndexTTS / Supertonic)
  * Connects via VoiceStudio's OpenAI-compatible router (default port 3900)
  */
+function normalizeEndpoint(endpoint = 'http://127.0.0.1:3900') {
+  let clean = (endpoint || 'http://127.0.0.1:3900').trim().replace(/\/+$/, '')
+  if (!clean.startsWith('http://') && !clean.startsWith('https://')) {
+    clean = `http://${clean}`
+  }
+  // In Node.js / Electron, replace localhost with 127.0.0.1 to prevent IPv6 (::1) ECONNREFUSED
+  clean = clean.replace('://localhost:', '://127.0.0.1:')
+  return clean
+}
+
 async function synthesizeVoiceStudioTTS({
   endpoint = 'http://127.0.0.1:3900',
   text,
-  voice = 'ja_female',
-  model = 'cosyvoice',
+  voice = 'default',
+  model = 'tts-1',
   speed = 1.0,
+  language,
+  responseFormat = 'wav',
 }) {
-  const cleanEndpoint = endpoint.replace(/\/+$/, '')
+  const cleanEndpoint = normalizeEndpoint(endpoint)
   const url = `${cleanEndpoint}/v1/audio/speech`
 
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), 30000)
+  const timer = setTimeout(() => controller.abort(), 45000)
+
+  // Map legacy 'ja_female' placeholder to 'default' so VoiceStudio won't reject with unknown preset
+  let resolvedVoice = voice || 'default'
+  if (resolvedVoice === 'ja_female') {
+    resolvedVoice = 'default'
+  }
+
+  // Model default: 'tts-1' auto-routes to whatever model is active in VoiceStudio (OmniVoice/CosyVoice/IndexTTS)
+  const resolvedModel = model || 'tts-1'
+
+  // Extract ISO 639-1 language code (e.g. 'ja-JP' -> 'ja', 'zh-CN' -> 'zh')
+  const langCode = language ? language.split('-')[0].toLowerCase() : undefined
+
+  const payload = {
+    model: resolvedModel,
+    input: text,
+    voice: resolvedVoice,
+    response_format: responseFormat || 'wav',
+    speed: typeof speed === 'number' && !isNaN(speed) ? Math.max(0.25, Math.min(4.0, speed)) : 1.0,
+  }
+
+  if (langCode) {
+    payload.language = langCode
+  }
 
   try {
     const response = await fetch(url, {
@@ -151,13 +187,7 @@ async function synthesizeVoiceStudioTTS({
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model: model || 'cosyvoice',
-        input: text,
-        voice: voice || 'ja_female',
-        response_format: 'mp3',
-        speed: speed,
-      }),
+      body: JSON.stringify(payload),
       signal: controller.signal,
     })
 
@@ -165,14 +195,25 @@ async function synthesizeVoiceStudioTTS({
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => '')
-      throw new Error(`VoiceStudio API error (${response.status}): ${errorText || response.statusText}`)
+      let errorMsg = `VoiceStudio API error (${response.status}): ${errorText || response.statusText}`
+      try {
+        const jsonErr = JSON.parse(errorText)
+        if (jsonErr.message) errorMsg = jsonErr.message
+        else if (jsonErr.error?.message) errorMsg = jsonErr.error.message
+        else if (jsonErr.detail) errorMsg = typeof jsonErr.detail === 'string' ? jsonErr.detail : JSON.stringify(jsonErr.detail)
+      } catch {}
+      throw new Error(errorMsg)
     }
+
+    const contentType = response.headers.get('content-type') || ''
+    const isWav = contentType.includes('wav') || responseFormat === 'wav'
+    const mime = isWav ? 'audio/wav' : 'audio/mp3'
 
     const arrayBuffer = await response.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
     return {
       success: true,
-      audioDataUrl: `data:audio/mp3;base64,${buffer.toString('base64')}`,
+      audioDataUrl: `data:${mime};base64,${buffer.toString('base64')}`,
     }
   } catch (err) {
     clearTimeout(timer)
@@ -181,27 +222,80 @@ async function synthesizeVoiceStudioTTS({
 }
 
 /**
- * Ping VoiceStudio health status
+ * Ping VoiceStudio health status & discover active engine, models and voices
  */
 async function checkVoiceStudioStatus(endpoint = 'http://127.0.0.1:3900') {
   try {
-    const cleanEndpoint = endpoint.replace(/\/+$/, '')
+    const cleanEndpoint = normalizeEndpoint(endpoint)
     const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), 3000)
+    const timer = setTimeout(() => controller.abort(), 4000)
 
-    const res = await fetch(`${cleanEndpoint}/health`, { signal: controller.signal })
-      .catch(async () => {
-        return await fetch(`${cleanEndpoint}/v1/models`, { signal: controller.signal }).catch(() => null)
-      })
+    let isOnline = false
+    let engineInfo = ''
+    let versionInfo = ''
+    let modelList = []
+    let voiceList = []
+
+    // 1. Try /health
+    try {
+      const healthRes = await fetch(`${cleanEndpoint}/health`, { signal: controller.signal })
+      if (healthRes.ok || healthRes.status === 503) {
+        isOnline = true
+        const data = await healthRes.json().catch(() => ({}))
+        engineInfo = data.engine || (data.status === 'starting' ? `Đang khởi động (${data.label || data.step})` : '')
+        versionInfo = data.version || ''
+      }
+    } catch {}
+
+    // 2. Discover models from /v1/models
+    try {
+      const modelsRes = await fetch(`${cleanEndpoint}/v1/models`, { signal: controller.signal })
+      if (modelsRes.ok) {
+        isOnline = true
+        const data = await modelsRes.json().catch(() => ({}))
+        if (Array.isArray(data?.data)) {
+          modelList = data.data.map((m) => m.id).filter(Boolean)
+        }
+      }
+    } catch {}
+
+    // 3. Discover voices from /v1/audio/voices
+    try {
+      const voicesRes = await fetch(`${cleanEndpoint}/v1/audio/voices`, { signal: controller.signal })
+      if (voicesRes.ok) {
+        const data = await voicesRes.json().catch(() => ({}))
+        if (Array.isArray(data)) {
+          voiceList = data
+        } else if (Array.isArray(data?.voices)) {
+          voiceList = data.voices
+        }
+      }
+    } catch {}
 
     clearTimeout(timer)
 
-    if (res && (res.status === 200 || res.status === 404)) {
-      return { online: true, endpoint: cleanEndpoint }
+    if (isOnline) {
+      return {
+        online: true,
+        endpoint: cleanEndpoint,
+        engine: engineInfo,
+        version: versionInfo,
+        models: modelList,
+        voices: voiceList,
+      }
     }
-    return { online: false, endpoint: cleanEndpoint }
+
+    return {
+      online: false,
+      endpoint: cleanEndpoint,
+      error: `Không thể kết nối tới VoiceStudio server tại ${cleanEndpoint}. Hãy đảm bảo VoiceStudio đã được khởi động.`,
+    }
   } catch (err) {
-    return { online: false, endpoint, error: err.message }
+    return {
+      online: false,
+      endpoint,
+      error: err.message || 'Kết nối tới VoiceStudio thất bại',
+    }
   }
 }
 
