@@ -299,27 +299,27 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
               onClick={() => setShowFurigana(!showFurigana)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                 showFurigana
-                  ? 'bg-indigo-600/30 border-indigo-500/40 text-indigo-200'
-                  : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
+                  ? 'bg-indigo-50 border-indigo-300 text-indigo-700 dark:bg-indigo-600/30 dark:border-indigo-500/40 dark:text-indigo-200'
+                  : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
               }`}
               title="Bật/Tắt hiển thị Hiragana trên chữ Kanji"
             >
-              <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+              <Sparkles className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
               <span>Furigana</span>
               <span
-                className={`w-2 h-2 rounded-full ${showFurigana ? 'bg-indigo-400 shadow-sm shadow-indigo-400' : 'bg-slate-600'}`}
+                className={`w-2 h-2 rounded-full ${showFurigana ? 'bg-indigo-500 dark:bg-indigo-400 shadow-sm shadow-indigo-400' : 'bg-slate-300 dark:bg-slate-600'}`}
               />
             </button>
           )}
 
           {/* Tab Selector */}
-          <div className="flex p-1 bg-slate-800/80 rounded-xl border border-slate-700/70 text-xs overflow-x-auto scrollbar-none max-w-full">
+          <div className="flex p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700/70 text-xs overflow-x-auto scrollbar-none max-w-full">
             <button
               onClick={() => setActiveTab('practice')}
               className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg font-medium transition-all shrink-0 ${
                 activeTab === 'practice'
                   ? 'bg-cyan-500 text-slate-950 shadow-md font-semibold'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-700/50'
               }`}
             >
               <BookOpen className="w-3.5 h-3.5" />
@@ -331,7 +331,7 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
               className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg font-medium transition-all shrink-0 ${
                 activeTab === 'all-patterns'
                   ? 'bg-cyan-500 text-slate-950 shadow-md font-semibold'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-700/50'
               }`}
             >
               <Layers className="w-3.5 h-3.5" />
@@ -343,7 +343,7 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
               className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg font-medium transition-all shrink-0 ${
                 activeTab === 'kaiwa'
                   ? 'bg-cyan-500 text-slate-950 shadow-md font-semibold'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-700/50'
               }`}
             >
               <MessageCircle className="w-3.5 h-3.5" />
@@ -377,11 +377,11 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
                   className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all duration-150 ${
                     isSelected
                       ? `${meta.badgeBg} shadow-lg ring-1 ring-cyan-400/40 scale-105`
-                      : 'bg-slate-800/70 border-slate-700/70 text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                      : 'bg-white dark:bg-slate-800/70 border-slate-200 dark:border-slate-700/70 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'
                   }`}
                 >
                   <span>{lvl}</span>
-                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-900/60 text-slate-300 font-normal">
+                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-slate-900/60 text-slate-600 dark:text-slate-300 font-normal">
                     {countP} mẫu
                   </span>
                 </button>
@@ -391,8 +391,8 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
         </div>
 
         {/* Level summary description note */}
-        <div className="hidden lg:flex items-center gap-2 text-xs text-slate-400 italic">
-          <Info className="w-3.5 h-3.5 text-slate-500" />
+        <div className="hidden lg:flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 italic">
+          <Info className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
           <span>{levelMeta[selectedLevel]?.desc || ''}</span>
         </div>
       </div>
@@ -404,12 +404,12 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
           <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden">
             {/* Sidebar list of patterns in this level - Sticky on desktop */}
             <div
-              className={`w-full md:w-80 lg:w-96 border-b md:border-b-0 md:border-r border-slate-800 flex flex-col bg-slate-950/60 shrink-0 h-full min-h-0 md:sticky md:top-0 z-10 ${
+              className={`w-full md:w-80 lg:w-96 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-800 flex flex-col bg-slate-50/50 dark:bg-slate-950/60 shrink-0 h-full min-h-0 md:sticky md:top-0 z-10 ${
                 mobileTab1View === 'list' ? 'flex' : 'hidden md:flex'
               }`}
             >
               {/* Sticky Search Header in Sidebar */}
-              <div className="p-3 border-b border-slate-800 bg-slate-900/90 backdrop-blur shrink-0">
+              <div className="p-3 border-b border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 backdrop-blur shrink-0">
                 <div className="relative">
                   <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                   <input
@@ -417,20 +417,20 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
                     value={searchKeyword}
                     onChange={(e) => setSearchKeyword(e.target.value)}
                     placeholder={`Tìm kiếm trong ${selectedLevel}...`}
-                    className="w-full pl-9 pr-7 py-1.5 rounded-lg bg-slate-800/90 border border-slate-700 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500"
+                    className="w-full pl-9 pr-7 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500"
                   />
                   {searchKeyword && (
                     <button
                       onClick={() => setSearchKeyword('')}
-                      className="absolute right-2.5 top-2 text-slate-400 hover:text-white text-xs font-bold"
+                      className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 dark:hover:text-white text-xs font-bold"
                     >
                       ×
                     </button>
                   )}
                 </div>
-                <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1.5 px-0.5 font-medium">
+                <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 mt-1.5 px-0.5 font-medium">
                   <span>Mẫu ngữ pháp ({selectedLevel}):</span>
-                  <span className="text-cyan-400 font-semibold">
+                  <span className="text-cyan-600 dark:text-cyan-400 font-semibold">
                     {filteredAllPatterns.length} / {levelPatterns.length} mẫu
                   </span>
                 </div>
@@ -457,32 +457,32 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
                         }}
                         className={`w-full text-left p-3 rounded-xl border transition-all ${
                           isCur
-                            ? 'bg-cyan-950/40 border-cyan-500/50 shadow-md ring-1 ring-cyan-500/20'
-                            : 'bg-slate-800/40 border-slate-800 hover:bg-slate-800/80 hover:border-slate-700 text-slate-300'
+                            ? 'bg-cyan-50 dark:bg-cyan-950/40 border-cyan-400 dark:border-cyan-500/50 shadow-sm ring-1 ring-cyan-400/30'
+                            : 'bg-white dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700 text-slate-700 dark:text-slate-300'
                         }`}
                       >
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-[11px] font-bold text-cyan-400">
+                          <span className="text-[11px] font-bold text-cyan-600 dark:text-cyan-400">
                             #{idx + 1} • {pat.level}
                           </span>
                           {practicedCount === pat.examples.length ? (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold flex items-center gap-0.5">
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/40 font-bold flex items-center gap-0.5">
                               <Check className="w-2.5 h-2.5" /> Xong ({pat.examples.length})
                             </span>
                           ) : practicedCount > 0 ? (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-semibold">
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/40 font-semibold">
                               {practicedCount}/{pat.examples.length} câu
                             </span>
                           ) : (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
                               {pat.examples.length} ví dụ
                             </span>
                           )}
                         </div>
-                        <div className="text-sm font-semibold text-white leading-snug line-clamp-2">
+                        <div className="text-sm font-semibold text-slate-900 dark:text-white leading-snug line-clamp-2">
                           {pat.pattern}
                         </div>
-                        <div className="text-xs text-slate-400 mt-1 line-clamp-1">{pat.meaning}</div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-1">{pat.meaning}</div>
                       </button>
                     )
                   })
@@ -493,58 +493,58 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
             {/* Main Area: Pattern Formula, Notes and 3-5 Interactive Examples */}
             <div
               ref={mainContentRef}
-              className={`flex-1 min-h-0 h-full flex flex-col overflow-y-auto p-4 sm:p-6 lg:p-8 bg-slate-900/30 scrollbar-thin scrollbar-thumb-slate-700 ${
+              className={`flex-1 min-h-0 h-full flex flex-col overflow-y-auto p-4 sm:p-6 lg:p-8 bg-slate-50/40 dark:bg-slate-900/30 scrollbar-thin scrollbar-thumb-slate-700 ${
                 mobileTab1View === 'detail' ? 'flex' : 'hidden md:flex'
               }`}
             >
               {currentPattern ? (
                 <div className="max-w-4xl w-full mx-auto space-y-5 sm:space-y-6">
                   {/* Mobile Navigation Header: Back to list */}
-                  <div className="md:hidden flex items-center justify-between pb-2 border-b border-slate-800/80">
+                  <div className="md:hidden flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800/80">
                     <button
                       type="button"
                       onClick={() => setMobileTab1View('list')}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 text-cyan-300 text-xs font-semibold border border-slate-700 active:scale-95 transition-all cursor-pointer"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 text-cyan-700 dark:text-cyan-300 text-xs font-semibold border border-slate-200 dark:border-slate-700 active:scale-95 transition-all cursor-pointer shadow-sm"
                     >
                       <ChevronLeft className="w-4 h-4" />
                       <span>Danh sách mẫu ({filteredAllPatterns.length})</span>
                     </button>
-                    <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-cyan-100 text-cyan-800 dark:bg-cyan-500/20 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-500/30">
                       {currentPattern.level}
                     </span>
                   </div>
 
                   {/* Pattern Header Card */}
-                  <div className="bg-gradient-to-br from-slate-800/80 to-slate-800/40 border border-slate-700/80 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+                  <div className="bg-white dark:bg-gradient-to-br dark:from-slate-800/80 dark:to-slate-800/40 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-6 shadow-md dark:shadow-xl relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 rounded-full blur-3xl -z-10" />
 
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                      <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-cyan-100 text-cyan-800 dark:bg-cyan-500/20 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-500/30">
                         {currentPattern.level}
                       </span>
-                      <span className="text-xs text-slate-400 font-medium">Mẫu Ngữ Pháp Trọng Tâm</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Mẫu Ngữ Pháp Trọng Tâm</span>
                     </div>
 
-                    <h2 className="text-xl md:text-2xl font-bold text-white mb-2">{currentPattern.pattern}</h2>
-                    <p className="text-sm text-slate-300 mb-4">{currentPattern.meaning}</p>
+                    <h2 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-white mb-2">{currentPattern.pattern}</h2>
+                    <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">{currentPattern.meaning}</p>
 
                     {/* Formula Box */}
-                    <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-700/70">
-                      <div className="text-[11px] font-bold uppercase tracking-wider text-cyan-400 mb-1 flex items-center gap-1.5">
+                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-700/70">
+                      <div className="text-[11px] font-bold uppercase tracking-wider text-cyan-700 dark:text-cyan-400 mb-1 flex items-center gap-1.5">
                         <Sparkles className="w-3.5 h-3.5" />
                         Công thức kết hợp
                       </div>
-                      <div className="text-sm font-medium text-emerald-300 font-mono">
+                      <div className="text-sm font-medium text-emerald-700 dark:text-emerald-300 font-mono">
                         {currentPattern.formula}
                       </div>
                     </div>
 
                     {/* Note if any */}
                     {currentPattern.note && (
-                      <div className="mt-3 flex items-start gap-2 text-xs text-amber-300/90 bg-amber-950/30 border border-amber-800/40 rounded-lg p-2.5">
-                        <Info className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                      <div className="mt-3 flex items-start gap-2 text-xs text-amber-900 dark:text-amber-300/90 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 rounded-lg p-2.5">
+                        <Info className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                         <div>
-                          <strong className="font-semibold text-amber-300">Lưu ý: </strong>
+                          <strong className="font-semibold text-amber-900 dark:text-amber-300">Lưu ý: </strong>
                           {currentPattern.note}
                         </div>
                       </div>
@@ -554,8 +554,8 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
                   {/* 3-5 Example Sentences Section */}
                   <div>
                     <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                        <Flame className="w-4 h-4 text-orange-400" />
+                      <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                        <Flame className="w-4 h-4 text-orange-500 dark:text-orange-400" />
                         Danh sách ví dụ làm quen ({currentPattern.examples.length} câu)
                       </h3>
                       <span className="text-xs text-slate-500">
@@ -573,15 +573,15 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
                         return (
                           <div
                             key={exIdx}
-                            className="p-5 rounded-2xl bg-slate-800/60 border border-slate-700/60 hover:border-slate-600 transition-all shadow-sm"
+                            className="p-5 rounded-2xl bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 hover:border-slate-300 dark:hover:border-slate-600 transition-all shadow-sm"
                           >
                             <div className="flex items-start justify-between gap-4">
                               <div className="flex-1 space-y-1.5">
                                 <div className="flex items-center gap-2">
-                                  <span className="w-5 h-5 rounded-full bg-slate-700/80 text-[11px] font-bold text-slate-300 flex items-center justify-center">
+                                  <span className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-700/80 text-[11px] font-bold text-slate-600 dark:text-slate-300 flex items-center justify-center">
                                     {exIdx + 1}
                                   </span>
-                                  <div className="text-base md:text-lg font-semibold text-white leading-relaxed">
+                                  <div className="text-base md:text-lg font-semibold text-slate-900 dark:text-white leading-relaxed">
                                     {currentLang === 'ja' ? (
                                       <FuriganaText
                                         text={ex.text}
@@ -596,12 +596,12 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
                                 </div>
 
                                 {ex.reading && (
-                                  <div className="text-xs text-cyan-400 font-mono pl-7">
+                                  <div className="text-xs text-cyan-600 dark:text-cyan-400 font-mono pl-7">
                                     {ex.reading}
                                   </div>
                                 )}
 
-                                <div className="text-sm text-slate-300 pl-7">{ex.translation}</div>
+                                <div className="text-sm text-slate-600 dark:text-slate-300 pl-7">{ex.translation}</div>
                               </div>
 
                               {/* Action Buttons: Listen & Speak */}
@@ -611,7 +611,7 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
                                   className={`p-2.5 rounded-xl border transition-all ${
                                     isPlaying
                                       ? 'bg-cyan-500 border-cyan-400 text-slate-950 shadow-md shadow-cyan-500/20 animate-pulse'
-                                      : 'bg-slate-700/60 border-slate-600/60 text-slate-300 hover:text-white hover:bg-slate-700'
+                                      : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/60 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-600/60 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
                                   }`}
                                   title="Nghe phát âm chuẩn"
                                 >
@@ -623,7 +623,7 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
                                   className={`p-2.5 rounded-xl border transition-all ${
                                     isRecording
                                       ? 'bg-red-500 border-red-400 text-white shadow-md shadow-red-500/30 animate-pulse'
-                                      : 'bg-slate-700/60 border-slate-600/60 text-slate-300 hover:text-white hover:bg-slate-700'
+                                      : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/60 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-600/60 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
                                   }`}
                                   title="Luyện đọc câu này"
                                 >
@@ -634,37 +634,37 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
 
                             {/* Live Speech or Score Feedback */}
                             {isRecording && (
-                              <div className="mt-3 pl-7 flex items-center gap-2 text-xs text-amber-300 animate-pulse">
-                                <div className="w-2 h-2 rounded-full bg-red-400 animate-ping" />
+                              <div className="mt-3 pl-7 flex items-center gap-2 text-xs text-amber-600 dark:text-amber-300 animate-pulse">
+                                <div className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
                                 <span>Đang lắng nghe: {spokenTranscript || 'Hãy nói vào micro...'}</span>
                               </div>
                             )}
 
                             {score && !isRecording && (
-                              <div className="mt-3 pl-7 pt-3 border-t border-slate-700/50">
+                              <div className="mt-3 pl-7 pt-3 border-t border-slate-200 dark:border-slate-700/50">
                                 <div className="flex items-center gap-3">
                                   <div
                                     className={`px-2.5 py-1 rounded-lg text-xs font-bold border flex items-center gap-1.5 ${
                                       score.overallScore >= 80
-                                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                                        ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-500/30'
                                         : score.overallScore >= 60
-                                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
-                                        : 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+                                        ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-500/30'
+                                        : 'bg-rose-100 dark:bg-rose-500/20 text-rose-800 dark:text-rose-300 border-rose-300 dark:border-rose-500/30'
                                     }`}
                                   >
                                     <Award className="w-3.5 h-3.5" />
                                     <span>Điểm phát âm: {score.overallScore}%</span>
                                   </div>
 
-                                  <span className="text-xs text-slate-400">
+                                  <span className="text-xs text-slate-500 dark:text-slate-400">
                                     Độ chính xác: {score.accuracyPercent}%
                                   </span>
                                 </div>
 
-                                <div className="text-xs text-slate-300 mt-1.5">{score.feedback}</div>
+                                <div className="text-xs text-slate-700 dark:text-slate-300 mt-1.5">{score.feedback}</div>
 
                                 {score.spokenText && (
-                                  <div className="text-xs text-slate-400 mt-1 italic">
+                                  <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 italic">
                                     Máy ghi nhận: "{score.spokenText}"
                                   </div>
                                 )}
@@ -687,16 +687,16 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
 
         {/* ================= TAB 2: ALL PATTERNS OF LEVEL (ACCORDION & SEARCH) ================= */}
         {activeTab === 'all-patterns' && (
-          <div className="flex-1 min-h-0 flex flex-col overflow-y-auto p-6 bg-slate-900/30">
+          <div className="flex-1 min-h-0 flex flex-col overflow-y-auto p-6 bg-slate-50/40 dark:bg-slate-900/30">
             <div className="max-w-5xl w-full mx-auto space-y-4">
               {/* Top search & count header */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-slate-800/60 border border-slate-700/60">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 shadow-sm">
                 <div>
-                  <h2 className="text-base font-bold text-white flex items-center gap-2">
-                    <Layers className="w-4 h-4 text-cyan-400" />
+                  <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
                     Toàn bộ ngữ pháp cấp độ {selectedLevel}
                   </h2>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                     Tổng hợp tất cả {levelPatterns.length} cấu trúc trọng tâm, công thức và 3-5 ví dụ minh họa
                   </p>
                 </div>
@@ -708,7 +708,7 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
                     value={searchKeyword}
                     onChange={(e) => setSearchKeyword(e.target.value)}
                     placeholder="Tìm theo tên mẫu, công thức, nghĩa..."
-                    className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-slate-900/90 border border-slate-700 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500"
+                    className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500"
                   />
                 </div>
               </div>
@@ -720,25 +720,25 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
                   return (
                     <div
                       key={pat.id}
-                      className="rounded-2xl bg-slate-800/50 border border-slate-700/60 overflow-hidden transition-all shadow-sm"
+                      className="rounded-2xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/60 overflow-hidden transition-all shadow-sm"
                     >
                       {/* Accordion Header */}
                       <button
                         onClick={() => togglePatternExpand(pat.id)}
-                        className="w-full text-left p-4.5 flex items-center justify-between gap-4 hover:bg-slate-800/90 transition-colors"
+                        className="w-full text-left p-4.5 flex items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-slate-800/90 transition-colors"
                       >
                         <div className="flex items-center gap-3">
-                          <span className="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs font-bold flex items-center justify-center shrink-0">
+                          <span className="w-7 h-7 rounded-lg bg-cyan-100 dark:bg-cyan-500/20 text-cyan-800 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-500/30 text-xs font-bold flex items-center justify-center shrink-0">
                             {idx + 1}
                           </span>
                           <div>
-                            <div className="text-base font-bold text-white">{pat.pattern}</div>
-                            <div className="text-xs text-slate-400 mt-0.5">{pat.meaning}</div>
+                            <div className="text-base font-bold text-slate-900 dark:text-white">{pat.pattern}</div>
+                            <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{pat.meaning}</div>
                           </div>
                         </div>
 
                         <div className="flex items-center gap-3 shrink-0">
-                          <span className="text-xs text-slate-400 hidden sm:inline-block">
+                          <span className="text-xs text-slate-500 dark:text-slate-400 hidden sm:inline-block">
                             {pat.examples.length} ví dụ
                           </span>
                           {isExpanded ? (
@@ -751,19 +751,19 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
 
                       {/* Accordion Body */}
                       {isExpanded && (
-                        <div className="px-5 pb-5 pt-2 border-t border-slate-700/50 space-y-4 bg-slate-900/40">
+                        <div className="px-5 pb-5 pt-2 border-t border-slate-200 dark:border-slate-700/50 space-y-4 bg-slate-50/70 dark:bg-slate-900/40">
                           {/* Formula & Note */}
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                            <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
-                              <span className="text-[11px] font-bold text-cyan-400 block mb-1">
+                            <div className="p-3 rounded-xl bg-white dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800">
+                              <span className="text-[11px] font-bold text-cyan-700 dark:text-cyan-400 block mb-1">
                                 CÔNG THỨC KẾT HỢP:
                               </span>
-                              <span className="text-emerald-300 font-mono">{pat.formula}</span>
+                              <span className="text-emerald-700 dark:text-emerald-300 font-mono font-medium">{pat.formula}</span>
                             </div>
 
                             {pat.note && (
-                              <div className="p-3 rounded-xl bg-amber-950/20 border border-amber-900/40 text-amber-200">
-                                <span className="text-[11px] font-bold text-amber-400 block mb-1">
+                              <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 text-amber-900 dark:text-amber-200">
+                                <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400 block mb-1">
                                   LƯU Ý SỬ DỤNG:
                                 </span>
                                 <span>{pat.note}</span>
@@ -773,7 +773,7 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
 
                           {/* 3-5 Examples */}
                           <div className="space-y-2">
-                            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                            <div className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                               Ví dụ mẫu ({pat.examples.length} câu):
                             </div>
                             {pat.examples.map((ex, exIdx) => {
@@ -783,10 +783,10 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
                               return (
                                 <div
                                   key={exIdx}
-                                  className="p-3 rounded-xl bg-slate-800/70 border border-slate-700/40 flex items-center justify-between gap-3 text-xs"
+                                  className="p-3 rounded-xl bg-white dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/40 flex items-center justify-between gap-3 text-xs shadow-xs"
                                 >
                                   <div className="flex-1 space-y-1">
-                                    <div className="text-sm font-semibold text-white">
+                                    <div className="text-sm font-semibold text-slate-900 dark:text-white">
                                       {currentLang === 'ja' ? (
                                         <FuriganaText
                                           text={ex.text}
@@ -799,9 +799,9 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
                                       )}
                                     </div>
                                     {ex.reading && (
-                                      <div className="text-cyan-400 font-mono">{ex.reading}</div>
+                                      <div className="text-cyan-700 dark:text-cyan-400 font-mono">{ex.reading}</div>
                                     )}
-                                    <div className="text-slate-300">{ex.translation}</div>
+                                    <div className="text-slate-600 dark:text-slate-300">{ex.translation}</div>
                                   </div>
 
                                   <button
@@ -809,7 +809,7 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
                                     className={`p-2 rounded-lg border transition-all shrink-0 ${
                                       isPlaying
                                         ? 'bg-cyan-500 border-cyan-400 text-slate-950 shadow-md animate-pulse'
-                                        : 'bg-slate-700/50 border-slate-600/60 text-slate-300 hover:text-white hover:bg-slate-700'
+                                        : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/50 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-600/60 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
                                     }`}
                                     title="Nghe câu này"
                                   >
@@ -831,17 +831,17 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
 
         {/* ================= TAB 3: KAIWA LIVING CONVERSATIONS ================= */}
         {activeTab === 'kaiwa' && (
-          <div className="flex-1 min-h-0 flex flex-col overflow-y-auto p-6 bg-slate-900/30">
+          <div className="flex-1 min-h-0 flex flex-col overflow-y-auto p-6 bg-slate-50/40 dark:bg-slate-900/30">
             <div className="max-w-5xl w-full mx-auto space-y-6">
               {/* Header Info */}
-              <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-900/30 to-indigo-900/30 border border-blue-700/40">
+              <div className="p-4 rounded-2xl bg-blue-50/70 dark:bg-gradient-to-r dark:from-blue-900/30 dark:to-indigo-900/30 border border-blue-200 dark:border-blue-700/40">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                  <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-blue-100 dark:bg-blue-500/20 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-500/30">
                     {selectedLevel} Kaiwa
                   </span>
-                  <h2 className="text-base font-bold text-white">Mẫu Câu Giao Tiếp Đời Sống Thực Tế</h2>
+                  <h2 className="text-base font-bold text-slate-900 dark:text-white">Mẫu Câu Giao Tiếp Đời Sống Thực Tế</h2>
                 </div>
-                <p className="text-xs text-slate-300">
+                <p className="text-xs text-slate-600 dark:text-slate-300">
                   Tổng hợp các tình huống đời sống sinh hoạt, công việc, mua sắm, nhà hàng, du lịch... sát với thực tế của trình độ {selectedLevel}.
                 </p>
               </div>
@@ -856,17 +856,17 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
                   {levelKaiwa.map((group) => (
                     <div
                       key={group.id}
-                      className="rounded-2xl bg-slate-800/60 border border-slate-700/70 overflow-hidden shadow-lg flex flex-col"
+                      className="rounded-2xl bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/70 overflow-hidden shadow-sm dark:shadow-lg flex flex-col"
                     >
                       {/* Group Header */}
-                      <div className="p-4 bg-slate-800/90 border-b border-slate-700/60 flex items-center justify-between">
+                      <div className="p-4 bg-slate-50 dark:bg-slate-800/90 border-b border-slate-200 dark:border-slate-700/60 flex items-center justify-between">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-300">
+                          <div className="w-7 h-7 rounded-lg bg-indigo-100 dark:bg-indigo-500/20 border border-indigo-200 dark:border-indigo-500/30 flex items-center justify-center text-indigo-700 dark:text-indigo-300">
                             <MessageCircle className="w-4 h-4" />
                           </div>
-                          <h3 className="text-sm font-bold text-white">{group.situation}</h3>
+                          <h3 className="text-sm font-bold text-slate-900 dark:text-white">{group.situation}</h3>
                         </div>
-                        <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-900/80 text-slate-400">
+                        <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-900/80 text-slate-600 dark:text-slate-400">
                           {group.phrases.length} câu
                         </span>
                       </div>
@@ -882,11 +882,11 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
                           return (
                             <div
                               key={pIdx}
-                              className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/80 hover:border-slate-700 transition-all text-xs"
+                              className="p-3.5 rounded-xl bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700 transition-all text-xs"
                             >
                               <div className="flex items-start justify-between gap-3">
                                 <div className="flex-1 space-y-1">
-                                  <div className="text-sm font-semibold text-white">
+                                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
                                     {currentLang === 'ja' ? (
                                       <FuriganaText
                                         text={phrase.text}
@@ -900,10 +900,10 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
                                   </div>
 
                                   {phrase.reading && (
-                                    <div className="text-cyan-400 font-mono">{phrase.reading}</div>
+                                    <div className="text-cyan-700 dark:text-cyan-400 font-mono">{phrase.reading}</div>
                                   )}
 
-                                  <div className="text-slate-300">{phrase.translation}</div>
+                                  <div className="text-slate-600 dark:text-slate-300">{phrase.translation}</div>
                                 </div>
 
                                 {/* Controls */}
@@ -913,7 +913,7 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
                                     className={`p-2 rounded-lg border transition-all ${
                                       isPlaying
                                         ? 'bg-cyan-500 border-cyan-400 text-slate-950 shadow-md animate-pulse'
-                                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700'
+                                        : 'bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
                                     }`}
                                     title="Nghe phát âm"
                                   >
@@ -925,7 +925,7 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
                                     className={`p-2 rounded-lg border transition-all ${
                                       isRecording
                                         ? 'bg-red-500 border-red-400 text-white shadow-md animate-pulse'
-                                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700'
+                                        : 'bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
                                     }`}
                                     title="Luyện đọc câu này"
                                   >
@@ -940,27 +940,27 @@ export const GrammarSpeaking: React.FC<{ currentLang: Language }> = ({ currentLa
 
                               {/* Live Recording text */}
                               {isRecording && (
-                                <div className="mt-2 text-[11px] text-amber-300 animate-pulse flex items-center gap-1.5">
-                                  <div className="w-1.5 h-1.5 rounded-full bg-red-400 animate-ping" />
+                                <div className="mt-2 text-[11px] text-amber-600 dark:text-amber-300 animate-pulse flex items-center gap-1.5">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
                                   <span>Đang lắng nghe: {spokenTranscript || 'Hãy nói vào mic...'}</span>
                                 </div>
                               )}
 
                               {/* Pronunciation score */}
                               {score && !isRecording && (
-                                <div className="mt-2 pt-2 border-t border-slate-800 flex items-center justify-between text-[11px]">
+                                <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-[11px]">
                                   <div
                                     className={`font-semibold ${
                                       score.overallScore >= 80
-                                        ? 'text-emerald-400'
+                                        ? 'text-emerald-700 dark:text-emerald-400'
                                         : score.overallScore >= 60
-                                        ? 'text-amber-400'
-                                        : 'text-rose-400'
+                                        ? 'text-amber-700 dark:text-amber-400'
+                                        : 'text-rose-700 dark:text-rose-400'
                                     }`}
                                   >
                                     Điểm: {score.overallScore}% ({score.accuracyPercent}% chuẩn)
                                   </div>
-                                  <div className="text-slate-400">{score.feedback}</div>
+                                  <div className="text-slate-500 dark:text-slate-400">{score.feedback}</div>
                                 </div>
                               )}
                             </div>

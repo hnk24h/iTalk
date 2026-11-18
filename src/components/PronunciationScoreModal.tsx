@@ -142,15 +142,15 @@ export const PronunciationScoreModal: React.FC<PronunciationScoreModalProps> = (
             </div>
           </div>
 
-          <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 flex flex-wrap gap-2 text-base sm:text-lg leading-relaxed">
+          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex flex-wrap gap-2 text-base sm:text-lg leading-relaxed">
             {scoreResult.wordBreakdown.map((item, idx) => {
-              let bg = 'bg-slate-800 text-slate-200'
+              let bg = 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200'
               if (item.status === 'correct') {
-                bg = 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                bg = 'bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30'
               } else if (item.status === 'close') {
-                bg = 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                bg = 'bg-amber-100 text-amber-800 border border-amber-300 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30'
               } else if (item.status === 'missed') {
-                bg = 'bg-rose-500/20 text-rose-300 border border-rose-500/30 line-through decoration-rose-500'
+                bg = 'bg-rose-100 text-rose-800 border border-rose-300 dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/30 line-through decoration-rose-500'
               }
 
               return (

@@ -1309,14 +1309,14 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
             </div>
 
             {/* Learning Status Filter Pills */}
-            <div className="grid grid-cols-4 gap-1 text-[11px] bg-slate-950 p-1 rounded-xl border border-slate-800/80">
+            <div className="grid grid-cols-4 gap-1 text-[11px] bg-slate-100 dark:bg-slate-950 p-1 rounded-xl border border-slate-200 dark:border-slate-800/80">
               <button
                 type="button"
                 onClick={() => setStatusFilter('all')}
                 className={`py-1 rounded-lg font-semibold transition-all text-center ${
                   statusFilter === 'all'
-                    ? 'bg-slate-800 text-white shadow-xs'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-white text-slate-900 dark:bg-slate-800 dark:text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
                 }`}
                 title="Hiển thị tất cả bài học"
               >
@@ -1327,8 +1327,8 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
                 onClick={() => setStatusFilter('unviewed')}
                 className={`py-1 rounded-lg font-semibold transition-all text-center ${
                   statusFilter === 'unviewed'
-                    ? 'bg-rose-950/70 text-rose-300 ring-1 ring-rose-500/50'
-                    : 'text-slate-400 hover:text-rose-300'
+                    ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/70 dark:text-rose-300 ring-1 ring-rose-300 dark:ring-rose-500/50'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-rose-700 dark:hover:text-rose-300'
                 }`}
                 title="Chỉ hiển thị bài chưa học / chưa xem"
               >
@@ -1339,8 +1339,8 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
                 onClick={() => setStatusFilter('in_progress')}
                 className={`py-1 rounded-lg font-semibold transition-all text-center ${
                   statusFilter === 'in_progress'
-                    ? 'bg-amber-950/70 text-amber-300 ring-1 ring-amber-500/50'
-                    : 'text-slate-400 hover:text-amber-300'
+                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 ring-1 ring-amber-300 dark:ring-amber-500/50'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-amber-700 dark:hover:text-amber-300'
                 }`}
                 title="Chỉ hiển thị bài đang học"
               >
@@ -1351,8 +1351,8 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
                 onClick={() => setStatusFilter('completed')}
                 className={`py-1 rounded-lg font-semibold transition-all text-center ${
                   statusFilter === 'completed'
-                    ? 'bg-emerald-950/70 text-emerald-300 ring-1 ring-emerald-500/50'
-                    : 'text-slate-400 hover:text-emerald-300'
+                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 ring-1 ring-emerald-300 dark:ring-emerald-500/50'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-300'
                 }`}
                 title="Chỉ hiển thị bài đã hoàn thành"
               >
@@ -1903,45 +1903,45 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
 
                 {/* Vietnamese Translation */}
                 {currentSentence?.translation && (
-                  <div className="mt-4 p-3.5 rounded-xl bg-slate-950/70 border border-slate-800/80">
-                    <div className="text-xs font-semibold text-slate-400 mb-1">Dịch nghĩa:</div>
-                    <div className="text-sm text-slate-200">{currentSentence.translation}</div>
+                  <div className="mt-4 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800/80">
+                    <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Dịch nghĩa:</div>
+                    <div className="text-sm text-slate-800 dark:text-slate-200">{currentSentence.translation}</div>
                   </div>
                 )}
 
                 {/* Pronunciation, Mouth & Tongue Guide Card */}
                 {(currentSentence?.mouthShape || currentSentence?.tonguePosition || currentSentence?.breathGuide) && (
-                  <div className="mt-3.5 p-3.5 rounded-2xl bg-gradient-to-br from-indigo-950/40 via-purple-950/20 to-slate-900 border border-indigo-500/25 shadow-lg shadow-indigo-950/30">
-                    <div className="flex items-center gap-2 mb-2.5 text-xs font-bold text-indigo-300 uppercase tracking-wider">
+                  <div className="mt-3.5 p-3.5 rounded-2xl bg-indigo-50/70 dark:bg-gradient-to-br dark:from-indigo-950/40 dark:via-purple-950/20 dark:to-slate-900 border border-indigo-200 dark:border-indigo-500/25 shadow-sm dark:shadow-lg dark:shadow-indigo-950/30">
+                    <div className="flex items-center gap-2 mb-2.5 text-xs font-bold text-indigo-800 dark:text-indigo-300 uppercase tracking-wider">
                       <span className="text-base">👄</span>
                       <span>Hướng dẫn phát âm & Khẩu hình chuẩn</span>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 text-xs">
                       {currentSentence.mouthShape && (
-                        <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20">
-                          <div className="flex items-center gap-1.5 font-bold text-indigo-300 mb-1">
+                        <div className="p-2.5 rounded-xl bg-white dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 shadow-xs">
+                          <div className="flex items-center gap-1.5 font-bold text-indigo-700 dark:text-indigo-300 mb-1">
                             <span>👄</span>
                             <span>Khẩu hình miệng</span>
                           </div>
-                          <div className="text-slate-200 leading-relaxed">{currentSentence.mouthShape}</div>
+                          <div className="text-slate-700 dark:text-slate-200 leading-relaxed">{currentSentence.mouthShape}</div>
                         </div>
                       )}
                       {currentSentence.tonguePosition && (
-                        <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20">
-                          <div className="flex items-center gap-1.5 font-bold text-purple-300 mb-1">
+                        <div className="p-2.5 rounded-xl bg-white dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/20 shadow-xs">
+                          <div className="flex items-center gap-1.5 font-bold text-purple-700 dark:text-purple-300 mb-1">
                             <span>👅</span>
                             <span>Cách đặt lưỡi</span>
                           </div>
-                          <div className="text-slate-200 leading-relaxed">{currentSentence.tonguePosition}</div>
+                          <div className="text-slate-700 dark:text-slate-200 leading-relaxed">{currentSentence.tonguePosition}</div>
                         </div>
                       )}
                       {currentSentence.breathGuide && (
-                        <div className="p-2.5 rounded-xl bg-teal-500/10 border border-teal-500/20">
-                          <div className="flex items-center gap-1.5 font-bold text-teal-300 mb-1">
+                        <div className="p-2.5 rounded-xl bg-white dark:bg-teal-500/10 border border-teal-200 dark:border-teal-500/20 shadow-xs">
+                          <div className="flex items-center gap-1.5 font-bold text-teal-700 dark:text-teal-300 mb-1">
                             <span>💨</span>
                             <span>Luồng hơi & Dây thanh</span>
                           </div>
-                          <div className="text-slate-200 leading-relaxed">{currentSentence.breathGuide}</div>
+                          <div className="text-slate-700 dark:text-slate-200 leading-relaxed">{currentSentence.breathGuide}</div>
                         </div>
                       )}
                     </div>
@@ -1950,10 +1950,10 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
 
                 {/* Grammar / Pronunciation Note */}
                 {currentSentence?.grammarNote && (
-                  <div className="mt-3 p-3 rounded-xl bg-amber-500/5 border border-amber-500/15 flex items-start gap-2.5 text-xs text-amber-300/90">
-                    <HelpCircle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                  <div className="mt-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-500/5 border border-amber-200 dark:border-amber-500/15 flex items-start gap-2.5 text-xs text-amber-900 dark:text-amber-300/90">
+                    <HelpCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
                     <div>
-                      <span className="font-semibold text-amber-300">Ghi chú: </span>
+                      <span className="font-semibold text-amber-900 dark:text-amber-300">Ghi chú: </span>
                       {currentSentence.grammarNote}
                     </div>
                   </div>

@@ -43,28 +43,28 @@ export const ScheduleTracker: React.FC<{ schedule: UserSchedule }> = ({ schedule
   return (
     <div className="w-full space-y-6">
       {/* Top Banner: Streak and Motivation */}
-      <div className="bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-slate-900 border border-amber-500/30 rounded-3xl p-6 sm:p-8 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+      <div className="bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/5 dark:to-slate-900 border border-amber-500/30 rounded-3xl p-6 sm:p-8 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="flex items-center gap-5">
-          <div className="w-16 h-16 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-lg shadow-amber-500/20 flex-shrink-0">
-            <Flame className="w-9 h-9 fill-amber-400 animate-pulse" />
+          <div className="w-16 h-16 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-500 dark:text-amber-400 shadow-lg shadow-amber-500/20 flex-shrink-0">
+            <Flame className="w-9 h-9 fill-amber-500 dark:fill-amber-400 animate-pulse" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-2xl font-extrabold text-white">
+              <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white">
                 Chuỗi luyện tập: {schedule.streak} ngày liên tục!
               </h2>
             </div>
-            <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-xl">
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1 max-w-xl">
               "Nguyên lý Shadowing: 15 phút nhại giọng bản xứ mỗi ngày tạo phản xạ thần kinh vượt trội hơn học dồn 2 tiếng cuối tuần."
             </p>
           </div>
         </div>
 
-        <div className="bg-slate-950/80 px-5 py-3 rounded-2xl border border-slate-800 text-center w-full md:w-auto">
-          <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+        <div className="bg-white/80 dark:bg-slate-950/80 px-5 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 text-center w-full md:w-auto shadow-sm">
+          <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             Mục tiêu hôm nay
           </div>
-          <div className="text-xl font-black text-emerald-400 mt-0.5">
+          <div className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
             {todayProgress.minutes >= targetMinutes ? 'ĐÃ HOÀN THÀNH' : `${todayProgress.minutes} / ${targetMinutes} phút`}
           </div>
         </div>
@@ -138,12 +138,12 @@ export const ScheduleTracker: React.FC<{ schedule: UserSchedule }> = ({ schedule
         <div className="grid grid-cols-7 sm:grid-cols-14 gap-2.5">
           {days.map((d) => {
             const isToday = d.dateStr === todayStr
-            let bg = 'bg-slate-950 border-slate-800 text-slate-500'
+            let bg = 'bg-slate-100 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-500'
             if (d.active) {
               if (d.minutes >= 15) {
-                bg = 'bg-emerald-500 border-emerald-400 text-slate-950 font-bold shadow-md shadow-emerald-500/20'
+                bg = 'bg-emerald-500 border-emerald-400 text-white dark:text-slate-950 font-bold shadow-md shadow-emerald-500/20'
               } else {
-                bg = 'bg-emerald-500/30 border-emerald-500/40 text-emerald-300 font-semibold'
+                bg = 'bg-emerald-100 dark:bg-emerald-500/30 border-emerald-300 dark:border-emerald-500/40 text-emerald-800 dark:text-emerald-300 font-semibold'
               }
             }
 
@@ -163,14 +163,14 @@ export const ScheduleTracker: React.FC<{ schedule: UserSchedule }> = ({ schedule
         </div>
 
         {/* Legend */}
-        <div className="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400 flex-wrap gap-2">
+        <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 flex-wrap gap-2">
           <span>Ngày có viền vàng: Hôm nay</span>
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-md bg-slate-950 border border-slate-800 inline-block" /> Chưa học
+              <span className="w-3 h-3 rounded-md bg-slate-200 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 inline-block" /> Chưa học
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-md bg-emerald-500/30 border border-emerald-500/40 inline-block" /> &lt; 15 phút
+              <span className="w-3 h-3 rounded-md bg-emerald-100 dark:bg-emerald-500/30 border border-emerald-300 dark:border-emerald-500/40 inline-block" /> &lt; 15 phút
             </span>
             <span className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded-md bg-emerald-500 border border-emerald-400 inline-block" /> Hoàn thành (&ge; 15 phút)
