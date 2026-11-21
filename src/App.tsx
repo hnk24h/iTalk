@@ -24,6 +24,9 @@ export function App() {
   // Settings Modal state
   const [showSettings, setShowSettings] = useState(false)
 
+  // Deep-link lesson selection from ScheduleTracker -> ShadowingStudio
+  const [pendingLessonId, setPendingLessonId] = useState<string | undefined>(undefined)
+
   // Refresh schedule periodically or after activity
   const refreshSchedule = () => {
     setSchedule(loadSchedule())
@@ -54,6 +57,8 @@ export function App() {
           <ShadowingStudio
             currentLang={currentLang}
             onScoreReady={handleScoreReady}
+            initialLessonId={pendingLessonId}
+            onConsumeInitialLesson={() => setPendingLessonId(undefined)}
           />
         )}
 
@@ -66,7 +71,15 @@ export function App() {
         )}
 
         {activeTab === 'schedule' && (
-          <ScheduleTracker schedule={schedule} />
+          <ScheduleTracker
+            schedule={schedule}
+            currentLang={currentLang}
+            onScheduleChange={(updated) => setSchedule(updated)}
+            onOpenLesson={(lessonId) => {
+              setPendingLessonId(lessonId)
+              setActiveTab('shadowing')
+            }}
+          />
         )}
       </main>
 

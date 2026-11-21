@@ -1,5 +1,12 @@
-import React, { useState } from 'react'
-import { UserSchedule } from '../types'
+import React, { useEffect, useMemo, useState } from 'react'
+import { Language, Lesson, LessonProgress, RecordingItem, UserSchedule } from '../types'
+import { supportedLanguages, defaultLessonsByLanguage } from '../data/languages'
+import {
+  loadAllLessonProgress,
+  loadCustomLessons,
+  loadRecordings,
+  saveSchedule,
+} from '../services/storage'
 import {
   Flame,
   Calendar as CalendarIcon,
@@ -9,10 +16,147 @@ import {
   Trophy,
   TrendingUp,
   Sparkles,
+  SlidersHorizontal,
+  Play,
+  BarChart3,
+  ChevronLeft,
+  ChevronRight,
+  Award,
+  ArrowRight,
+  GraduationCap,
+  Mic,
+  Video,
+  X,
+  Lock,
+  Check,
 } from 'lucide-react'
 
-export const ScheduleTracker: React.FC<{ schedule: UserSchedule }> = ({ schedule }) => {
+interface ScheduleTrackerProps {
+  schedule: UserSchedule
+  currentLang?: Language
+  onScheduleChange?: (updated: UserSchedule) => void
+  onOpenLesson?: (lessonId?: string) => void
+}
+
+const WEEKDAY_LABELS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN']
+
+const LEVEL_GROUPS_BY_LANG: Record<Language, Array<{ key: string; label: string; icon: string }>> = {
+  ja: [
+    { key: 'Kana', label: 'Bảng chữ cái Kana', icon: '🔤' },
+    { key: 'N5', label: 'JLPT N5', icon: '🔰' },
+    { key: 'N4', label: 'JLPT N4', icon: '📘' },
+    { key: 'N3', label: 'JLPT N3', icon: '📙' },
+    { key: 'N2', label: 'JLPT N2', icon: '📕' },
+    { key: 'N1', label: 'JLPT N1', icon: '👑' },
+  ],
+  zh: [
+    { key: 'Pinyin', label: 'Bính âm Pinyin', icon: '🔤' },
+    { key: 'HSK 1', label: 'HSK 1', icon: '🌱' },
+    { key: 'HSK 2', label: 'HSK 2', icon: '🌿' },
+    { key: 'HSK 3', label: 'HSK 3', icon: '📘' },
+    { key: 'HSK 4', label: 'HSK 4', icon: '📙' },
+    { key: 'HSK 5', label: 'HSK 5', icon: '📕' },
+    { key: 'HSK 6', label: 'HSK 6', icon: '👑' },
+  ],
+  vi: [
+    { key: 'Chữ cái', label: 'Chữ cái & Thanh điệu', icon: '🔤' },
+    { key: 'Cơ bản', label: 'Cơ bản', icon: '🌱' },
+    { key: 'Nâng cao', label: 'Nâng cao', icon: '👑' },
+  ],
+}
+
+const GOAL_PRESETS = [
+  { id: 'light', label: 'Nhẹ nhàng', desc: 'Duy trì phản xạ mỗi ngày', minutes: 10, lessons: 2 },
+  { id: 'standard', label: 'Tiêu chuẩn', desc: 'Cân bằng nghe - nhại', minutes: 15, lessons: 3 },
+  { id: 'intensive', label: 'Chuyên sâu', desc: 'Bứt tốc phản xạ nói', minutes: 30, lessons: 5 },
+]
+
+function parseUtcDate(dateStr: string): Date {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  return new Date(Date.UTC(y, (m || 1) - 1, d || 1))
+}
+
+function formatDateKey(year: number, monthIdx: number, day: number): string {
+  return `${year}-${String(monthIdx + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
+
+function formatDisplayDate(dateStr: string): string {
+  const dt = parseUtcDate(dateStr)
+  const dayNames = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7']
+  const dayName = dayNames[dt.getUTCDay()] || ''
+  const dd = String(dt.getUTCDate()).padStart(2, '0')
+  const mm = String(dt.getUTCMonth() + 1).padStart(2, '0')
+  const yyyy = dt.getUTCFullYear()
+  return `${dayName}, ${dd}/${mm}/${yyyy}`
+}
+
+export const ScheduleTracker: React.FC<ScheduleTrackerProps> = ({
+  schedule,
+  currentLang = 'ja',
+  onScheduleChange,
+  onOpenLesson,
+}) => {
   const todayStr = new Date().toISOString().split('T')[0]
+  const todayParts = useMemo(() => {
+    const [y, m] = todayStr.split('-').map(Number)
+    return { year: y, month: (m || 1) - 1 }
+  }, [todayStr])
+
+  const langMeta =
+    supportedLanguages.find((l) => l.code === currentLang) || supportedLanguages[0]
+
+  // Interactive UI states
+  const [selectedDateStr, setSelectedDateStr] = useState<string>(todayStr)
+  const [viewMonth, setViewMonth] = useState<{ year: number; month: number }>(() => todayParts)
+  const [chartMetric, setChartMetric] = useState<'minutes' | 'score'>('minutes')
+  const [showGoalModal, setShowGoalModal] = useState(false)
+  const [draftMinutes, setDraftMinutes] = useState<number>(schedule.dailyGoal.targetMinutes || 15)
+  const [draftLessons, setDraftLessons] = useState<number>(schedule.dailyGoal.targetLessons || 3)
+  const [toastMsg, setToastMsg] = useState<string | null>(null)
+
+  // Persistent lesson progress & recordings synced live
+  const [lessonProgressMap, setLessonProgressMap] = useState<Record<string, LessonProgress>>(() =>
+    loadAllLessonProgress()
+  )
+  const [recordings, setRecordings] = useState<RecordingItem[]>(() => loadRecordings())
+
+  useEffect(() => {
+    setLessonProgressMap(loadAllLessonProgress())
+    setRecordings(loadRecordings())
+
+    const handleProgressUpdate = (e: Event) => {
+      const detail = (e as CustomEvent<Record<string, LessonProgress>>).detail
+      if (detail) {
+        setLessonProgressMap(detail)
+      } else {
+        setLessonProgressMap(loadAllLessonProgress())
+      }
+      setRecordings(loadRecordings())
+    }
+
+    window.addEventListener('italk:lesson-progress-updated', handleProgressUpdate)
+    return () => {
+      window.removeEventListener('italk:lesson-progress-updated', handleProgressUpdate)
+    }
+  }, [])
+
+  useEffect(() => {
+    setDraftMinutes(schedule.dailyGoal.targetMinutes || 15)
+    setDraftLessons(schedule.dailyGoal.targetLessons || 3)
+  }, [schedule.dailyGoal.targetMinutes, schedule.dailyGoal.targetLessons])
+
+  useEffect(() => {
+    if (!showGoalModal) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowGoalModal(false)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [showGoalModal])
+
+  const targetMinutes = Math.max(1, schedule.dailyGoal.targetMinutes || 15)
+  const targetLessons = Math.max(1, schedule.dailyGoal.targetLessons || 3)
+
   const todayProgress = schedule.history[todayStr] || {
     date: todayStr,
     minutes: 0,
@@ -20,164 +164,1445 @@ export const ScheduleTracker: React.FC<{ schedule: UserSchedule }> = ({ schedule
     scores: [],
   }
 
-  const targetMinutes = schedule.dailyGoal.targetMinutes || 15
-  const targetLessons = schedule.dailyGoal.targetLessons || 3
-
   const minutePercent = Math.min(100, Math.round((todayProgress.minutes / targetMinutes) * 100))
-  const lessonPercent = Math.min(100, Math.round((todayProgress.lessonsCompleted / targetLessons) * 100))
+  const lessonPercent = Math.min(
+    100,
+    Math.round((todayProgress.lessonsCompleted / targetLessons) * 100)
+  )
+  const combinedGoalPercent = Math.round((minutePercent + lessonPercent) / 2)
 
-  // Generate last 28 days for habit matrix
-  const days: Array<{ dateStr: string; dayNum: number; active: boolean; minutes: number }> = []
-  for (let i = 27; i >= 0; i--) {
-    const d = new Date(Date.now() - i * 86400000)
-    const dStr = d.toISOString().split('T')[0]
-    const p = schedule.history[dStr]
-    days.push({
-      dateStr: dStr,
-      dayNum: d.getDate(),
-      active: Boolean(p && p.minutes > 0),
-      minutes: p ? p.minutes : 0,
+  // All lessons for current language (built-in + custom)
+  const allLangLessons = useMemo<Lesson[]>(() => {
+    const builtin = defaultLessonsByLanguage[currentLang] || []
+    const custom = loadCustomLessons().filter((l) => l.language === currentLang)
+    return [...builtin, ...custom]
+  }, [currentLang, lessonProgressMap])
+
+  // Aggregate Activity, Streaks, Scores & Weekly Series
+  const analytics = useMemo(() => {
+    const historyEntries = Object.values(schedule.history || {})
+    const activeDates = historyEntries
+      .filter((h) => h && h.minutes > 0)
+      .map((h) => h.date)
+      .sort()
+
+    // Longest streak calculation from active history dates
+    let longestStreak = 0
+    let runningStreak = 0
+    let prevMs: number | null = null
+    for (const dateStr of activeDates) {
+      const ms = parseUtcDate(dateStr).getTime()
+      if (prevMs !== null && ms - prevMs === 86400000) {
+        runningStreak += 1
+      } else {
+        runningStreak = 1
+      }
+      if (runningStreak > longestStreak) longestStreak = runningStreak
+      prevMs = ms
+    }
+    longestStreak = Math.max(longestStreak, schedule.streak || 0)
+
+    const totalMinutesAllTime = historyEntries.reduce((sum, h) => sum + (h?.minutes || 0), 0)
+    const totalActiveDays = activeDates.length
+
+    // Scores from history; include recordings without duplicate inflation if history has none
+    const historyScores: number[] = []
+    historyEntries.forEach((h) => {
+      if (Array.isArray(h?.scores)) {
+        h.scores.forEach((sc) => {
+          if (typeof sc === 'number') historyScores.push(sc)
+        })
+      }
+    })
+    const recordingScores = recordings
+      .map((r) => r.score)
+      .filter((sc): sc is number => typeof sc === 'number')
+
+    const effectiveScores = historyScores.length > 0 ? historyScores : recordingScores
+    const totalSessions = Math.max(
+      historyEntries.reduce((sum, h) => sum + (h?.lessonsCompleted || 0), 0),
+      recordings.length
+    )
+    const avgScore =
+      effectiveScores.length > 0
+        ? Math.round(effectiveScores.reduce((a, b) => a + b, 0) / effectiveScores.length)
+        : null
+    const bestScore = effectiveScores.length > 0 ? Math.max(...effectiveScores) : null
+
+    // Last 7 days series (ending at todayStr)
+    const todayUtcMs = parseUtcDate(todayStr).getTime()
+    const weeklyDays = Array.from({ length: 7 }, (_, idx) => {
+      const offset = 6 - idx
+      const d = new Date(todayUtcMs - offset * 86400000)
+      const dateStr = d.toISOString().split('T')[0]
+      const entry = schedule.history[dateStr]
+      const minutes = entry?.minutes || 0
+      const lessonsCompleted = entry?.lessonsCompleted || 0
+      const dayScores = Array.isArray(entry?.scores) ? entry.scores : []
+      const dayAvgScore =
+        dayScores.length > 0
+          ? Math.round(dayScores.reduce((a, b) => a + b, 0) / dayScores.length)
+          : 0
+      const weekdayIdx = (d.getUTCDay() + 6) % 7
+      const shortDate = `${String(d.getUTCDate()).padStart(2, '0')}/${String(
+        d.getUTCMonth() + 1
+      ).padStart(2, '0')}`
+
+      return {
+        dateStr,
+        weekdayLabel: WEEKDAY_LABELS[weekdayIdx],
+        shortDate,
+        minutes,
+        lessonsCompleted,
+        avgScore: dayAvgScore,
+        hasScores: dayScores.length > 0,
+        isToday: dateStr === todayStr,
+      }
+    })
+
+    const weeklyMinutes = weeklyDays.reduce((sum, d) => sum + d.minutes, 0)
+    const weeklyActiveDays = weeklyDays.filter((d) => d.minutes > 0).length
+    const maxWeeklyMinutes = Math.max(
+      targetMinutes,
+      ...weeklyDays.map((d) => d.minutes),
+      15
+    )
+
+    return {
+      longestStreak,
+      totalMinutesAllTime,
+      totalActiveDays,
+      avgScore,
+      bestScore,
+      totalSessions,
+      weeklyDays,
+      weeklyMinutes,
+      weeklyActiveDays,
+      maxWeeklyMinutes,
+    }
+  }, [schedule, recordings, todayStr, targetMinutes])
+
+  // Lesson Progress Stats for current language
+  const lessonAnalytics = useMemo(() => {
+    let completedCount = 0
+    let inProgressCount = 0
+    let viewedCount = 0
+
+    allLangLessons.forEach((l) => {
+      const p = lessonProgressMap[l.id]
+      if (!p) return
+      if (p.isCompleted || (p.progressPercent ?? 0) >= 100) {
+        completedCount += 1
+      } else if ((p.practicedCount ?? 0) > 0) {
+        inProgressCount += 1
+      } else if (p.hasViewed) {
+        viewedCount += 1
+      }
+    })
+
+    const totalLessons = allLangLessons.length
+    const overallLessonPercent =
+      totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0
+
+    // Breakdown by level
+    const groups = LEVEL_GROUPS_BY_LANG[currentLang] || []
+    const matchedIds = new Set<string>()
+    const levelStats = groups
+      .map((g) => {
+        const list = allLangLessons.filter((l) => l.level && l.level.startsWith(g.key))
+        list.forEach((l) => matchedIds.add(l.id))
+        let completed = 0
+        let inProgress = 0
+        const bestScores: number[] = []
+        list.forEach((l) => {
+          const p = lessonProgressMap[l.id]
+          if (!p) return
+          if (p.isCompleted || (p.progressPercent ?? 0) >= 100) completed += 1
+          else if ((p.practicedCount ?? 0) > 0 || p.hasViewed) inProgress += 1
+          if (typeof p.bestScore === 'number') bestScores.push(p.bestScore)
+        })
+        const total = list.length
+        const percent = total > 0 ? Math.round((completed / total) * 100) : 0
+        const avgBest =
+          bestScores.length > 0
+            ? Math.round(bestScores.reduce((a, b) => a + b, 0) / bestScores.length)
+            : null
+        return {
+          key: g.key,
+          label: g.label,
+          icon: g.icon,
+          total,
+          completed,
+          inProgress,
+          percent,
+          avgBest,
+        }
+      })
+      .filter((st) => st.total > 0)
+
+    const otherLessons = allLangLessons.filter((l) => !matchedIds.has(l.id))
+    if (otherLessons.length > 0) {
+      let completed = 0
+      let inProgress = 0
+      const bestScores: number[] = []
+      otherLessons.forEach((l) => {
+        const p = lessonProgressMap[l.id]
+        if (!p) return
+        if (p.isCompleted || (p.progressPercent ?? 0) >= 100) completed += 1
+        else if ((p.practicedCount ?? 0) > 0 || p.hasViewed) inProgress += 1
+        if (typeof p.bestScore === 'number') bestScores.push(p.bestScore)
+      })
+      levelStats.push({
+        key: 'other',
+        label: 'Bài tự tạo / Khác',
+        icon: '📝',
+        total: otherLessons.length,
+        completed,
+        inProgress,
+        percent: Math.round((completed / otherLessons.length) * 100),
+        avgBest:
+          bestScores.length > 0
+            ? Math.round(bestScores.reduce((a, b) => a + b, 0) / bestScores.length)
+            : null,
+      })
+    }
+
+    // Recent / In-progress lessons
+    const recentLessons = allLangLessons
+      .map((l) => ({ lesson: l, progress: lessonProgressMap[l.id] }))
+      .filter(
+        (item): item is { lesson: Lesson; progress: LessonProgress } =>
+          Boolean(item.progress && (item.progress.hasViewed || item.progress.practicedCount > 0))
+      )
+      .sort((a, b) => {
+        const tA = a.progress.lastPracticedAt || a.progress.lastViewedAt || ''
+        const tB = b.progress.lastPracticedAt || b.progress.lastViewedAt || ''
+        return tB.localeCompare(tA)
+      })
+      .slice(0, 5)
+
+    // Total completed across all languages for milestones
+    const totalCompletedAllLangs = Object.values(lessonProgressMap).filter(
+      (p) => p && (p.isCompleted || (p.progressPercent ?? 0) >= 100)
+    ).length
+
+    return {
+      completedCount,
+      inProgressCount,
+      viewedCount,
+      totalLessons,
+      overallLessonPercent,
+      levelStats,
+      recentLessons,
+      totalCompletedAllLangs,
+    }
+  }, [allLangLessons, lessonProgressMap, currentLang])
+
+  // Interactive Monthly Calendar Grid (Monday-first 7-col grid)
+  const calendarData = useMemo(() => {
+    const { year, month } = viewMonth
+    const daysInMonth = new Date(year, month + 1, 0).getDate()
+    const firstWeekday = (new Date(year, month, 1).getDay() + 6) % 7 // 0 = Mon .. 6 = Sun
+
+    const cells: Array<{
+      empty?: boolean
+      day?: number
+      dateStr?: string
+      minutes?: number
+      lessonsCompleted?: number
+      isToday?: boolean
+    }> = []
+
+    for (let i = 0; i < firstWeekday; i++) {
+      cells.push({ empty: true })
+    }
+
+    let monthMinutes = 0
+    let monthActiveDays = 0
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateStr = formatDateKey(year, month, day)
+      const entry = schedule.history[dateStr]
+      const minutes = entry?.minutes || 0
+      const lessonsCompleted = entry?.lessonsCompleted || 0
+      monthMinutes += minutes
+      if (minutes > 0) monthActiveDays += 1
+      cells.push({
+        day,
+        dateStr,
+        minutes,
+        lessonsCompleted,
+        isToday: dateStr === todayStr,
+      })
+    }
+
+    return { cells, monthMinutes, monthActiveDays }
+  }, [viewMonth, schedule.history, todayStr])
+
+  // Selected Day Inspector Data
+  const selectedDayInfo = useMemo(() => {
+    const entry = schedule.history[selectedDateStr]
+    const minutes = entry?.minutes || 0
+    const lessonsCompleted = entry?.lessonsCompleted || 0
+    const scores = Array.isArray(entry?.scores) ? entry.scores : []
+    const dayRecordings = recordings.filter(
+      (r) => typeof r.date === 'string' && r.date.slice(0, 10) === selectedDateStr
+    )
+    const combinedScores =
+      scores.length > 0
+        ? scores
+        : dayRecordings.map((r) => r.score).filter((s): s is number => typeof s === 'number')
+    const avgDayScore =
+      combinedScores.length > 0
+        ? Math.round(combinedScores.reduce((a, b) => a + b, 0) / combinedScores.length)
+        : null
+
+    return {
+      minutes,
+      lessonsCompleted: Math.max(lessonsCompleted, dayRecordings.length),
+      avgDayScore,
+      dayRecordings: dayRecordings.slice(0, 4),
+      isGoalMet: minutes >= targetMinutes,
+      isToday: selectedDateStr === todayStr,
+    }
+  }, [schedule.history, selectedDateStr, recordings, targetMinutes, todayStr])
+
+  // Milestones / Achievements
+  const milestones = useMemo(() => {
+    return [
+      {
+        id: 'first-step',
+        title: 'Khởi hành',
+        desc: 'Có ít nhất 1 ngày luyện tập',
+        unlocked: analytics.totalActiveDays >= 1 || analytics.totalSessions >= 1,
+        progressText: `${Math.min(1, analytics.totalActiveDays)}/1 ngày`,
+        icon: '🚀',
+      },
+      {
+        id: 'streak-3',
+        title: 'Bền bỉ 3 ngày',
+        desc: 'Đạt chuỗi 3 ngày liên tục',
+        unlocked: analytics.longestStreak >= 3,
+        progressText: `${Math.min(3, analytics.longestStreak)}/3 ngày`,
+        icon: '🔥',
+      },
+      {
+        id: 'streak-7',
+        title: 'Thói quen 7 ngày',
+        desc: 'Duy trì chuỗi 1 tuần liên tục',
+        unlocked: analytics.longestStreak >= 7,
+        progressText: `${Math.min(7, analytics.longestStreak)}/7 ngày`,
+        icon: '⚡',
+      },
+      {
+        id: 'time-60',
+        title: 'Tích lũy 60 phút',
+        desc: 'Tổng thời lượng luyện đạt 60p',
+        unlocked: analytics.totalMinutesAllTime >= 60,
+        progressText: `${Math.min(60, analytics.totalMinutesAllTime)}/60p`,
+        icon: '⏱️',
+      },
+      {
+        id: 'score-85',
+        title: 'Phát âm chuẩn',
+        desc: 'Đạt điểm phát âm từ 85đ trở lên',
+        unlocked: (analytics.bestScore ?? 0) >= 85,
+        progressText: analytics.bestScore !== null ? `${analytics.bestScore}/85đ` : '0/85đ',
+        icon: '🎯',
+      },
+      {
+        id: 'lessons-3',
+        title: 'Chinh phục 3 bài',
+        desc: 'Hoàn thành 100% ít nhất 3 bài',
+        unlocked: lessonAnalytics.totalCompletedAllLangs >= 3,
+        progressText: `${Math.min(3, lessonAnalytics.totalCompletedAllLangs)}/3 bài`,
+        icon: '🏆',
+      },
+    ]
+  }, [analytics, lessonAnalytics.totalCompletedAllLangs])
+
+  const unlockedCount = milestones.filter((m) => m.unlocked).length
+
+  const handleShiftMonth = (delta: -1 | 1) => {
+    setViewMonth((prev) => {
+      const nextMonth = prev.month + delta
+      if (nextMonth < 0) return { year: prev.year - 1, month: 11 }
+      if (nextMonth > 11) return { year: prev.year + 1, month: 0 }
+      return { year: prev.year, month: nextMonth }
     })
   }
 
+  const handleJumpToToday = () => {
+    setViewMonth(todayParts)
+    setSelectedDateStr(todayStr)
+  }
+
+  const handleSaveGoal = () => {
+    const cleanMinutes = Math.min(180, Math.max(5, Math.round(draftMinutes || 15)))
+    const cleanLessons = Math.min(30, Math.max(1, Math.round(draftLessons || 3)))
+    const updated: UserSchedule = {
+      ...schedule,
+      dailyGoal: {
+        targetMinutes: cleanMinutes,
+        targetLessons: cleanLessons,
+      },
+    }
+    saveSchedule(updated)
+    onScheduleChange?.(updated)
+    setShowGoalModal(false)
+    setToastMsg(`✅ Đã cập nhật mục tiêu: ${cleanMinutes} phút & ${cleanLessons} bài/ngày`)
+    setTimeout(() => setToastMsg(null), 3200)
+  }
+
+  // SVG Ring math
+  const ringRadius = 46
+  const ringCircumference = 2 * Math.PI * ringRadius
+  const ringStrokeDashoffset =
+    ringCircumference - (combinedGoalPercent / 100) * ringCircumference
+
+  const hasPracticedToday = todayProgress.minutes > 0
+
   return (
-    <div className="w-full space-y-6">
-      {/* Top Banner: Streak and Motivation */}
-      <div className="bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/5 dark:to-slate-900 border border-amber-500/30 rounded-3xl p-6 sm:p-8 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-        <div className="flex items-center gap-5">
-          <div className="w-16 h-16 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-500 dark:text-amber-400 shadow-lg shadow-amber-500/20 flex-shrink-0">
-            <Flame className="w-9 h-9 fill-amber-500 dark:fill-amber-400 animate-pulse" />
+    <div className="w-full space-y-5 relative">
+      {/* Toast confirmation */}
+      {toastMsg && (
+        <div className="fixed top-20 right-6 z-50 flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-500 text-slate-950 font-bold text-xs shadow-2xl shadow-emerald-500/30">
+          <Sparkles className="w-4 h-4 fill-slate-950" />
+          <span>{toastMsg}</span>
+        </div>
+      )}
+
+      {/* ==================================================================== */}
+      {/* TIER 1: DASHBOARD HEADER & QUICK ACTIONS                              */}
+      {/* ==================================================================== */}
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+        <div className="flex items-start sm:items-center gap-4 min-w-0">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+            <CalendarIcon className="w-6 h-6" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white">
-                Chuỗi luyện tập: {schedule.streak} ngày liên tục!
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-lg sm:text-xl font-extrabold text-white tracking-tight">
+                Tiến độ &amp; Lịch luyện tập
               </h2>
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
+                <span>{langMeta.flag}</span>
+                <span>{langMeta.name}</span>
+              </span>
+              {hasPracticedToday ? (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                  <CheckCircle2 className="w-3 h-3" />
+                  Đã giữ chuỗi hôm nay
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                  <Flame className="w-3 h-3" />
+                  Cần luyện hôm nay để giữ chuỗi
+                </span>
+              )}
             </div>
-            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1 max-w-xl">
-              "Nguyên lý Shadowing: 15 phút nhại giọng bản xứ mỗi ngày tạo phản xạ thần kinh vượt trội hơn học dồn 2 tiếng cuối tuần."
+            <p className="text-xs text-slate-400 mt-1">
+              Theo dõi thời lượng Shadowing hàng ngày, điểm phát âm trung bình và lộ trình hoàn thành bài học.
             </p>
           </div>
         </div>
 
-        <div className="bg-white/80 dark:bg-slate-950/80 px-5 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 text-center w-full md:w-auto shadow-sm">
-          <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-            Mục tiêu hôm nay
+        <div className="flex flex-wrap items-center gap-2.5 shrink-0 w-full lg:w-auto justify-end">
+          <button
+            type="button"
+            onClick={() => setShowGoalModal(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-950 hover:bg-slate-800 text-slate-200 border border-slate-800 text-xs font-semibold transition-colors cursor-pointer"
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Chỉnh mục tiêu</span>
+          </button>
+
+          {onOpenLesson && (
+            <button
+              type="button"
+              onClick={() => onOpenLesson()}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500 hover:opacity-95 text-slate-950 text-xs font-extrabold shadow-md shadow-emerald-500/20 transition-all active:scale-95 cursor-pointer"
+            >
+              <Play className="w-3.5 h-3.5 fill-current" />
+              <span>Luyện Shadowing ngay</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ==================================================================== */}
+      {/* TIER 2: 4 KPI SUMMARY STAT CARDS                                      */}
+      {/* ==================================================================== */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+        {/* Card 1: Streak */}
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-xl flex flex-col justify-between">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <span className="text-xs font-semibold text-slate-400">Chuỗi luyện tập</span>
+            <div className="p-2 rounded-xl bg-amber-500/15 text-amber-400 border border-amber-500/25">
+              <Flame className="w-4 h-4 fill-amber-400" />
+            </div>
           </div>
-          <div className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
-            {todayProgress.minutes >= targetMinutes ? 'ĐÃ HOÀN THÀNH' : `${todayProgress.minutes} / ${targetMinutes} phút`}
+          <div>
+            <div className="text-2xl sm:text-3xl font-black text-white font-mono">
+              {schedule.streak} <span className="text-sm font-bold text-slate-400">ngày</span>
+            </div>
+            <p className="text-[11px] text-slate-400 mt-1">
+              Kỷ lục cá nhân:{' '}
+              <strong className="text-amber-300 font-mono">{analytics.longestStreak} ngày</strong>
+            </p>
+          </div>
+        </div>
+
+        {/* Card 2: Weekly Practice */}
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-xl flex flex-col justify-between">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <span className="text-xs font-semibold text-slate-400">Tuần này (7 ngày)</span>
+            <div className="p-2 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
+              <Clock className="w-4 h-4" />
+            </div>
+          </div>
+          <div>
+            <div className="text-2xl sm:text-3xl font-black text-white font-mono">
+              {analytics.weeklyMinutes}{' '}
+              <span className="text-sm font-bold text-slate-400">phút</span>
+            </div>
+            <p className="text-[11px] text-slate-400 mt-1">
+              <strong className="text-emerald-400 font-mono">{analytics.weeklyActiveDays}/7</strong>{' '}
+              ngày · Tổng{' '}
+              <strong className="text-slate-300 font-mono">{analytics.totalMinutesAllTime}p</strong>
+            </p>
+          </div>
+        </div>
+
+        {/* Card 3: Average Pronunciation Score */}
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-xl flex flex-col justify-between">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <span className="text-xs font-semibold text-slate-400">Điểm phát âm TB</span>
+            <div className="p-2 rounded-xl bg-indigo-500/15 text-indigo-400 border border-indigo-500/25">
+              <TrendingUp className="w-4 h-4" />
+            </div>
+          </div>
+          <div>
+            <div className="text-2xl sm:text-3xl font-black text-white font-mono">
+              {analytics.avgScore !== null ? (
+                <>
+                  {analytics.avgScore}
+                  <span className="text-sm font-bold text-slate-400">đ</span>
+                </>
+              ) : (
+                '—'
+              )}
+            </div>
+            <p className="text-[11px] text-slate-400 mt-1">
+              Cao nhất:{' '}
+              <strong className="text-indigo-300 font-mono">
+                {analytics.bestScore !== null ? `${analytics.bestScore}đ` : '—'}
+              </strong>{' '}
+              · {analytics.totalSessions} lượt
+            </p>
+          </div>
+        </div>
+
+        {/* Card 4: Lesson Completion */}
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-xl flex flex-col justify-between">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <span className="text-xs font-semibold text-slate-400">
+              Bài học ({langMeta.name})
+            </span>
+            <div className="p-2 rounded-xl bg-teal-500/15 text-teal-400 border border-teal-500/25">
+              <Trophy className="w-4 h-4" />
+            </div>
+          </div>
+          <div>
+            <div className="text-2xl sm:text-3xl font-black text-white font-mono">
+              {lessonAnalytics.completedCount}
+              <span className="text-base font-bold text-slate-400">
+                /{lessonAnalytics.totalLessons}
+              </span>{' '}
+              <span className="text-xs font-bold text-emerald-400">
+                ({lessonAnalytics.overallLessonPercent}%)
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-400 mt-1">
+              Đang học:{' '}
+              <strong className="text-teal-300 font-mono">{lessonAnalytics.inProgressCount}</strong>{' '}
+              bài · Đã xem: {lessonAnalytics.viewedCount}
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Today's Goal Progress Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Minutes Progress */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Clock className="w-5 h-5 text-emerald-400" />
-              <span className="font-bold text-sm text-white">Thời lượng luyện hôm nay</span>
+      {/* ==================================================================== */}
+      {/* TIER 3: 7-DAY CHART & INTERACTIVE CALENDAR + GOALS & INSPECTOR       */}
+      {/* ==================================================================== */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
+        {/* LEFT COLUMN (7/12): 7-Day Activity Chart + Monthly Interactive Calendar */}
+        <div className="xl:col-span-7 space-y-5">
+          {/* A. 7-Day Activity Bar Chart */}
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl space-y-4">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
+                  <BarChart3 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">Hoạt động 7 ngày gần nhất</h3>
+                  <p className="text-xs text-slate-400">
+                    Bấm vào một cột ngày để xem chi tiết buổi luyện bên phải
+                  </p>
+                </div>
+              </div>
+
+              {/* Metric Switcher */}
+              <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setChartMetric('minutes')}
+                  className={`px-3 py-1.5 rounded-lg font-semibold transition-colors cursor-pointer ${
+                    chartMetric === 'minutes'
+                      ? 'bg-emerald-500 text-slate-950 font-bold shadow-xs'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  Thời lượng (phút)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setChartMetric('score')}
+                  className={`px-3 py-1.5 rounded-lg font-semibold transition-colors cursor-pointer ${
+                    chartMetric === 'score'
+                      ? 'bg-indigo-600 text-white font-bold shadow-xs'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  Điểm TB
+                </button>
+              </div>
+            </div>
+
+            {/* Chart Area */}
+            <div className="relative pt-5 pb-1">
+              <div className="relative h-44 flex items-end justify-between gap-2 sm:gap-3 px-1">
+                {/* Target Reference Dashed Line */}
+                {(() => {
+                  const refPercent =
+                    chartMetric === 'minutes'
+                      ? Math.min(100, Math.round((targetMinutes / analytics.maxWeeklyMinutes) * 100))
+                      : 70
+                  return (
+                    <div
+                      className="pointer-events-none absolute left-0 right-0 border-t border-dashed border-amber-400/50 z-0 flex justify-end"
+                      style={{ bottom: `${refPercent}%` }}
+                    >
+                      <span className="text-[10px] font-mono font-semibold text-amber-400 bg-slate-900 px-1.5 -mt-2.5 rounded">
+                        {chartMetric === 'minutes' ? `Mục tiêu ${targetMinutes}p` : 'Chuẩn 70đ'}
+                      </span>
+                    </div>
+                  )
+                })()}
+
+                {analytics.weeklyDays.map((day) => {
+                  const value = chartMetric === 'minutes' ? day.minutes : day.avgScore
+                  const heightPercent =
+                    chartMetric === 'minutes'
+                      ? value > 0
+                        ? Math.max(8, Math.round((value / analytics.maxWeeklyMinutes) * 100))
+                        : 4
+                      : value > 0
+                      ? Math.max(8, Math.min(100, value))
+                      : 4
+
+                  const isSelected = selectedDateStr === day.dateStr
+                  const isTargetMet =
+                    chartMetric === 'minutes' ? day.minutes >= targetMinutes : day.avgScore >= 70
+
+                  const barColor =
+                    value === 0
+                      ? 'bg-slate-800'
+                      : chartMetric === 'minutes'
+                      ? isTargetMet
+                        ? 'bg-gradient-to-t from-emerald-500 to-teal-300 shadow-md shadow-emerald-500/20'
+                        : 'bg-emerald-500/45 border border-emerald-400/40'
+                      : isTargetMet
+                      ? 'bg-gradient-to-t from-indigo-500 to-cyan-400 shadow-md shadow-indigo-500/20'
+                      : 'bg-amber-500/60'
+
+                  return (
+                    <button
+                      key={day.dateStr}
+                      type="button"
+                      onClick={() => setSelectedDateStr(day.dateStr)}
+                      className={`group flex-1 h-full flex flex-col justify-end items-center gap-1.5 z-10 cursor-pointer rounded-2xl p-1 transition-all ${
+                        isSelected
+                          ? 'bg-indigo-500/10 ring-1 ring-indigo-400/60'
+                          : 'hover:bg-slate-800/40'
+                      }`}
+                      title={`${day.shortDate}: ${day.minutes} phút · ${
+                        day.hasScores ? `${day.avgScore}đ TB` : 'Chưa có điểm'
+                      }`}
+                    >
+                      <span
+                        className={`text-[10px] font-mono font-bold ${
+                          value > 0 ? 'text-slate-200' : 'text-slate-500'
+                        }`}
+                      >
+                        {value > 0
+                          ? chartMetric === 'minutes'
+                            ? `${value}p`
+                            : `${value}đ`
+                          : '0'}
+                      </span>
+
+                      <div className="w-full max-w-[38px] flex-1 flex items-end justify-center">
+                        <div
+                          className={`w-full rounded-t-xl transition-all duration-300 ${barColor}`}
+                          style={{ height: `${heightPercent}%` }}
+                        />
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* X-Axis Labels */}
+              <div className="flex items-center justify-between gap-2 sm:gap-3 px-1 mt-1.5 border-t border-slate-800 pt-2">
+                {analytics.weeklyDays.map((day) => {
+                  const isSelected = selectedDateStr === day.dateStr
+                  return (
+                    <div
+                      key={`lbl-${day.dateStr}`}
+                      className="flex-1 text-center leading-tight"
+                    >
+                      <div
+                        className={`text-[11px] font-bold ${
+                          day.isToday
+                            ? 'text-amber-400'
+                            : isSelected
+                            ? 'text-indigo-300'
+                            : 'text-slate-300'
+                        }`}
+                      >
+                        {day.isToday ? 'Nay' : day.weekdayLabel}
+                      </div>
+                      <div className="text-[10px] font-mono text-slate-500">{day.shortDate}</div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* B. Interactive Monthly Calendar Heatmap */}
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl space-y-4">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
+                  <CalendarIcon className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">
+                    Tháng {viewMonth.month + 1}, {viewMonth.year}
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    <strong className="text-emerald-400 font-mono">
+                      {calendarData.monthActiveDays}
+                    </strong>{' '}
+                    ngày luyện ·{' '}
+                    <strong className="text-slate-200 font-mono">
+                      {calendarData.monthMinutes} phút
+                    </strong>{' '}
+                    trong tháng
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleShiftMonth(-1)}
+                  className="p-2 rounded-xl bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800 transition-colors cursor-pointer"
+                  title="Tháng trước"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleJumpToToday}
+                  className="px-3 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-800 text-emerald-400 border border-slate-800 text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Hôm nay
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleShiftMonth(1)}
+                  className="p-2 rounded-xl bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800 transition-colors cursor-pointer"
+                  title="Tháng sau"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Weekday Header Row (Mon - Sun) */}
+            <div className="grid grid-cols-7 gap-1.5 sm:gap-2 text-center">
+              {WEEKDAY_LABELS.map((wd, idx) => (
+                <div
+                  key={wd}
+                  className={`text-[11px] font-bold py-1 ${
+                    idx >= 5 ? 'text-amber-400/90' : 'text-slate-400'
+                  }`}
+                >
+                  {wd}
+                </div>
+              ))}
+            </div>
+
+            {/* 7-Column Calendar Cells */}
+            <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+              {calendarData.cells.map((cell, idx) => {
+                if (cell.empty || !cell.dateStr) {
+                  return <div key={`empty-${idx}`} className="aspect-square" />
+                }
+
+                const mins = cell.minutes || 0
+                const isSelected = selectedDateStr === cell.dateStr
+
+                let cellStyle =
+                  'bg-slate-950/60 border-slate-800 text-slate-400 hover:bg-slate-800/70'
+                if (mins > 0 && mins < targetMinutes) {
+                  cellStyle =
+                    'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 font-semibold hover:bg-emerald-500/30'
+                } else if (mins >= targetMinutes && mins < targetMinutes * 1.5) {
+                  cellStyle =
+                    'bg-emerald-500 border-emerald-400 text-slate-950 font-bold shadow-sm shadow-emerald-500/20'
+                } else if (mins >= targetMinutes * 1.5) {
+                  cellStyle =
+                    'bg-gradient-to-br from-emerald-400 to-teal-400 border-emerald-300 text-slate-950 font-extrabold shadow-md shadow-emerald-500/25'
+                }
+
+                return (
+                  <button
+                    key={cell.dateStr}
+                    type="button"
+                    onClick={() => setSelectedDateStr(cell.dateStr!)}
+                    title={`${cell.dateStr}: ${mins} phút luyện tập`}
+                    className={`aspect-square rounded-2xl border flex flex-col items-center justify-center transition-all hover:scale-[1.03] cursor-pointer relative ${cellStyle} ${
+                      isSelected
+                        ? 'ring-2 ring-indigo-400 ring-offset-1 ring-offset-slate-900'
+                        : cell.isToday
+                        ? 'ring-2 ring-amber-400'
+                        : ''
+                    }`}
+                  >
+                    <span className="text-xs sm:text-sm leading-none">{cell.day}</span>
+                    {mins > 0 && (
+                      <span className="text-[9px] font-mono opacity-85 mt-0.5 leading-none">
+                        {mins}p
+                      </span>
+                    )}
+                    {cell.isToday && (
+                      <span
+                        className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-amber-400"
+                        title="Hôm nay"
+                      />
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Heatmap Legend */}
+            <div className="pt-3 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400 flex-wrap gap-2">
+              <div className="flex items-center gap-3">
+                <span className="inline-flex items-center gap-1">
+                  <span className="w-2.5 h-2.5 rounded-full ring-2 ring-amber-400 inline-block" />
+                  Hôm nay
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <span className="w-2.5 h-2.5 rounded-full ring-2 ring-indigo-400 inline-block" />
+                  Đang xem
+                </span>
+              </div>
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <span className="flex items-center gap-1">
+                  <span className="w-3 h-3 rounded bg-slate-950 border border-slate-800 inline-block" />
+                  0p
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-3 h-3 rounded bg-emerald-500/20 border border-emerald-500/40 inline-block" />
+                  &lt;{targetMinutes}p
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-3 h-3 rounded bg-emerald-500 border border-emerald-400 inline-block" />
+                  &ge;{targetMinutes}p
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-3 h-3 rounded bg-gradient-to-br from-emerald-400 to-teal-400 inline-block" />
+                  &ge;{Math.round(targetMinutes * 1.5)}p
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN (5/12): Today Goal Ring + Selected Day Inspector + Milestones */}
+        <div className="xl:col-span-5 space-y-5">
+          {/* A. Today's Goal Progress Ring */}
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-4">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Target className="w-4 h-4 text-emerald-400" />
+                <h3 className="text-sm sm:text-base font-bold text-white">Mục tiêu hôm nay</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowGoalModal(true)}
+                className="text-[11px] font-semibold text-emerald-400 hover:underline cursor-pointer"
+              >
+                Chỉnh sửa
+              </button>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              {/* SVG Circular Ring */}
+              <div className="relative w-28 h-28 shrink-0 flex items-center justify-center">
+                <svg className="w-28 h-28 -rotate-90" viewBox="0 0 112 112">
+                  <circle
+                    cx="56"
+                    cy="56"
+                    r={ringRadius}
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="9"
+                    className="text-slate-800"
+                  />
+                  <circle
+                    cx="56"
+                    cy="56"
+                    r={ringRadius}
+                    fill="none"
+                    stroke="url(#goalRingGrad)"
+                    strokeWidth="9"
+                    strokeLinecap="round"
+                    strokeDasharray={ringCircumference}
+                    strokeDashoffset={ringStrokeDashoffset}
+                    className="transition-all duration-700"
+                  />
+                  <defs>
+                    <linearGradient id="goalRingGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="#10b981" />
+                      <stop offset="100%" stopColor="#2dd4bf" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                  <span className="text-xl font-black text-white font-mono">
+                    {combinedGoalPercent}%
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-semibold">Hôm nay</span>
+                </div>
+              </div>
+
+              {/* Minutes & Lessons Progress Bars */}
+              <div className="flex-1 w-full space-y-3">
+                <div>
+                  <div className="flex items-center justify-between text-xs mb-1">
+                    <span className="font-semibold text-slate-300 flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-emerald-400" />
+                      Thời lượng
+                    </span>
+                    <span className="font-mono font-bold text-emerald-400">
+                      {todayProgress.minutes} / {targetMinutes}p
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                    <div
+                      className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-500"
+                      style={{ width: `${minutePercent}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between text-xs mb-1">
+                    <span className="font-semibold text-slate-300 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400" />
+                      Lượt / Bài Shadowing
+                    </span>
+                    <span className="font-mono font-bold text-cyan-400">
+                      {todayProgress.lessonsCompleted} / {targetLessons} bài
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                    <div
+                      className="h-full bg-gradient-to-r from-teal-500 to-cyan-400 rounded-full transition-all duration-500"
+                      style={{ width: `${lessonPercent}%` }}
+                    />
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-slate-400">
+                  {combinedGoalPercent >= 100
+                    ? '🎉 Tuyệt vời! Bạn đã hoàn thành trọn vẹn mục tiêu hôm nay.'
+                    : `Còn ${Math.max(0, targetMinutes - todayProgress.minutes)} phút & ${Math.max(
+                        0,
+                        targetLessons - todayProgress.lessonsCompleted
+                      )} lượt để đạt 100%.`}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* B. Selected Day Inspector */}
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-3.5">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-white">
+                    {formatDisplayDate(selectedDateStr)}
+                  </h3>
+                  {selectedDayInfo.isToday && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      Hôm nay
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Chi tiết hoạt động &amp; bản ghi âm trong ngày
+                </p>
+              </div>
+
+              {selectedDayInfo.isGoalMet ? (
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                  <CheckCircle2 className="w-3 h-3" />
+                  Đạt mục tiêu
+                </span>
+              ) : selectedDayInfo.minutes > 0 ? (
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                  <Clock className="w-3 h-3" />
+                  Đang tiến hành
+                </span>
+              ) : (
+                <span className="text-[11px] font-medium px-2.5 py-1 rounded-full bg-slate-950 text-slate-400 border border-slate-800">
+                  Chưa học
+                </span>
+              )}
+            </div>
+
+            {/* Day Mini Stats */}
+            <div className="grid grid-cols-3 gap-2">
+              <div className="p-2.5 rounded-2xl bg-slate-950/60 border border-slate-800 text-center">
+                <div className="text-[10px] text-slate-400 font-medium">Thời lượng</div>
+                <div className="text-sm font-black text-emerald-400 font-mono mt-0.5">
+                  {selectedDayInfo.minutes}p
+                </div>
+              </div>
+              <div className="p-2.5 rounded-2xl bg-slate-950/60 border border-slate-800 text-center">
+                <div className="text-[10px] text-slate-400 font-medium">Lượt / Bài</div>
+                <div className="text-sm font-black text-cyan-400 font-mono mt-0.5">
+                  {selectedDayInfo.lessonsCompleted}
+                </div>
+              </div>
+              <div className="p-2.5 rounded-2xl bg-slate-950/60 border border-slate-800 text-center">
+                <div className="text-[10px] text-slate-400 font-medium">Điểm TB</div>
+                <div className="text-sm font-black text-indigo-300 font-mono mt-0.5">
+                  {selectedDayInfo.avgDayScore !== null ? `${selectedDayInfo.avgDayScore}đ` : '—'}
+                </div>
+              </div>
+            </div>
+
+            {/* Recordings from Selected Day */}
+            {selectedDayInfo.dayRecordings.length > 0 ? (
+              <div className="space-y-1.5">
+                <div className="text-[11px] font-semibold text-slate-400">
+                  Bản ghi trong ngày ({selectedDayInfo.dayRecordings.length}):
+                </div>
+                {selectedDayInfo.dayRecordings.map((rec) => (
+                  <div
+                    key={rec.id}
+                    className="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 flex items-center justify-between gap-2"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="p-1.5 rounded-lg bg-indigo-500/15 text-indigo-400 shrink-0">
+                        {rec.type === 'video' ? (
+                          <Video className="w-3.5 h-3.5" />
+                        ) : (
+                          <Mic className="w-3.5 h-3.5" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-xs font-semibold text-slate-200 truncate">
+                          {rec.lessonTitle}
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-mono">
+                          {rec.durationSec}s · {rec.language.toUpperCase()}
+                        </div>
+                      </div>
+                    </div>
+                    {typeof rec.score === 'number' && (
+                      <span
+                        className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded-full shrink-0 ${
+                          rec.score >= 70
+                            ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                            : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
+                        }`}
+                      >
+                        {rec.score}đ
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-3.5 rounded-2xl bg-slate-950/50 border border-dashed border-slate-800 text-center space-y-2">
+                <p className="text-xs text-slate-400">
+                  {selectedDayInfo.minutes > 0
+                    ? `Đã ghi nhận ${selectedDayInfo.minutes} phút luyện tập trong ngày này.`
+                    : 'Chưa có hoạt động Shadowing được ghi nhận trong ngày này.'}
+                </p>
+                {selectedDayInfo.isToday && onOpenLesson && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenLesson()}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    <Play className="w-3 h-3 fill-current" />
+                    <span>Luyện tập ngay</span>
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* C. Milestones & Badges */}
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-xl space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Award className="w-4 h-4 text-amber-400" />
+                <h3 className="text-sm sm:text-base font-bold text-white">Cột mốc thành tích</h3>
+              </div>
+              <span className="text-xs font-mono font-bold text-amber-300 bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-full">
+                {unlockedCount}/{milestones.length}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2.5">
+              {milestones.map((m) => (
+                <div
+                  key={m.id}
+                  className={`p-3 rounded-2xl border transition-all ${
+                    m.unlocked
+                      ? 'bg-emerald-500/10 border-emerald-500/35 shadow-sm'
+                      : 'bg-slate-950/60 border-slate-800 opacity-75'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-1 mb-1">
+                    <span className="text-lg leading-none">{m.icon}</span>
+                    {m.unlocked ? (
+                      <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-400 bg-emerald-500/15 px-1.5 py-0.5 rounded-full">
+                        <Check className="w-2.5 h-2.5" /> Đạt
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-0.5 text-[10px] font-mono text-slate-400">
+                        <Lock className="w-2.5 h-2.5" /> {m.progressText}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-xs font-bold text-white truncate">{m.title}</div>
+                  <div className="text-[10px] text-slate-400 leading-snug mt-0.5 line-clamp-2">
+                    {m.desc}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ==================================================================== */}
+      {/* TIER 4: LEVEL PROGRESS BREAKDOWN & RECENT / IN-PROGRESS LESSONS      */}
+      {/* ==================================================================== */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
+        {/* Left: Progress Breakdown by Level */}
+        <div className="xl:col-span-7 bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl space-y-4">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-indigo-500/15 text-indigo-400">
+                <GraduationCap className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">
+                  Lộ trình theo cấp độ ({langMeta.name})
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Tổng quan tiến độ hoàn thành từng cấp độ bài học
+                </p>
+              </div>
             </div>
             <span className="text-xs font-mono font-bold text-emerald-400">
-              {todayProgress.minutes} / {targetMinutes} phút
+              {lessonAnalytics.completedCount}/{lessonAnalytics.totalLessons} bài hoàn thành
             </span>
           </div>
 
-          <div className="w-full bg-slate-950 h-3 rounded-full overflow-hidden p-0.5 border border-slate-800 mb-2">
-            <div
-              className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-500"
-              style={{ width: `${minutePercent}%` }}
-            />
-          </div>
-          <span className="text-[11px] text-slate-400">
-            {minutePercent >= 100
-              ? '🎉 Xuất sắc! Bạn đã đạt chỉ tiêu thời gian hôm nay.'
-              : `Còn ${targetMinutes - todayProgress.minutes} phút nữa để đạt mục tiêu ngày.`}
-          </span>
-        </div>
-
-        {/* Lessons Completed Progress */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Target className="w-5 h-5 text-teal-400" />
-              <span className="font-bold text-sm text-white">Số bài shadowing hoàn thành</span>
-            </div>
-            <span className="text-xs font-mono font-bold text-teal-400">
-              {todayProgress.lessonsCompleted} / {targetLessons} bài
-            </span>
-          </div>
-
-          <div className="w-full bg-slate-950 h-3 rounded-full overflow-hidden p-0.5 border border-slate-800 mb-2">
-            <div
-              className="h-full bg-gradient-to-r from-teal-500 to-cyan-400 rounded-full transition-all duration-500"
-              style={{ width: `${lessonPercent}%` }}
-            />
-          </div>
-          <span className="text-[11px] text-slate-400">
-            {lessonPercent >= 100
-              ? '🎉 Tuyệt vời! Bạn đã hoàn thành các bài học đề ra.'
-              : `Còn ${targetLessons - todayProgress.lessonsCompleted} bài nữa để hoàn thành.`}
-          </span>
-        </div>
-      </div>
-
-      {/* 28-Day Habit Heatmap / Calendar */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2.5">
-            <CalendarIcon className="w-5 h-5 text-emerald-400" />
-            <h3 className="text-base sm:text-lg font-bold text-white">
-              Bản đồ thói quen luyện tập (28 ngày gần nhất)
-            </h3>
-          </div>
-          <span className="text-xs text-slate-400">Tối thiểu 15p/ngày</span>
-        </div>
-
-        <div className="grid grid-cols-7 sm:grid-cols-14 gap-2.5">
-          {days.map((d) => {
-            const isToday = d.dateStr === todayStr
-            let bg = 'bg-slate-100 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-500'
-            if (d.active) {
-              if (d.minutes >= 15) {
-                bg = 'bg-emerald-500 border-emerald-400 text-white dark:text-slate-950 font-bold shadow-md shadow-emerald-500/20'
-              } else {
-                bg = 'bg-emerald-100 dark:bg-emerald-500/30 border-emerald-300 dark:border-emerald-500/40 text-emerald-800 dark:text-emerald-300 font-semibold'
-              }
-            }
-
-            return (
+          <div className="space-y-3">
+            {lessonAnalytics.levelStats.map((st) => (
               <div
-                key={d.dateStr}
-                title={`${d.dateStr}: ${d.minutes} phút luyện tập`}
-                className={`aspect-square rounded-xl border flex flex-col items-center justify-center text-xs transition-transform hover:scale-105 cursor-pointer relative ${bg} ${
-                  isToday ? 'ring-2 ring-amber-400' : ''
-                }`}
+                key={st.key}
+                className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-2"
               >
-                <span>{d.dayNum}</span>
-                {d.active && <span className="text-[9px] font-mono opacity-80">{d.minutes}m</span>}
-              </div>
-            )
-          })}
-        </div>
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-base">{st.icon}</span>
+                    <span className="text-xs sm:text-sm font-bold text-white truncate">
+                      {st.label}
+                    </span>
+                    {st.inProgress > 0 && (
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                        {st.inProgress} đang học
+                      </span>
+                    )}
+                  </div>
 
-        {/* Legend */}
-        <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 flex-wrap gap-2">
-          <span>Ngày có viền vàng: Hôm nay</span>
-          <div className="flex items-center gap-3">
-            <span className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-md bg-slate-200 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 inline-block" /> Chưa học
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-md bg-emerald-100 dark:bg-emerald-500/30 border border-emerald-300 dark:border-emerald-500/40 inline-block" /> &lt; 15 phút
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-md bg-emerald-500 border border-emerald-400 inline-block" /> Hoàn thành (&ge; 15 phút)
-            </span>
+                  <div className="flex items-center gap-2.5 text-xs font-mono shrink-0">
+                    {st.avgBest !== null && (
+                      <span className="text-indigo-300 font-semibold">TB {st.avgBest}đ</span>
+                    )}
+                    <span className="text-emerald-400 font-bold">
+                      {st.completed}/{st.total} bài ({st.percent}%)
+                    </span>
+                  </div>
+                </div>
+
+                <div className="w-full bg-slate-900 h-2 rounded-full overflow-hidden border border-slate-800">
+                  <div
+                    className="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 rounded-full transition-all duration-500"
+                    style={{ width: `${st.percent}%` }}
+                  />
+                </div>
+              </div>
+            ))}
           </div>
         </div>
+
+        {/* Right: Recent & In-progress Lessons (Deep link to Shadowing) */}
+        <div className="xl:col-span-5 bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl space-y-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
+                <Trophy className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">Bài học gần đây</h3>
+                <p className="text-xs text-slate-400">Bấm để quay lại luyện tiếp ngay</p>
+              </div>
+            </div>
+          </div>
+
+          {lessonAnalytics.recentLessons.length > 0 ? (
+            <div className="space-y-2.5">
+              {lessonAnalytics.recentLessons.map(({ lesson, progress }) => {
+                const isCompleted =
+                  progress.isCompleted || (progress.progressPercent ?? 0) >= 100
+                const pct = progress.progressPercent ?? 0
+
+                return (
+                  <div
+                    key={lesson.id}
+                    className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800 flex items-center justify-between gap-3"
+                  >
+                    <div className="flex-1 min-w-0 space-y-1.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                          {lesson.level}
+                        </span>
+                        <span className="text-[11px] text-slate-400 truncate">
+                          {lesson.category}
+                        </span>
+                        {typeof progress.bestScore === 'number' && (
+                          <span className="text-[10px] font-mono font-bold text-amber-300">
+                            🏆 {progress.bestScore}đ
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="text-xs sm:text-sm font-bold text-white truncate">
+                        {lesson.title}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 bg-slate-900 h-1.5 rounded-full overflow-hidden border border-slate-800">
+                          <div
+                            className={`h-full rounded-full ${
+                              isCompleted
+                                ? 'bg-emerald-500'
+                                : 'bg-gradient-to-r from-amber-400 to-emerald-400'
+                            }`}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                        <span className="text-[10px] font-mono font-bold text-slate-300 shrink-0">
+                          {pct}%
+                        </span>
+                      </div>
+                    </div>
+
+                    {onOpenLesson && (
+                      <button
+                        type="button"
+                        onClick={() => onOpenLesson(lesson.id)}
+                        className="shrink-0 inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold transition-all active:scale-95 cursor-pointer"
+                      >
+                        <span>{isCompleted ? 'Ôn lại' : 'Luyện tiếp'}</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="p-6 rounded-2xl bg-slate-950/60 border border-dashed border-slate-800 text-center space-y-3">
+              <div className="text-2xl">🎧</div>
+              <div>
+                <p className="text-sm font-bold text-slate-200">
+                  Bạn chưa bắt đầu bài {langMeta.name} nào
+                </p>
+                <p className="text-xs text-slate-400 mt-1">
+                  Hãy chọn bài đầu tiên để hệ thống bắt đầu ghi nhận tiến độ và điểm phát âm.
+                </p>
+              </div>
+              {onOpenLesson && allLangLessons[0] && (
+                <button
+                  type="button"
+                  onClick={() => onOpenLesson(allLangLessons[0].id)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold transition-colors cursor-pointer"
+                >
+                  <Play className="w-3.5 h-3.5 fill-current" />
+                  <span>Bắt đầu bài đầu tiên</span>
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* ==================================================================== */}
+      {/* MODAL: EDIT DAILY GOAL                                               */}
+      {/* ==================================================================== */}
+      {showGoalModal && (
+        <div
+          onClick={() => setShowGoalModal(false)}
+          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-5"
+          >
+            <div className="flex items-center justify-between gap-2 pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-emerald-500/15 text-emerald-400">
+                  <Target className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">Thiết lập mục tiêu hàng ngày</h3>
+                  <p className="text-xs text-slate-400">
+                    Tùy chỉnh thời lượng và số bài phù hợp nhịp sinh hoạt
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowGoalModal(false)}
+                className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Preset Cards */}
+            <div className="space-y-2">
+              <div className="text-xs font-semibold text-slate-300">Chọn nhanh mức độ:</div>
+              <div className="grid grid-cols-3 gap-2">
+                {GOAL_PRESETS.map((preset) => {
+                  const isActive =
+                    draftMinutes === preset.minutes && draftLessons === preset.lessons
+                  return (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => {
+                        setDraftMinutes(preset.minutes)
+                        setDraftLessons(preset.lessons)
+                      }}
+                      className={`p-2.5 rounded-2xl border text-left transition-all cursor-pointer ${
+                        isActive
+                          ? 'bg-emerald-500/15 border-emerald-500 ring-1 ring-emerald-500/40'
+                          : 'bg-slate-950 hover:bg-slate-800 border-slate-800'
+                      }`}
+                    >
+                      <div className="text-xs font-bold text-white">{preset.label}</div>
+                      <div className="text-[11px] font-mono font-bold text-emerald-400 mt-0.5">
+                        {preset.minutes}p · {preset.lessons} bài
+                      </div>
+                      <div className="text-[10px] text-slate-400 mt-0.5 leading-tight">
+                        {preset.desc}
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Custom Inputs */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Số phút mỗi ngày (5–180)
+                </label>
+                <input
+                  type="number"
+                  min={5}
+                  max={180}
+                  value={draftMinutes}
+                  onChange={(e) => setDraftMinutes(Number(e.target.value))}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm font-mono font-bold text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Số lượt / bài (1–30)
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={30}
+                  value={draftLessons}
+                  onChange={(e) => setDraftLessons(Number(e.target.value))}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm font-mono font-bold text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => setShowGoalModal(false)}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors cursor-pointer"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveGoal}
+                className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold shadow-md shadow-emerald-500/20 transition-colors cursor-pointer"
+              >
+                Lưu mục tiêu
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -428,10 +428,15 @@ html.light button.bg-red-500 .text-white {
   color: #ffffff !important;
 }
 
-/* 12. Preserve Video / Webcam Black Frame */
+/* 12. Preserve Video / Webcam Black Frame (except empty video placeholder) */
 html.light video,
-html.light .aspect-video {
+html.light .aspect-video:not(.media-empty-frame) {
   background-color: #020617 !important;
+}
+
+html.light .aspect-video.media-empty-frame {
+  background-color: #e2e8f0 !important;
+  border-color: #cbd5e1 !important;
 }
 
 /* Custom scrollbars */
