@@ -35,11 +35,18 @@ export function getSupabaseConfig(): SupabaseConfig {
   return { url: url.trim(), anonKey: anonKey.trim() }
 }
 
+export function notifyAuthChanged(): void {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('italk:auth-changed'))
+  }
+}
+
 export function saveSupabaseConfig(config: SupabaseConfig): void {
   if (typeof window !== 'undefined') {
     localStorage.setItem(SUPABASE_CONFIG_KEY, JSON.stringify(config))
     // Reset instance so next call uses updated keys
     supabaseInstance = null
+    notifyAuthChanged()
   }
 }
 
@@ -107,6 +114,7 @@ export async function signUpWithEmail(email: string, password: string): Promise<
   try {
     const { data, error } = await client.auth.signUp({ email, password })
     if (error) return { user: null, error: error.message }
+    notifyAuthChanged()
     return { user: data.user, error: null }
   } catch (err: any) {
     return { user: null, error: err.message || 'Lỗi khi đăng ký tài khoản' }
@@ -120,6 +128,7 @@ export async function signInWithEmail(email: string, password: string): Promise<
   try {
     const { data, error } = await client.auth.signInWithPassword({ email, password })
     if (error) return { user: null, error: error.message }
+    notifyAuthChanged()
     return { user: data.user, error: null }
   } catch (err: any) {
     return { user: null, error: err.message || 'Lỗi khi đăng nhập' }
@@ -131,6 +140,7 @@ export async function signOutSupabase(): Promise<void> {
   if (client) {
     await client.auth.signOut()
   }
+  notifyAuthChanged()
 }
 
 // ==========================================

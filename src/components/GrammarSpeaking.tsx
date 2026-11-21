@@ -2,9 +2,10 @@ import React, { useState, useEffect, useMemo, useRef } from 'react'
 import confetti from 'canvas-confetti'
 import { Language, GrammarPattern, KaiwaGroup, GrammarExample, ScoreResult, StudyPlan, GrammarQuizRecord } from '../types'
 import { supportedLanguages } from '../data/languages'
-import { japaneseGrammar, japaneseKaiwa } from '../data/grammar-ja'
-import { chineseGrammar, chineseKaiwa } from '../data/grammar-zh'
-import { vietnameseGrammar, vietnameseKaiwa } from '../data/grammar-vi'
+import { japaneseKaiwa } from '../data/grammar-ja'
+import { chineseKaiwa } from '../data/grammar-zh'
+import { vietnameseKaiwa } from '../data/grammar-vi'
+import { getAllGrammarPatternsForLanguage } from '../services/cms'
 import { playTextToSpeech, stopTextToSpeech, SpeechRecognizer, SpeechStatus, transcribeAudioWithOpenAI } from '../services/speech'
 import { MediaRecordingManager } from '../services/mediaRecorder'
 import { loadSettings } from '../services/storage'
@@ -101,28 +102,40 @@ export const GrammarSpeaking: React.FC<GrammarSpeakingProps> = ({
     return supportedLanguages.find((l) => l.code === currentLang) || supportedLanguages[0]
   }, [currentLang])
 
+  const [cmsVersion, setCmsVersion] = useState(0)
+  const prevLangRef = useRef<Language | null>(null)
+
+  useEffect(() => {
+    const handleCmsUpdated = () => setCmsVersion((v) => v + 1)
+    window.addEventListener('italk:cms-content-updated', handleCmsUpdated)
+    return () => window.removeEventListener('italk:cms-content-updated', handleCmsUpdated)
+  }, [])
+
   // Data sets based on language
   const languageData = useMemo(() => {
-    if (currentLang === 'ja') {
-      return {
-        patterns: japaneseGrammar,
-        kaiwa: japaneseKaiwa,
-        levels: ['N5', 'N4', 'N3', 'N2', 'N1'],
-      }
-    }
-    if (currentLang === 'zh') {
-      return {
-        patterns: chineseGrammar,
-        kaiwa: chineseKaiwa,
-        levels: ['HSK 1', 'HSK 2', 'HSK 3', 'HSK 4', 'HSK 5', 'HSK 6'],
-      }
-    }
+    const patterns = getAllGrammarPatternsForLanguage(currentLang)
+    const baseLevels =
+      currentLang === 'ja'
+        ? ['N5', 'N4', 'N3', 'N2', 'N1']
+        : currentLang === 'zh'
+        ? ['HSK 1', 'HSK 2', 'HSK 3', 'HSK 4', 'HSK 5', 'HSK 6']
+        : ['Cơ bản', 'Nâng cao']
+    const extraLevels = Array.from(
+      new Set(patterns.map((p) => p.level).filter((lvl) => lvl && !baseLevels.includes(lvl)))
+    )
+    const levels = [...baseLevels, ...extraLevels]
+    const kaiwa =
+      currentLang === 'ja'
+        ? japaneseKaiwa
+        : currentLang === 'zh'
+        ? chineseKaiwa
+        : vietnameseKaiwa
     return {
-      patterns: vietnameseGrammar,
-      kaiwa: vietnameseKaiwa,
-      levels: ['Cơ bản', 'Nâng cao'],
+      patterns,
+      kaiwa,
+      levels,
     }
-  }, [currentLang])
+  }, [currentLang, cmsVersion])
 
   // Current Level selection
   const [selectedLevel, setSelectedLevel] = useState<string>(() => languageData.levels[0])
@@ -167,6 +180,9 @@ export const GrammarSpeaking: React.FC<GrammarSpeakingProps> = ({
 
   // Reset level & selected pattern when language changes (respecting deep-link & today's Study Plan)
   useEffect(() => {
+    const isSameLangRefresh = prevLangRef.current === currentLang
+    prevLangRef.current = currentLang
+
     if (initialPatternId) {
       const target = languageData.patterns.find((p) => p.id === initialPatternId)
       if (target) {
@@ -177,6 +193,13 @@ export const GrammarSpeaking: React.FC<GrammarSpeakingProps> = ({
         onConsumeInitialPattern?.()
         return
       }
+    }
+    if (
+      isSameLangRefresh &&
+      selectedPatternId &&
+      languageData.patterns.some((p) => p.id === selectedPatternId)
+    ) {
+      return
     }
     const plan = loadStudyPlan(currentLang)
     const todayDay = getTodayStudyPlanDay(plan)

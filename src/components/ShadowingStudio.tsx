@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { Language, Lesson, LessonSentence, ScoreResult, LessonProgress, LearningStatus, StudyPlan } from '../types'
-import { supportedLanguages, defaultLessonsByLanguage } from '../data/languages'
+import { supportedLanguages } from '../data/languages'
+import { getAllLessonsForLanguage } from '../services/cms'
 import { playTextToSpeech, stopTextToSpeech, SpeechRecognizer, SpeechStatus, transcribeAudioWithOpenAI } from '../services/speech'
 import { MediaRecordingManager } from '../services/mediaRecorder'
 import { evaluatePronunciation } from '../services/scoring'
@@ -296,9 +297,21 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
     return () => document.removeEventListener('mousedown', handleOutside)
   }, [showAddMenu])
 
+  const [cmsVersion, setCmsVersion] = useState(0)
+  const prevLangRef = useRef<Language | null>(null)
+
+  useEffect(() => {
+    const handleCmsUpdated = () => setCmsVersion((v) => v + 1)
+    window.addEventListener('italk:cms-content-updated', handleCmsUpdated)
+    return () => window.removeEventListener('italk:cms-content-updated', handleCmsUpdated)
+  }, [])
+
   // Load lessons for current language (prioritizing today's Study Plan lesson if active)
   useEffect(() => {
-    const builtin = defaultLessonsByLanguage[currentLang] || []
+    const isSameLangRefresh = prevLangRef.current === currentLang
+    prevLangRef.current = currentLang
+
+    const builtin = getAllLessonsForLanguage(currentLang)
     const custom = loadCustomLessons().filter((l) => l.language === currentLang)
     const combined = [...builtin, ...custom]
     setLessons(combined)
@@ -307,6 +320,8 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
         setActiveLessonId(initialLessonId)
         setCurrentSentenceIdx(0)
         onConsumeInitialLesson?.()
+      } else if (isSameLangRefresh && combined.some((l) => l.id === activeLessonId)) {
+        // Keep current lesson selection on live CMS refresh
       } else {
         const plan = loadStudyPlan(currentLang)
         const todayDay = getTodayStudyPlanDay(plan)
@@ -328,7 +343,7 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
         setCurrentSentenceIdx(0)
       }
     }
-  }, [currentLang])
+  }, [currentLang, cmsVersion])
 
   // Open a specific lesson when navigated from ScheduleTracker
   useEffect(() => {
@@ -1579,7 +1594,7 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
     }
 
     const updated = saveCustomLesson(newLesson)
-    setLessons([...defaultLessonsByLanguage[currentLang], ...updated])
+    setLessons([...getAllLessonsForLanguage(currentLang), ...updated])
     setActiveLessonId(newLesson.id)
     setCurrentSentenceIdx(0)
     setShowAddCustom(false)

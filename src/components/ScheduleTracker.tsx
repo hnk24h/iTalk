@@ -11,7 +11,8 @@ import {
   StudyPlanDayItem,
   UserSchedule,
 } from '../types'
-import { supportedLanguages, defaultLessonsByLanguage } from '../data/languages'
+import { supportedLanguages } from '../data/languages'
+import { getAllLessonsForLanguage } from '../services/cms'
 import {
   loadAllLessonProgress,
   loadCustomLessons,
@@ -173,6 +174,13 @@ export const ScheduleTracker: React.FC<ScheduleTrackerProps> = ({
   )
   const [recordings, setRecordings] = useState<RecordingItem[]>(() => loadRecordings())
   const [studyPlan, setStudyPlan] = useState<StudyPlan | null>(() => loadStudyPlan(currentLang))
+  const [cmsVersion, setCmsVersion] = useState(0)
+
+  useEffect(() => {
+    const handleCmsUpdated = () => setCmsVersion((v) => v + 1)
+    window.addEventListener('italk:cms-content-updated', handleCmsUpdated)
+    return () => window.removeEventListener('italk:cms-content-updated', handleCmsUpdated)
+  }, [])
 
   useEffect(() => {
     setStudyPlan(loadStudyPlan(currentLang))
@@ -260,14 +268,14 @@ export const ScheduleTracker: React.FC<ScheduleTrackerProps> = ({
 
   // All lessons & grammar patterns for current language + O(1) lookup maps
   const allLangLessons = useMemo<Lesson[]>(() => {
-    const builtin = defaultLessonsByLanguage[currentLang] || []
+    const builtin = getAllLessonsForLanguage(currentLang)
     const custom = loadCustomLessons().filter((l) => l.language === currentLang)
     return [...builtin, ...custom]
-  }, [currentLang, lessonProgressMap])
+  }, [currentLang, lessonProgressMap, cmsVersion])
 
   const allLangPatterns = useMemo<GrammarPattern[]>(
     () => getGrammarPatternsByLanguage(currentLang),
-    [currentLang]
+    [currentLang, cmsVersion]
   )
 
   const lessonByIdMap = useMemo(() => {

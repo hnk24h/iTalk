@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Language, UserSchedule } from './types'
 import { Header } from './components/Header'
 import { ShadowingStudio } from './components/ShadowingStudio'
@@ -6,9 +6,19 @@ import { GrammarSpeaking } from './components/GrammarSpeaking'
 import { RecordingsHistory } from './components/RecordingsHistory'
 import { ScheduleTracker } from './components/ScheduleTracker'
 import { SettingsModal } from './components/SettingsModal'
+import { AdminCmsPage } from './components/admin/AdminCmsPage'
 import { loadSchedule, loadSettings } from './services/storage'
 import { loadStudyPlan } from './services/studyPlan'
+import { getCurrentUserProfile, refreshPublishedCmsContent } from './services/cms'
 import { Mic, BookOpen, FolderOpen, Calendar } from 'lucide-react'
+
+function isAdminRouteLocation(): boolean {
+  if (typeof window === 'undefined') return false
+  return (
+    window.location.pathname.startsWith('/admin') ||
+    window.location.hash.startsWith('#/admin')
+  )
+}
 
 export function App() {
   const initialSettings = loadSettings()
@@ -16,8 +26,56 @@ export function App() {
   const [activeTab, setActiveTab] = useState<'shadowing' | 'speaking' | 'recordings' | 'schedule'>('shadowing')
   const [schedule, setSchedule] = useState<UserSchedule>(loadSchedule())
 
+  // Admin CMS Routing & Role state
+  const [isAdminRoute, setIsAdminRoute] = useState<boolean>(() => isAdminRouteLocation())
+  const [isAdminUser, setIsAdminUser] = useState<boolean>(false)
+
   // Settings Modal state
   const [showSettings, setShowSettings] = useState(false)
+
+  useEffect(() => {
+    const syncRoute = () => setIsAdminRoute(isAdminRouteLocation())
+    window.addEventListener('popstate', syncRoute)
+    window.addEventListener('hashchange', syncRoute)
+    return () => {
+      window.removeEventListener('popstate', syncRoute)
+      window.removeEventListener('hashchange', syncRoute)
+    }
+  }, [])
+
+  useEffect(() => {
+    const syncAuthAndCms = () => {
+      getCurrentUserProfile()
+        .then((res) => setIsAdminUser(res.isAdmin))
+        .catch(() => setIsAdminUser(false))
+      refreshPublishedCmsContent().catch(() => {})
+    }
+    syncAuthAndCms()
+    window.addEventListener('italk:auth-changed', syncAuthAndCms)
+    return () => window.removeEventListener('italk:auth-changed', syncAuthAndCms)
+  }, [])
+
+  const enterAdminRoute = () => {
+    if (typeof window !== 'undefined') {
+      if (window.location.protocol === 'file:') {
+        window.location.hash = '#/admin'
+      } else {
+        window.history.pushState({}, '', '/admin')
+      }
+    }
+    setIsAdminRoute(true)
+  }
+
+  const exitAdminRoute = () => {
+    if (typeof window !== 'undefined') {
+      if (window.location.protocol === 'file:') {
+        window.location.hash = ''
+      } else {
+        window.history.pushState({}, '', '/')
+      }
+    }
+    setIsAdminRoute(false)
+  }
 
   // Deep-link navigation state between ScheduleTracker <-> Shadowing / Grammar
   const [pendingLessonId, setPendingLessonId] = useState<string | undefined>(undefined)
@@ -37,6 +95,24 @@ export function App() {
     setSchedule(loadSchedule())
   }
 
+  if (isAdminRoute) {
+    return (
+      <>
+        <AdminCmsPage
+          onExitAdmin={exitAdminRoute}
+          onOpenSettings={() => setShowSettings(true)}
+        />
+        <SettingsModal
+          isOpen={showSettings}
+          onClose={() => setShowSettings(false)}
+          onSettingsChanged={(newSettings) => {
+            if (newSettings.defaultLanguage) setCurrentLang(newSettings.defaultLanguage)
+          }}
+        />
+      </>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
       {/* Header */}
@@ -47,6 +123,8 @@ export function App() {
         onSelectTab={setActiveTab}
         schedule={schedule}
         onOpenSettings={() => setShowSettings(true)}
+        isAdmin={isAdminUser}
+        onOpenAdmin={enterAdminRoute}
       />
 
       {/* Main Content Area - Full Width responsive */}

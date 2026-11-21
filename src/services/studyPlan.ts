@@ -9,10 +9,8 @@ import {
   StudyPlanConfig,
   StudyPlanDayItem,
 } from '../types'
-import { japaneseGrammar } from '../data/grammar-ja'
-import { chineseGrammar } from '../data/grammar-zh'
-import { vietnameseGrammar } from '../data/grammar-vi'
 import { GRAMMAR_SPEAKING_PASS_SCORE, loadGrammarQuizResults } from './grammarQuiz'
+import { getAllGrammarPatternsForLanguage } from './cms'
 
 const STUDY_PLANS_KEY = 'italk_study_plans_v1'
 const GRAMMAR_SCORES_KEY = 'italk_grammar_scores_v1'
@@ -24,9 +22,7 @@ const LANG_LABEL: Record<Language, string> = {
 }
 
 export function getGrammarPatternsByLanguage(lang: Language): GrammarPattern[] {
-  if (lang === 'ja') return japaneseGrammar
-  if (lang === 'zh') return chineseGrammar
-  return vietnameseGrammar
+  return getAllGrammarPatternsForLanguage(lang)
 }
 
 export function getAvailablePlanLevels(lang: Language): string[] {
@@ -45,16 +41,12 @@ export function loadGrammarScores(): Record<string, ScoreResult> {
   }
 }
 
-let cachedPatternById: Map<string, GrammarPattern> | null = null
-
 function getGrammarPatternById(patternId: string): GrammarPattern | undefined {
-  if (!cachedPatternById) {
-    cachedPatternById = new Map<string, GrammarPattern>()
-    for (const p of [...japaneseGrammar, ...chineseGrammar, ...vietnameseGrammar]) {
-      cachedPatternById.set(p.id, p)
-    }
+  for (const lang of ['ja', 'zh', 'vi'] as Language[]) {
+    const found = getAllGrammarPatternsForLanguage(lang).find((p) => p.id === patternId)
+    if (found) return found
   }
-  return cachedPatternById.get(patternId)
+  return undefined
 }
 
 export function isGrammarPatternPracticed(

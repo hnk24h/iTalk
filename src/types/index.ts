@@ -191,6 +191,72 @@ export interface GrammarQuizRecord {
   updatedAt: string
 }
 
+export type UserRole = 'user' | 'admin'
+
+export interface UserProfile {
+  id: string
+  email: string | null
+  displayName: string | null
+  avatarUrl?: string | null
+  role: UserRole
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface CmsLesson extends Lesson {
+  isPublished: boolean
+  sortOrder: number
+  createdAt?: string
+  updatedAt?: string
+  source?: 'cms' | 'builtin' | 'override'
+  isDeleted?: boolean
+}
+
+export interface CmsGrammarPattern extends GrammarPattern {
+  isPublished: boolean
+  sortOrder: number
+  createdAt?: string
+  updatedAt?: string
+  source?: 'cms' | 'builtin' | 'override'
+  isDeleted?: boolean
+}
+
+export interface AdminUserRecording {
+  id: string
+  userId: string
+  lessonId?: string
+  lessonTitle: string
+  language: Language
+  durationSec: number
+  score?: number | null
+  type: 'audio' | 'video'
+  fileUrl?: string | null
+  createdAt: string
+}
+
+export interface AdminUserOverview {
+  id: string
+  email: string
+  displayName: string
+  avatarUrl?: string | null
+  role: UserRole
+  createdAt?: string
+  streak: number
+  lastActiveDate: string
+  targetMinutes: number
+  targetLessons: number
+  totalMinutes: number
+  totalLessonsCompleted: number
+  recordingsCount: number
+  avgScore: number | null
+  recentHistory: Array<{
+    date: string
+    minutes: number
+    lessonsCompleted: number
+    avgScore: number | null
+  }>
+}
+
 export interface ElectronAPI {
   isElectron: boolean
   getRecordingsDir: () => Promise<string>

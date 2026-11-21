@@ -12,6 +12,7 @@ import {
   Globe,
   Sun,
   Moon,
+  Shield,
 } from 'lucide-react'
 import { getStoredTheme, applyTheme, getResolvedTheme, AppTheme } from '../services/theme'
 
@@ -22,6 +23,8 @@ interface HeaderProps {
   onSelectTab: (tab: 'shadowing' | 'speaking' | 'recordings' | 'schedule') => void
   schedule: UserSchedule
   onOpenSettings: () => void
+  isAdmin?: boolean
+  onOpenAdmin?: () => void
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -31,6 +34,8 @@ export const Header: React.FC<HeaderProps> = ({
   onSelectTab,
   schedule,
   onOpenSettings,
+  isAdmin = false,
+  onOpenAdmin,
 }) => {
   const isElectron = Boolean(window.electronAPI?.isElectron)
   const currentLangMeta = supportedLanguages.find(l => l.code === currentLang) || supportedLanguages[0]
@@ -171,6 +176,18 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <SettingsIcon className="w-4 h-4" />
             </button>
+
+            {/* Hidden Admin CMS Button (visible only for Supabase admins) */}
+            {isAdmin && onOpenAdmin && (
+              <button
+                onClick={onOpenAdmin}
+                title="Mở trang quản trị CMS Admin"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-sm transition-colors cursor-pointer"
+              >
+                <Shield className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">CMS</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
