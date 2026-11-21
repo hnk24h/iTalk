@@ -6,9 +6,10 @@ import {
   getConnectedDevices,
   requestMediaPermissions,
   playHeadphoneTestTone,
+  setAudioOutputDevice,
   DeviceCatalog,
 } from '../services/deviceManager'
-import { playTextToSpeech, stopTextToSpeech } from '../services/speech'
+import { playTextToSpeech, stopTextToSpeech, SpeechRecognizer } from '../services/speech'
 import {
   Settings,
   FolderOpen,
@@ -38,6 +39,8 @@ import {
   Gauge,
   Sun,
   Moon,
+  Square,
+  Trash2,
 } from 'lucide-react'
 import { applyTheme, getStoredTheme, AppTheme } from '../services/theme'
 import {
@@ -79,11 +82,33 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   })
   const [isLoadingDevices, setIsLoadingDevices] = useState(false)
 
-  // Mic test state
+  // Mic test & STT diagnostic state
   const [isTestingMic, setIsTestingMic] = useState(false)
   const [micTestLevel, setMicTestLevel] = useState(0)
-  const micStreamRef = useRef<MediaStream | null>(null)
+  const [micTestSeconds, setMicTestSeconds] = useState(0)
+  const [micTestDuration, setMicTestDuration] = useState(0)
+  const [micTestAudioUrl, setMicTestAudioUrl] = useState<string | null>(null)
+  const [micActiveDeviceLabel, setMicActiveDeviceLabel] = useState('')
+  const [micTestError, setMicTestError] = useState<string | null>(null)
+  const micSessionRef = useRef<{
+    sessionId: number
+    stream: MediaStream
+    recorder: MediaRecorder | null
+    chunks: Blob[]
+  } | null>(null)
+  const micTestSessionIdRef = useRef(0)
+  const micTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const micTestSecondsRef = useRef(0)
+  const micTestAudioUrlRef = useRef<string | null>(null)
+  const micPlaybackAudioRef = useRef<HTMLAudioElement | null>(null)
+  const shouldAutoPlayMicTestRef = useRef(false)
+  const isUnmountedRef = useRef(false)
   const animFrameRef = useRef<number | null>(null)
+  const micAudioCtxRef = useRef<AudioContext | null>(null)
+  const [isTestingStt, setIsTestingStt] = useState(false)
+  const [sttTestText, setSttTestText] = useState('')
+  const [sttTestError, setSttTestError] = useState<string | null>(null)
+  const sttTestRecognizerRef = useRef<SpeechRecognizer | null>(null)
 
   // VoiceStudio status
   const [isCheckingVs, setIsCheckingVs] = useState(false)
@@ -111,7 +136,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [syncMessage, setSyncMessage] = useState<string | null>(null)
   const [showConfigInputs, setShowConfigInputs] = useState(false)
 
+  const clearMicTestRecording = () => {
+    if (micTestAudioUrlRef.current?.startsWith('blob:')) {
+      URL.revokeObjectURL(micTestAudioUrlRef.current)
+    }
+    micTestAudioUrlRef.current = null
+    shouldAutoPlayMicTestRef.current = false
+    if (!isUnmountedRef.current) {
+      setMicTestAudioUrl(null)
+      setMicTestDuration(0)
+    }
+  }
+
   useEffect(() => {
+    isUnmountedRef.current = false
     if (window.electronAPI?.getRecordingsDir) {
       window.electronAPI.getRecordingsDir().then(setLocalDir).catch(() => {})
     }
@@ -119,10 +157,33 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     getCurrentUser().then(setCurrentUser).catch(() => {})
 
     return () => {
-      stopMicTest()
+      isUnmountedRef.current = true
+      stopMicTest(true)
+      clearMicTestRecording()
+      stopSttTest()
       stopTextToSpeech()
     }
   }, [])
+
+  useEffect(() => {
+    const el = micPlaybackAudioRef.current
+    if (!el || !micTestAudioUrl) return
+    let cancelled = false
+    const routeAndPlay = async () => {
+      if (settings.selectedAudioOutputId) {
+        await setAudioOutputDevice(el, settings.selectedAudioOutputId)
+      }
+      if (!cancelled && shouldAutoPlayMicTestRef.current) {
+        shouldAutoPlayMicTestRef.current = false
+        el.currentTime = 0
+        el.play().catch(() => {})
+      }
+    }
+    routeAndPlay()
+    return () => {
+      cancelled = true
+    }
+  }, [micTestAudioUrl, settings.selectedAudioOutputId])
 
   const handleSaveSupabaseConfig = () => {
     saveSupabaseConfig(supabaseConfig)
@@ -200,7 +261,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   }
 
   const startMicTest = async () => {
-    stopMicTest()
+    stopSttTest()
+    stopMicTest(true)
+    clearMicTestRecording()
+    setMicTestError(null)
+    micTestSecondsRef.current = 0
+    setMicTestSeconds(0)
+    const sessionId = ++micTestSessionIdRef.current
+
     try {
       const constraints: MediaStreamConstraints = {
         audio: settings.selectedAudioInputId
@@ -208,12 +276,63 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           : true,
       }
       const stream = await navigator.mediaDevices.getUserMedia(constraints)
-      micStreamRef.current = stream
+      if (isUnmountedRef.current || sessionId !== micTestSessionIdRef.current) {
+        stream.getTracks().forEach((t) => t.stop())
+        return
+      }
+
+      const trackLabel = stream.getAudioTracks()[0]?.label || ''
+      setMicActiveDeviceLabel(trackLabel)
+
+      const chunks: Blob[] = []
+      const sessionObj: {
+        sessionId: number
+        stream: MediaStream
+        recorder: MediaRecorder | null
+        chunks: Blob[]
+      } = { sessionId, stream, recorder: null, chunks }
+      micSessionRef.current = sessionObj
+
+      if (typeof MediaRecorder !== 'undefined') {
+        const preferredTypes = [
+          'audio/webm;codecs=opus',
+          'audio/webm',
+          'audio/mp4',
+          'audio/ogg;codecs=opus',
+        ]
+        const supportedType = preferredTypes.find(
+          (t) =>
+            typeof MediaRecorder.isTypeSupported === 'function' && MediaRecorder.isTypeSupported(t)
+        )
+        const recorder = supportedType
+          ? new MediaRecorder(stream, { mimeType: supportedType })
+          : new MediaRecorder(stream)
+        recorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) {
+            chunks.push(e.data)
+          }
+        }
+        sessionObj.recorder = recorder
+        recorder.start(200)
+      }
+
       setIsTestingMic(true)
+
+      micTimerRef.current = setInterval(() => {
+        micTestSecondsRef.current += 1
+        setMicTestSeconds(micTestSecondsRef.current)
+        if (micTestSecondsRef.current >= 30) {
+          stopMicTest(false)
+        }
+      }, 1000)
 
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext
       if (!AudioCtx) return
       const audioCtx = new AudioCtx()
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume().catch(() => {})
+      }
+      micAudioCtxRef.current = audioCtx
       const source = audioCtx.createMediaStreamSource(stream)
       const analyser = audioCtx.createAnalyser()
       analyser.fftSize = 64
@@ -221,7 +340,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
       const dataArray = new Uint8Array(analyser.frequencyBinCount)
       const updateLevel = () => {
-        if (!micStreamRef.current) return
+        if (!micSessionRef.current || micSessionRef.current.sessionId !== sessionId) return
         analyser.getByteFrequencyData(dataArray)
         let sum = 0
         for (let i = 0; i < dataArray.length; i++) {
@@ -233,22 +352,131 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       }
       updateLevel()
     } catch (err: any) {
-      alert(`Không thể kích hoạt Micro: ${err.message || 'Hãy kiểm tra quyền trên trình duyệt'}`)
-      setIsTestingMic(false)
+      stopMicTest(true)
+      if (!isUnmountedRef.current) {
+        setMicTestError(
+          `Không thể kích hoạt Micro: ${err?.message || 'Hãy kiểm tra quyền trên trình duyệt'}`
+        )
+      }
     }
   }
 
-  const stopMicTest = () => {
+  const stopMicTest = (discardRecording = false) => {
+    if (discardRecording) {
+      micTestSessionIdRef.current += 1
+    }
     if (animFrameRef.current) {
       cancelAnimationFrame(animFrameRef.current)
       animFrameRef.current = null
     }
-    if (micStreamRef.current) {
-      micStreamRef.current.getTracks().forEach((t) => t.stop())
-      micStreamRef.current = null
+    if (micTimerRef.current) {
+      clearInterval(micTimerRef.current)
+      micTimerRef.current = null
     }
-    setIsTestingMic(false)
-    setMicTestLevel(0)
+    if (micAudioCtxRef.current) {
+      micAudioCtxRef.current.close().catch(() => {})
+      micAudioCtxRef.current = null
+    }
+
+    const session = micSessionRef.current
+    micSessionRef.current = null
+    const durationSec = Math.max(1, micTestSecondsRef.current)
+
+    if (!isUnmountedRef.current) {
+      setIsTestingMic(false)
+      setMicTestLevel(0)
+    }
+
+    if (!session) return
+
+    const releaseStream = () => {
+      session.stream.getTracks().forEach((t) => t.stop())
+    }
+
+    if (session.recorder && session.recorder.state !== 'inactive') {
+      const recorder = session.recorder
+      recorder.onstop = () => {
+        releaseStream()
+        if (discardRecording || isUnmountedRef.current || session.sessionId !== micTestSessionIdRef.current) {
+          return
+        }
+        const blob = new Blob(session.chunks, {
+          type: recorder.mimeType || 'audio/webm',
+        })
+        if (blob.size === 0) {
+          setMicTestError(
+            'Không thu được âm thanh từ Micro. Hãy kiểm tra quyền Micro hoặc chọn đúng thiết bị đầu vào.'
+          )
+          return
+        }
+        if (micTestAudioUrlRef.current?.startsWith('blob:')) {
+          URL.revokeObjectURL(micTestAudioUrlRef.current)
+        }
+        const url = URL.createObjectURL(blob)
+        micTestAudioUrlRef.current = url
+        shouldAutoPlayMicTestRef.current = true
+        setMicTestDuration(durationSec)
+        setMicTestAudioUrl(url)
+      }
+      try {
+        recorder.stop()
+      } catch {
+        releaseStream()
+      }
+    } else {
+      releaseStream()
+    }
+  }
+
+  const stopSttTest = () => {
+    sttTestRecognizerRef.current?.abort()
+    setIsTestingStt(false)
+  }
+
+  const toggleSttTest = () => {
+    if (isTestingStt) {
+      stopSttTest()
+      return
+    }
+    stopMicTest(true)
+    setSttTestText('')
+    setSttTestError(null)
+    if (!sttTestRecognizerRef.current) {
+      sttTestRecognizerRef.current = new SpeechRecognizer()
+    }
+    if (!sttTestRecognizerRef.current.isSupported()) {
+      setSttTestError('unsupported: Trình duyệt không hỗ trợ Web Speech API.')
+      return
+    }
+    const langMeta =
+      supportedLanguages.find((l) => l.code === settings.defaultLanguage) || supportedLanguages[0]
+    setIsTestingStt(true)
+    sttTestRecognizerRef.current.start({
+      lang: langMeta.speechCode,
+      onResult: (transcript) => {
+        setSttTestText(transcript)
+        setSttTestError(null)
+      },
+      onError: (err) => {
+        const code = err?.error || 'unknown'
+        if (code === 'aborted') return
+        setIsTestingStt(false)
+        setSttTestError(
+          `Lỗi "${code}": ${
+            code === 'network'
+              ? 'Không kết nối được máy chủ Web Speech API (cần Chrome/Edge hoặc OpenAI Whisper).'
+              : code === 'not-allowed' || code === 'service-not-allowed'
+              ? 'Micro hoặc Web Speech bị chặn quyền.'
+              : code === 'no-speech'
+              ? 'Không nghe thấy giọng nói (kiểm tra OS Input mặc định).'
+              : err?.message || 'Thử lại sau.'
+          }`
+        )
+      },
+      onEnd: () => {
+        setIsTestingStt(false)
+      },
+    })
   }
 
   const handleTestHeadphone = () => {
@@ -396,7 +624,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </div>
           <button
             onClick={() => {
-              stopMicTest()
+              stopMicTest(true)
+              stopSttTest()
               stopTextToSpeech()
               onClose()
             }}
@@ -890,7 +1119,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </label>
                   <select
                     value={settings.selectedAudioInputId || ''}
-                    onChange={(e) => handleUpdate({ selectedAudioInputId: e.target.value })}
+                    onChange={(e) => {
+                      if (isTestingMic) stopMicTest(true)
+                      handleUpdate({ selectedAudioInputId: e.target.value })
+                    }}
                     className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
                   >
                     <option value="">Microphone mặc định của hệ thống</option>
@@ -900,21 +1132,50 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       </option>
                     ))}
                   </select>
+                  <p className="text-[11px] text-slate-400">
+                    Lưu ý: Web Speech API của trình duyệt luôn thu theo Micro mặc định của hệ điều hành (OS Input). Nếu chỉ dùng trình duyệt, hãy đặt đúng mic làm mặc định trong hệ thống.
+                  </p>
 
-                  {/* Test Mic Button & VU Meter */}
-                  <div className="flex items-center gap-2.5 pt-1">
+                  {/* Test Mic Button & VU Meter + Live STT Test */}
+                  <div className="flex items-center gap-2.5 pt-1 flex-wrap">
                     <button
-                      onClick={isTestingMic ? stopMicTest : startMicTest}
-                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-md ${
+                      type="button"
+                      onClick={() => {
+                        stopSttTest()
+                        isTestingMic ? stopMicTest(false) : startMicTest()
+                      }}
+                      className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-md ${
                         isTestingMic
                           ? 'bg-rose-500 text-white animate-pulse'
                           : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
                       }`}
                     >
-                      {isTestingMic ? 'Dừng test mic' : 'Nói thử mic'}
+                      {isTestingMic ? (
+                        <>
+                          <Square className="w-3 h-3 fill-current" />
+                          <span>Dừng &amp; Nghe lại ({micTestSeconds}s)</span>
+                        </>
+                      ) : (
+                        <>
+                          <Mic className="w-3.5 h-3.5" />
+                          <span>Ghi âm thử mic</span>
+                        </>
+                      )}
                     </button>
 
-                    <div className="flex-1 bg-slate-900 h-2.5 rounded-full overflow-hidden border border-slate-800">
+                    <button
+                      type="button"
+                      onClick={toggleSttTest}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-md ${
+                        isTestingStt
+                          ? 'bg-indigo-600 text-white animate-pulse'
+                          : 'bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700'
+                      }`}
+                    >
+                      {isTestingStt ? 'Dừng test STT' : 'Test nhận diện chữ (STT)'}
+                    </button>
+
+                    <div className="flex-1 min-w-[120px] bg-slate-900 h-2.5 rounded-full overflow-hidden border border-slate-800">
                       <div
                         className="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-amber-400 transition-all duration-75"
                         style={{ width: `${micTestLevel}%` }}
@@ -924,6 +1185,80 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       {micTestLevel}%
                     </span>
                   </div>
+
+                  {isTestingMic && (
+                    <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300 flex items-center justify-between gap-2 flex-wrap">
+                      <span>Đang ghi âm thử... Hãy nói vài câu rồi bấm Dừng &amp; Nghe lại</span>
+                      {micActiveDeviceLabel && (
+                        <span className="text-[11px] text-emerald-400 truncate max-w-[240px]">
+                          {micActiveDeviceLabel}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {micTestError && (
+                    <div className="p-2.5 rounded-xl border text-xs bg-amber-500/10 border-amber-500/30 text-amber-300">
+                      {micTestError}
+                    </div>
+                  )}
+
+                  {micTestAudioUrl && !isTestingMic && (
+                    <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <div className="flex items-center gap-1.5 text-xs text-slate-200 font-semibold min-w-0">
+                          <Volume2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                          <span>Bản ghi thử ({micTestDuration}s)</span>
+                          {micActiveDeviceLabel && (
+                            <span className="text-[11px] font-normal text-slate-400 truncate max-w-[200px]">
+                              • {micActiveDeviceLabel}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={startMicTest}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors cursor-pointer"
+                          >
+                            <RefreshCw className="w-3 h-3" />
+                            <span>Ghi lại</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={clearMicTestRecording}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-800 hover:bg-slate-700 text-rose-400 border border-slate-700 transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            <span>Xóa</span>
+                          </button>
+                        </div>
+                      </div>
+                      <audio
+                        ref={micPlaybackAudioRef}
+                        key={micTestAudioUrl}
+                        src={micTestAudioUrl}
+                        controls
+                        className="w-full h-9"
+                      />
+                    </div>
+                  )}
+
+                  {(isTestingStt || sttTestText || sttTestError) && (
+                    <div
+                      className={`p-2.5 rounded-xl border text-xs ${
+                        sttTestError
+                          ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+                          : 'bg-slate-900 border-slate-800 text-emerald-300'
+                      }`}
+                    >
+                      {sttTestError
+                        ? sttTestError
+                        : sttTestText
+                        ? `Nhận diện được: "${sttTestText}"`
+                        : 'Đang lắng nghe — hãy nói vài từ bằng ngôn ngữ đang học...'}
+                    </div>
+                  )}
                 </div>
 
                 {/* Headphone / Speaker Section */}
@@ -1356,7 +1691,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </span>
           <button
             onClick={() => {
-              stopMicTest()
+              stopMicTest(true)
+              stopSttTest()
               stopTextToSpeech()
               onClose()
             }}

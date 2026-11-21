@@ -220,6 +220,9 @@ export class MediaRecordingManager {
       if (!AudioCtx) return
 
       this.audioContext = new AudioCtx()
+      if (this.audioContext.state === 'suspended') {
+        this.audioContext.resume().catch(() => {})
+      }
       const source = this.audioContext.createMediaStreamSource(stream)
       this.analyser = this.audioContext.createAnalyser()
       this.analyser.fftSize = 64

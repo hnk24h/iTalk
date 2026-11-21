@@ -443,8 +443,25 @@ export async function playTextToSpeech({
 }
 
 // Speech Recognition (Speech to Text)
+export type SpeechStatus = 'mic-open' | 'sound' | 'speech'
+
+type RecognizerState = 'idle' | 'starting' | 'listening' | 'stopping'
+
+/**
+ * State-machine wrapper around a single reused Web Speech API instance.
+ * - Keeps ONE `SpeechRecognition` instance alive to avoid Chromium's dual-instance `abort()` race
+ *   where creating a second instance synchronously starves audio capture.
+ * - Starts synchronously on click when idle; queues pending restarts cleanly until `onend` settles.
+ * - `stopAndWait()` lets callers flush the trailing final transcript before scoring.
+ */
 export class SpeechRecognizer {
   private recognition: any = null
+  private state: RecognizerState = 'idle'
+  private sessionId: number = 0
+  private retryTimer: ReturnType<typeof setTimeout> | null = null
+  private pendingStart: (() => void) | null = null
+  private pendingStartTimer: ReturnType<typeof setTimeout> | null = null
+  private pendingStopResolvers: Array<() => void> = []
   public isListening: boolean = false
 
   constructor() {
@@ -464,69 +481,239 @@ export class SpeechRecognizer {
     return this.recognition !== null
   }
 
+  private flushStopResolvers() {
+    if (this.pendingStopResolvers.length === 0) return
+    const list = this.pendingStopResolvers.splice(0, this.pendingStopResolvers.length)
+    list.forEach((resolve) => {
+      try {
+        resolve()
+      } catch {}
+    })
+  }
+
+  private clearTimers() {
+    if (this.retryTimer) {
+      clearTimeout(this.retryTimer)
+      this.retryTimer = null
+    }
+    if (this.pendingStartTimer) {
+      clearTimeout(this.pendingStartTimer)
+      this.pendingStartTimer = null
+    }
+  }
+
   public start({
     lang,
     onResult,
     onError,
     onEnd,
+    onStatus,
   }: {
     lang: string // ja-JP, zh-CN, vi-VN
     onResult: (transcript: string, isFinal: boolean) => void
     onError: (error: any) => void
     onEnd: () => void
+    onStatus?: (status: SpeechStatus) => void
   }) {
     if (!this.recognition) {
-      onError(new Error('Speech Recognition không được hỗ trợ trên trình duyệt này'))
+      onError({ error: 'unsupported', message: 'Speech Recognition không được hỗ trợ trên trình duyệt này' })
       return
     }
 
+    this.clearTimers()
+    this.pendingStart = null
+    const mySession = ++this.sessionId
+
+    const launch = (allowRetry: boolean) => {
+      if (mySession !== this.sessionId || !this.recognition) return
+      const rec = this.recognition
+      rec.lang = lang
+
+      rec.onstart = () => {
+        if (mySession !== this.sessionId) return
+        this.state = 'listening'
+        this.isListening = true
+      }
+
+      rec.onaudiostart = () => {
+        if (mySession === this.sessionId) onStatus?.('mic-open')
+      }
+      rec.onsoundstart = () => {
+        if (mySession === this.sessionId) onStatus?.('sound')
+      }
+      rec.onspeechstart = () => {
+        if (mySession === this.sessionId) onStatus?.('speech')
+      }
+
+      rec.onresult = (event: any) => {
+        if (mySession !== this.sessionId) return
+        let fullFinal = ''
+        let fullInterim = ''
+        let hasNewFinal = false
+        for (let i = 0; i < event.results.length; ++i) {
+          const res = event.results[i]
+          const seg = res?.[0]?.transcript || ''
+          if (res?.isFinal) {
+            fullFinal += seg
+            if (i >= event.resultIndex) hasNewFinal = true
+          } else {
+            fullInterim += seg
+          }
+        }
+        const combined = `${fullFinal}${fullInterim}`.trim()
+        if (combined) {
+          onResult(combined, hasNewFinal && !fullInterim.trim())
+        }
+      }
+
+      rec.onerror = (event: any) => {
+        if (mySession !== this.sessionId) return
+        this.isListening = false
+        onError(event)
+      }
+
+      rec.onend = () => {
+        this.state = 'idle'
+        this.isListening = false
+        if (this.pendingStartTimer) {
+          clearTimeout(this.pendingStartTimer)
+          this.pendingStartTimer = null
+        }
+        this.flushStopResolvers()
+
+        if (this.pendingStart) {
+          const next = this.pendingStart
+          this.pendingStart = null
+          next()
+          return
+        }
+
+        if (mySession === this.sessionId) {
+          onEnd()
+        }
+      }
+
+      try {
+        this.state = 'starting'
+        this.isListening = true
+        rec.start()
+      } catch (err: any) {
+        this.state = 'idle'
+        this.isListening = false
+        if (allowRetry && err?.name === 'InvalidStateError') {
+          this.retryTimer = setTimeout(() => {
+            this.retryTimer = null
+            launch(false)
+          }, 180)
+          return
+        }
+        if (mySession === this.sessionId) {
+          onError({ error: err?.name || 'start-failed', message: err?.message })
+        }
+      }
+    }
+
+    if (this.state === 'idle') {
+      launch(true)
+      return
+    }
+
+    this.pendingStart = () => launch(true)
+    this.state = 'stopping'
+    this.isListening = false
     try {
       this.recognition.abort()
     } catch {}
 
-    this.recognition.lang = lang
-
-    this.recognition.onresult = (event: any) => {
-      let finalTranscript = ''
-      let interimTranscript = ''
-
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript
-        } else {
-          interimTranscript += event.results[i][0].transcript
-        }
+    this.pendingStartTimer = setTimeout(() => {
+      this.pendingStartTimer = null
+      if (this.pendingStart && mySession === this.sessionId) {
+        this.state = 'idle'
+        const next = this.pendingStart
+        this.pendingStart = null
+        next()
       }
-
-      const combined = finalTranscript || interimTranscript
-      onResult(combined.trim(), Boolean(finalTranscript))
-    }
-
-    this.recognition.onerror = (event: any) => {
-      this.isListening = false
-      onError(event)
-    }
-
-    this.recognition.onend = () => {
-      this.isListening = false
-      onEnd()
-    }
-
-    try {
-      this.recognition.start()
-      this.isListening = true
-    } catch (err) {
-      this.isListening = false
-      onError(err)
-    }
+    }, 250)
   }
 
   public stop() {
-    if (this.recognition && this.isListening) {
+    if (!this.recognition) return
+    if (this.state === 'starting' || this.state === 'listening') {
+      this.state = 'stopping'
       try {
         this.recognition.stop()
       } catch {}
-      this.isListening = false
     }
   }
+
+  public stopAndWait(timeoutMs: number = 1000): Promise<void> {
+    if (!this.recognition || this.state === 'idle') {
+      return Promise.resolve()
+    }
+    return new Promise((resolve) => {
+      let settled = false
+      const done = () => {
+        if (settled) return
+        settled = true
+        clearTimeout(timer)
+        resolve()
+      }
+      const timer = setTimeout(() => {
+        const idx = this.pendingStopResolvers.indexOf(done)
+        if (idx >= 0) this.pendingStopResolvers.splice(idx, 1)
+        done()
+      }, timeoutMs)
+
+      this.pendingStopResolvers.push(done)
+      if (this.state === 'starting' || this.state === 'listening') {
+        this.stop()
+      }
+    })
+  }
+
+  public abort() {
+    this.sessionId += 1
+    this.clearTimers()
+    this.pendingStart = null
+    this.flushStopResolvers()
+    this.isListening = false
+    if (this.recognition && this.state !== 'idle') {
+      this.state = 'stopping'
+      try {
+        this.recognition.abort()
+      } catch {}
+    }
+  }
+}
+
+/**
+ * Cloud fallback STT (OpenAI Whisper compatible endpoint) for environments where the browser
+ * Web Speech API is unavailable or blocked (Electron, Chromium without Google keys, Brave, ...).
+ */
+export async function transcribeAudioWithOpenAI(blob: Blob, langCode: string): Promise<string> {
+  const settings = loadSettings()
+  const apiKey = (settings.openaiApiKey || '').trim()
+  if (!apiKey) throw new Error('Chưa cấu hình OpenAI API Key trong Cài đặt.')
+  const base = (settings.openaiEndpoint || 'https://api.openai.com/v1').replace(/\/+$/, '')
+  const ext = blob.type.includes('mp4') ? 'mp4' : blob.type.includes('ogg') ? 'ogg' : 'webm'
+  const form = new FormData()
+  form.append('file', blob, `speech.${ext}`)
+  form.append('model', 'whisper-1')
+  form.append('language', langCode.split('-')[0].toLowerCase())
+  form.append('response_format', 'json')
+
+  const res = await fetch(`${base}/audio/transcriptions`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}` },
+    body: form,
+  })
+  if (!res.ok) {
+    let detail = ''
+    try {
+      detail = (await res.json())?.error?.message || ''
+    } catch {}
+    throw new Error(`Whisper lỗi ${res.status}${detail ? `: ${detail}` : ''}`)
+  }
+  const data = await res.json()
+  return String(data?.text || '').trim()
 }

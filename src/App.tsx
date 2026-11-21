@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react'
-import { Language, ScoreResult, UserSchedule } from './types'
+import React, { useState } from 'react'
+import { Language, UserSchedule } from './types'
 import { Header } from './components/Header'
 import { ShadowingStudio } from './components/ShadowingStudio'
 import { GrammarSpeaking } from './components/GrammarSpeaking'
 import { RecordingsHistory } from './components/RecordingsHistory'
 import { ScheduleTracker } from './components/ScheduleTracker'
-import { PronunciationScoreModal } from './components/PronunciationScoreModal'
 import { SettingsModal } from './components/SettingsModal'
 import { loadSchedule, loadSettings } from './services/storage'
+import { loadStudyPlan } from './services/studyPlan'
 import { Mic, BookOpen, FolderOpen, Calendar } from 'lucide-react'
 
 export function App() {
@@ -16,27 +16,25 @@ export function App() {
   const [activeTab, setActiveTab] = useState<'shadowing' | 'speaking' | 'recordings' | 'schedule'>('shadowing')
   const [schedule, setSchedule] = useState<UserSchedule>(loadSchedule())
 
-  // Scoring Modal state
-  const [activeScoreResult, setActiveScoreResult] = useState<ScoreResult | null>(null)
-  const [activeVideoBlobUrl, setActiveVideoBlobUrl] = useState<string | undefined>()
-  const [activeLocalPath, setActiveLocalPath] = useState<string | undefined>()
-
   // Settings Modal state
   const [showSettings, setShowSettings] = useState(false)
 
-  // Deep-link lesson selection from ScheduleTracker -> ShadowingStudio
+  // Deep-link navigation state between ScheduleTracker <-> Shadowing / Grammar
   const [pendingLessonId, setPendingLessonId] = useState<string | undefined>(undefined)
+  const [pendingGrammarPatternId, setPendingGrammarPatternId] = useState<string | undefined>(undefined)
+  const [scheduleSubTab, setScheduleSubTab] = useState<'overview' | 'plan'>('overview')
+  const [autoOpenPlanCreator, setAutoOpenPlanCreator] = useState(false)
+
+  const handleOpenStudyPlan = () => {
+    const existing = loadStudyPlan(currentLang)
+    setScheduleSubTab('plan')
+    setAutoOpenPlanCreator(!existing)
+    setActiveTab('schedule')
+  }
 
   // Refresh schedule periodically or after activity
   const refreshSchedule = () => {
     setSchedule(loadSchedule())
-  }
-
-  const handleScoreReady = (result: ScoreResult, videoBlobUrl?: string, localPath?: string) => {
-    setActiveScoreResult(result)
-    setActiveVideoBlobUrl(videoBlobUrl)
-    setActiveLocalPath(localPath)
-    refreshSchedule()
   }
 
   return (
@@ -56,14 +54,20 @@ export function App() {
         {activeTab === 'shadowing' && (
           <ShadowingStudio
             currentLang={currentLang}
-            onScoreReady={handleScoreReady}
+            onPracticeComplete={refreshSchedule}
             initialLessonId={pendingLessonId}
             onConsumeInitialLesson={() => setPendingLessonId(undefined)}
+            onOpenStudyPlan={handleOpenStudyPlan}
           />
         )}
 
         {activeTab === 'speaking' && (
-          <GrammarSpeaking currentLang={currentLang} />
+          <GrammarSpeaking
+            currentLang={currentLang}
+            initialPatternId={pendingGrammarPatternId}
+            onConsumeInitialPattern={() => setPendingGrammarPatternId(undefined)}
+            onOpenStudyPlan={handleOpenStudyPlan}
+          />
         )}
 
         {activeTab === 'recordings' && (
@@ -79,6 +83,13 @@ export function App() {
               setPendingLessonId(lessonId)
               setActiveTab('shadowing')
             }}
+            onOpenGrammar={(patternId) => {
+              setPendingGrammarPatternId(patternId)
+              setActiveTab('speaking')
+            }}
+            initialSubTab={scheduleSubTab}
+            autoOpenPlanCreator={autoOpenPlanCreator}
+            onConsumePlanNavigation={() => setAutoOpenPlanCreator(false)}
           />
         )}
       </main>
@@ -143,23 +154,6 @@ export function App() {
           </button>
         </div>
       </nav>
-
-      {/* Pronunciation Scoring Modal */}
-      {activeScoreResult && (
-        <PronunciationScoreModal
-          scoreResult={activeScoreResult}
-          videoBlobUrl={activeVideoBlobUrl}
-          localPath={activeLocalPath}
-          onClose={() => {
-            setActiveScoreResult(null)
-            setActiveVideoBlobUrl(undefined)
-            setActiveLocalPath(undefined)
-          }}
-          onRetry={() => {
-            setActiveScoreResult(null)
-          }}
-        />
-      )}
 
       {/* Settings Modal */}
       <SettingsModal

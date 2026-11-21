@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
-import { Language, Lesson, LessonSentence, ScoreResult, LessonProgress, LearningStatus } from '../types'
+import { Language, Lesson, LessonSentence, ScoreResult, LessonProgress, LearningStatus, StudyPlan } from '../types'
 import { supportedLanguages, defaultLessonsByLanguage } from '../data/languages'
-import { playTextToSpeech, stopTextToSpeech, SpeechRecognizer } from '../services/speech'
+import { playTextToSpeech, stopTextToSpeech, SpeechRecognizer, SpeechStatus, transcribeAudioWithOpenAI } from '../services/speech'
 import { MediaRecordingManager } from '../services/mediaRecorder'
 import { evaluatePronunciation } from '../services/scoring'
 import {
@@ -14,9 +14,11 @@ import {
   recordSentencePractice,
 } from '../services/storage'
 import { getAudioBlob } from '../services/audioDb'
+import { loadStudyPlan, getTodayStudyPlanDay } from '../services/studyPlan'
 import { setAudioOutputDevice } from '../services/deviceManager'
 import { FuriganaText } from '../services/furigana'
 import { AudioImporterModal } from './AudioImporterModal'
+import confetti from 'canvas-confetti'
 import {
   Volume2,
   Square,
@@ -31,7 +33,6 @@ import {
   RotateCcw,
   PlusCircle,
   HelpCircle,
-  CheckCircle,
   Radio,
   FileText,
   FileAudio,
@@ -66,6 +67,9 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Plus,
+  ArrowRight,
+  FolderOpen,
+  Target,
 } from 'lucide-react'
 
 export const PASS_SCORE = 70
@@ -99,9 +103,10 @@ export type LessonAdvanceMode = 'auto' | 'manual'
 
 interface ShadowingStudioProps {
   currentLang: Language
-  onScoreReady: (result: ScoreResult, videoBlobUrl?: string, localPath?: string) => void
+  onPracticeComplete?: () => void
   initialLessonId?: string
   onConsumeInitialLesson?: () => void
+  onOpenStudyPlan?: () => void
 }
 
 const formatTime = (seconds: number) => {
@@ -113,9 +118,10 @@ const formatTime = (seconds: number) => {
 
 export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
   currentLang,
-  onScoreReady,
+  onPracticeComplete,
   initialLessonId,
   onConsumeInitialLesson,
+  onOpenStudyPlan,
 }) => {
   const langMeta = supportedLanguages.find((l) => l.code === currentLang) || supportedLanguages[0]
 
@@ -168,6 +174,7 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
   const [lessonProgressMap, setLessonProgressMap] = useState<Record<string, LessonProgress>>(() =>
     loadAllLessonProgress()
   )
+  const [studyPlan, setStudyPlan] = useState<StudyPlan | null>(() => loadStudyPlan(currentLang))
 
   // Listen to progress updates across tabs/windows
   useEffect(() => {
@@ -181,6 +188,14 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
       window.removeEventListener('italk:lesson-progress-updated', handleProgressUpdate)
     }
   }, [])
+
+  // Sync active Study Plan on language change or plan updates
+  useEffect(() => {
+    setStudyPlan(loadStudyPlan(currentLang))
+    const handlePlanUpdate = () => setStudyPlan(loadStudyPlan(currentLang))
+    window.addEventListener('italk:study-plan-updated', handlePlanUpdate)
+    return () => window.removeEventListener('italk:study-plan-updated', handlePlanUpdate)
+  }, [currentLang])
 
   // Reset filters when switching languages
   useEffect(() => {
@@ -219,11 +234,22 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
   const [recordingSeconds, setRecordingSeconds] = useState(0)
   const [audioLevel, setAudioLevel] = useState(0)
   const [realtimeTranscript, setRealtimeTranscript] = useState('')
+  const [speechError, setSpeechError] = useState<string | null>(null)
+  const [speechStatus, setSpeechStatus] = useState<SpeechStatus | null>(null)
+  const [isTranscribingWhisper, setIsTranscribingWhisper] = useState(false)
+  const realtimeTranscriptRef = useRef('')
 
   // Modals state
   const [showAddCustom, setShowAddCustom] = useState(false)
   const [showAudioImporter, setShowAudioImporter] = useState(false)
   const [showWebcamModal, setShowWebcamModal] = useState(false)
+  const [modalScoreResult, setModalScoreResult] = useState<ScoreResult | null>(null)
+  const [modalRecordingUrl, setModalRecordingUrl] = useState<string | undefined>(undefined)
+  const [modalRecordingType, setModalRecordingType] = useState<'audio' | 'video'>('video')
+  const [modalLocalPath, setModalLocalPath] = useState<string | undefined>(undefined)
+  const [showModalMouthGuide, setShowModalMouthGuide] = useState(false)
+  const modalRecordingUrlRef = useRef<string | undefined>(undefined)
+  const modalKeyHandlerRef = useRef<((e: KeyboardEvent) => void) | null>(null)
   const [customTitle, setCustomTitle] = useState('')
   const [customText, setCustomText] = useState('')
   const [customTranslation, setCustomTranslation] = useState('')
@@ -270,7 +296,7 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
     return () => document.removeEventListener('mousedown', handleOutside)
   }, [showAddMenu])
 
-  // Load lessons for current language
+  // Load lessons for current language (prioritizing today's Study Plan lesson if active)
   useEffect(() => {
     const builtin = defaultLessonsByLanguage[currentLang] || []
     const custom = loadCustomLessons().filter((l) => l.language === currentLang)
@@ -282,7 +308,23 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
         setCurrentSentenceIdx(0)
         onConsumeInitialLesson?.()
       } else {
-        setActiveLessonId(combined[0].id)
+        const plan = loadStudyPlan(currentLang)
+        const todayDay = getTodayStudyPlanDay(plan)
+        let prioritizedLesson: Lesson | undefined
+        if (plan && todayDay && todayDay.shadowingLessonIds.length > 0) {
+          const progMap = loadAllLessonProgress()
+          const byId = new Map(combined.map((l) => [l.id, l]))
+          const todayMatches = todayDay.shadowingLessonIds
+            .map((id) => byId.get(id))
+            .filter((l): l is Lesson => Boolean(l))
+          prioritizedLesson =
+            todayMatches.find((l) => {
+              if (plan.completedShadowingIds?.includes(l.id)) return false
+              const p = progMap[l.id]
+              return !(p && (p.isCompleted || (p.progressPercent ?? 0) >= 100))
+            }) || todayMatches[0]
+        }
+        setActiveLessonId((prioritizedLesson || combined[0]).id)
         setCurrentSentenceIdx(0)
       }
     }
@@ -405,17 +447,15 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
     })
   }, [currentSentenceIdx, isAutoScrollEnabled, activeLessonId])
 
-  // Close Webcam Modal on Escape (only when not recording)
+  // Keyboard shortcuts inside Speaking Practice Modal (Escape & Space)
   useEffect(() => {
     if (!showWebcamModal) return
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        handleCloseWebcamModal()
-      }
+      modalKeyHandlerRef.current?.(e)
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [showWebcamModal, isRecording])
+  }, [showWebcamModal])
 
   useEffect(() => {
     const handleCloudSync = (e: any) => {
@@ -432,6 +472,13 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
       if (ttsSequenceTimeoutRef.current) clearTimeout(ttsSequenceTimeoutRef.current)
       stopPlayback()
       stopCamPreview()
+      speechRecognizerRef.current.abort()
+      if (modalRecordingUrlRef.current?.startsWith('blob:')) {
+        try {
+          URL.revokeObjectURL(modalRecordingUrlRef.current)
+        } catch {}
+        modalRecordingUrlRef.current = undefined
+      }
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current)
       if (audioCheckIntervalRef.current) clearInterval(audioCheckIntervalRef.current)
       if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current)
@@ -537,9 +584,27 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
     setIsPlayingAudio(false)
   }
 
+  const clearModalResult = () => {
+    if (modalRecordingUrlRef.current?.startsWith('blob:')) {
+      try {
+        URL.revokeObjectURL(modalRecordingUrlRef.current)
+      } catch {}
+    }
+    modalRecordingUrlRef.current = undefined
+    setModalScoreResult(null)
+    setModalRecordingUrl(undefined)
+    setModalLocalPath(undefined)
+    setSpeechError(null)
+    setSpeechStatus(null)
+  }
+
   // Open / Close Webcam & Shadowing Studio Modal
   const openWebcamModalForSentence = (idx?: number) => {
     stopPlayback()
+    clearModalResult()
+    setShowModalMouthGuide(false)
+    realtimeTranscriptRef.current = ''
+    setRealtimeTranscript('')
     if (typeof idx === 'number') {
       setCurrentSentenceIdx(idx)
     }
@@ -551,7 +616,11 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
       triggerToast('⚠️ Đang ghi âm! Hãy bấm "Dừng & Chấm điểm" trước khi đóng.')
       return
     }
+    stopPlayback()
     stopCamPreview()
+    speechRecognizerRef.current.abort()
+    clearModalResult()
+    setShowModalMouthGuide(false)
     setShowWebcamModal(false)
   }
 
@@ -867,9 +936,14 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
   // Handle Start Recording (Audio or Video) & Speech Recognition
   const handleStartRecording = async () => {
     if (!currentSentence) return
+    stopPlayback()
+    clearModalResult()
+    realtimeTranscriptRef.current = ''
     setRealtimeTranscript('')
     setRecordingSeconds(0)
     setMediaPermissionError(null)
+    setSpeechError(null)
+    setSpeechStatus(null)
 
     // Stop standalone preview so MediaRecorder can claim the camera device exclusively
     stopCamPreview()
@@ -896,14 +970,42 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
       if (speechRecognizerRef.current.isSupported()) {
         speechRecognizerRef.current.start({
           lang: langMeta.speechCode,
-          onResult: (transcript, isFinal) => {
-            setRealtimeTranscript(transcript)
+          onStatus: (st) => {
+            setSpeechStatus(st)
           },
-          onError: (e) => {
+          onResult: (transcript) => {
+            realtimeTranscriptRef.current = transcript
+            setRealtimeTranscript(transcript)
+            setSpeechError(null)
+          },
+          onError: (e: any) => {
+            const code = e?.error || ''
+            if (code === 'aborted') return
             console.warn('Speech recognition warning:', e)
+            if (code === 'not-allowed' || code === 'service-not-allowed') {
+              setSpeechError(
+                'Trình duyệt chặn quyền hoặc dịch vụ nhận diện giọng nói. Hãy cấp quyền Micro trên thanh địa chỉ.'
+              )
+            } else if (code === 'network' || code === 'language-not-supported') {
+              setSpeechError(
+                currentSettings.openaiApiKey?.trim()
+                  ? 'Web Speech API không kết nối được — sau khi bấm Dừng hệ thống sẽ tự nhận diện qua OpenAI Whisper.'
+                  : 'Trình duyệt không kết nối được dịch vụ nhận diện chữ (Web Speech API). Video/audio vẫn được ghi; để chấm điểm chuẩn hãy dùng Chrome/Edge hoặc nhập OpenAI API Key trong Cài đặt.'
+              )
+            } else if (code === 'audio-capture') {
+              setSpeechError('Không thu được âm thanh từ micro mặc định của hệ thống.')
+            } else if (code === 'no-speech' && !realtimeTranscriptRef.current.trim()) {
+              setSpeechError(
+                'Chưa nghe rõ lời nói. Hãy nói to rõ gần micro hơn hoặc kiểm tra Input mặc định của máy.'
+              )
+            }
           },
           onEnd: () => {},
         })
+      } else if (!currentSettings.openaiApiKey?.trim()) {
+        setSpeechError(
+          'Trình duyệt này không hỗ trợ Web Speech API. Hãy mở bằng Chrome/Edge hoặc nhập OpenAI API Key trong Cài đặt để chấm điểm bằng Whisper.'
+        )
       }
     } catch (err: any) {
       console.error('Start recording error:', err)
@@ -913,7 +1015,7 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
     }
   }
 
-  // Handle Stop Recording & Scoring
+  // Handle Stop Recording & Scoring (stays inside Unified Practice Modal)
   const handleStopRecording = async () => {
     if (!isRecording) return
 
@@ -922,15 +1024,43 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
       timerIntervalRef.current = null
     }
 
-    speechRecognizerRef.current.stop()
-
     try {
-      const recResult = await mediaRecorderRef.current.stop()
+      const [recResult] = await Promise.all([
+        mediaRecorderRef.current.stop(),
+        speechRecognizerRef.current.stopAndWait(800),
+      ])
       setIsRecording(false)
       setAudioLevel(0)
 
-      // Evaluate pronunciation
-      const transcriptToEvaluate = realtimeTranscript || (currentSentence?.speakText || currentSentence?.text)?.slice(0, 5) || ''
+      let transcriptToEvaluate = realtimeTranscriptRef.current.trim()
+      const currentSettings = loadSettings()
+      let hasSpecificError = Boolean(speechError)
+
+      if (!transcriptToEvaluate && (currentSettings.openaiApiKey || '').trim()) {
+        setIsTranscribingWhisper(true)
+        try {
+          transcriptToEvaluate = await transcribeAudioWithOpenAI(recResult.blob, langMeta.speechCode)
+          if (transcriptToEvaluate) {
+            realtimeTranscriptRef.current = transcriptToEvaluate
+            setRealtimeTranscript(transcriptToEvaluate)
+            setSpeechError(null)
+            hasSpecificError = false
+          }
+        } catch (whisperErr: any) {
+          hasSpecificError = true
+          setSpeechError(whisperErr?.message || 'Lỗi nhận diện giọng nói qua OpenAI Whisper.')
+        } finally {
+          setIsTranscribingWhisper(false)
+        }
+      }
+
+      if (!transcriptToEvaluate && !hasSpecificError) {
+        setSpeechError(
+          'Không nhận diện được chữ bạn vừa nói. Hãy kiểm tra Micro mặc định trong Cài đặt âm thanh máy, dùng Chrome/Edge, hoặc bật OpenAI Whisper trong Cài đặt.'
+        )
+      }
+
+      // Evaluate pronunciation honestly using actual recognized text
       const score = evaluatePronunciation({
         targetText: currentSentence ? (currentSentence.speakText || currentSentence.text) : '',
         spokenText: transcriptToEvaluate,
@@ -970,14 +1100,70 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
         setLessonProgressMap((prev) => ({ ...prev, [activeLesson.id]: updatedProg }))
       }
 
-      // Close webcam modal before showing Scoring Modal
-      setShowWebcamModal(false)
+      // Display scoring & playback inline inside the still-open modal
+      if (modalRecordingUrlRef.current?.startsWith('blob:')) {
+        try {
+          URL.revokeObjectURL(modalRecordingUrlRef.current)
+        } catch {}
+      }
+      modalRecordingUrlRef.current = recResult.blobUrl
+      setModalRecordingUrl(recResult.blobUrl)
+      setModalRecordingType(recResult.actualType)
+      setModalLocalPath(savedEntry.localPath)
+      setModalScoreResult(score)
 
-      // Notify parent to show Scoring Modal
-      onScoreReady(score, recResult.blobUrl, savedEntry.localPath)
+      if (score.overallScore >= 85) {
+        try {
+          confetti({
+            particleCount: 70,
+            spread: 65,
+            origin: { y: 0.6 },
+          })
+        } catch {}
+      }
+
+      // Notify parent so header streak & schedule stats refresh immediately
+      onPracticeComplete?.()
     } catch (err: any) {
       alert(`Lỗi khi dừng ghi: ${err.message}`)
       setIsRecording(false)
+    }
+  }
+
+  // Option 2: Retry immediately inside the same modal without closing it
+  const handleRetryRecordingNow = () => {
+    void handleStartRecording()
+  }
+
+  modalKeyHandlerRef.current = (e: KeyboardEvent) => {
+    const target = e.target as HTMLElement | null
+    if (
+      target &&
+      (target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT' ||
+        target.tagName === 'VIDEO' ||
+        target.tagName === 'AUDIO' ||
+        target.isContentEditable)
+    ) {
+      return
+    }
+    if (e.key === 'Escape') {
+      handleCloseWebcamModal()
+      return
+    }
+    if (e.code === 'Space') {
+      e.preventDefault()
+      if (target instanceof HTMLButtonElement) {
+        target.blur()
+      }
+      if (isRecording) {
+        void handleStopRecording()
+      } else if (modalScoreResult) {
+        handleRetryRecordingNow()
+      } else {
+        void handleStartRecording()
+      }
     }
   }
 
@@ -993,6 +1179,32 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
     typeof currentSentenceScore === 'number' && currentSentenceScore >= PASS_SCORE
   const isCurrentSentenceFailed =
     typeof currentSentenceScore === 'number' && currentSentenceScore < PASS_SCORE
+
+  const handleModalPrevSentence = () => {
+    if (isRecording || !activeLesson || currentSentenceIdx <= 0) return
+    stopPlayback()
+    clearModalResult()
+    setShowModalMouthGuide(false)
+    setRealtimeTranscript('')
+    setCurrentSentenceIdx((prev) => Math.max(0, prev - 1))
+  }
+
+  const handleModalNextSentence = () => {
+    if (isRecording || !activeLesson) return
+    if (isCurrentSentenceFailed) {
+      triggerToast(
+        `🔒 Bạn chưa đạt điểm Pass (${currentSentenceScore}/100đ, cần ≥ ${PASS_SCORE}đ). Hãy luyện tập lại câu này để mở khóa câu kế tiếp!`
+      )
+      return
+    }
+    if (currentSentenceIdx < activeLesson.sentences.length - 1) {
+      stopPlayback()
+      clearModalResult()
+      setShowModalMouthGuide(false)
+      setRealtimeTranscript('')
+      setCurrentSentenceIdx((prev) => prev + 1)
+    }
+  }
 
   const handleNextSentence = () => {
     if (!activeLesson) return
@@ -1102,9 +1314,64 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
     return 'bg-slate-800 text-slate-300 border border-slate-700'
   }
 
-  // Filter lessons in sidebar
+  // Today's scheduled Study Plan lessons (prioritized at top of left sidebar)
+  const todayPlanDay = useMemo(() => getTodayStudyPlanDay(studyPlan), [studyPlan])
+
+  const isPlanLessonCompleted = (lessonId: string): boolean => {
+    if (studyPlan?.completedShadowingIds?.includes(lessonId)) return true
+    const prog = lessonProgressMap[lessonId]
+    return Boolean(prog && (prog.isCompleted || (prog.progressPercent ?? 0) >= 100))
+  }
+
+  const todayPlanLessons = useMemo(() => {
+    if (!todayPlanDay || !todayPlanDay.shadowingLessonIds.length) return []
+    const byId = new Map(lessons.map((l) => [l.id, l]))
+    const matched = todayPlanDay.shadowingLessonIds
+      .map((id) => byId.get(id))
+      .filter((l): l is Lesson => Boolean(l))
+
+    const incomplete: Lesson[] = []
+    const done: Lesson[] = []
+    matched.forEach((l) => {
+      if (isPlanLessonCompleted(l.id)) done.push(l)
+      else incomplete.push(l)
+    })
+    return [...incomplete, ...done]
+  }, [todayPlanDay, lessons, studyPlan, lessonProgressMap])
+
+  const todayPlanLessonIdSet = useMemo(
+    () => new Set(todayPlanLessons.map((l) => l.id)),
+    [todayPlanLessons]
+  )
+
+  const todayPlanOrderMap = useMemo(() => {
+    const map = new Map<string, number>()
+    todayPlanLessons.forEach((l, idx) => map.set(l.id, idx))
+    return map
+  }, [todayPlanLessons])
+
+  const todayPlanDoneCount = useMemo(
+    () => todayPlanLessons.filter((l) => isPlanLessonCompleted(l.id)).length,
+    [todayPlanLessons, studyPlan, lessonProgressMap]
+  )
+
+  const showPinnedTodaySection =
+    Boolean(todayPlanDay) &&
+    selectedLevel === 'all' &&
+    !searchQuery.trim() &&
+    statusFilter === 'all' &&
+    selectedCategory === 'all' &&
+    lessonFilter === 'all'
+
+  useEffect(() => {
+    if (selectedLevel === 'today_plan' && todayPlanLessons.length === 0) {
+      setSelectedLevel('all')
+    }
+  }, [selectedLevel, todayPlanLessons.length])
+
+  // Filter lessons in sidebar (prioritizing today's Study Plan lessons first)
   const filteredLessons = useMemo(() => {
-    return lessons.filter((l: Lesson) => {
+    const filtered = lessons.filter((l: Lesson) => {
       const matchSearch =
         !searchQuery.trim() ||
         l.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -1113,7 +1380,9 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
 
       if (!matchSearch) return false
 
-      if (selectedLevel !== 'all') {
+      if (selectedLevel === 'today_plan') {
+        if (!todayPlanLessonIdSet.has(l.id)) return false
+      } else if (selectedLevel !== 'all') {
         const normalizedLvl = l.level.startsWith('HSK')
           ? (l.level.match(/HSK\s*\d+/)?.[0] || l.level)
           : (l.level.split(' ')[0] || l.level)
@@ -1141,7 +1410,28 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
 
       return true
     })
-  }, [lessons, searchQuery, selectedLevel, selectedCategory, lessonFilter, statusFilter, lessonProgressMap])
+
+    if (todayPlanOrderMap.size === 0) return filtered
+
+    return [...filtered].sort((a, b) => {
+      const aRank = todayPlanOrderMap.get(a.id)
+      const bRank = todayPlanOrderMap.get(b.id)
+      if (aRank !== undefined && bRank !== undefined) return aRank - bRank
+      if (aRank !== undefined) return -1
+      if (bRank !== undefined) return 1
+      return 0
+    })
+  }, [
+    lessons,
+    searchQuery,
+    selectedLevel,
+    selectedCategory,
+    lessonFilter,
+    statusFilter,
+    lessonProgressMap,
+    todayPlanLessonIdSet,
+    todayPlanOrderMap,
+  ])
 
   // Overall learning progress statistics
   const progressStats = useMemo(() => {
@@ -1149,18 +1439,23 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
     let inProgress = 0
     let completed = 0
 
-    const baseList = selectedLevel === 'all'
-      ? lessons
-      : lessons.filter((l: Lesson) => {
-          const normalizedLvl = l.level.startsWith('HSK')
-            ? (l.level.match(/HSK\s*\d+/)?.[0] || l.level)
-            : (l.level.split(' ')[0] || l.level)
-          return normalizedLvl.startsWith(selectedLevel) || l.level.toLowerCase().includes(selectedLevel.toLowerCase())
-        })
+    const baseList =
+      selectedLevel === 'today_plan'
+        ? todayPlanLessons
+        : selectedLevel === 'all'
+        ? lessons
+        : lessons.filter((l: Lesson) => {
+            const normalizedLvl = l.level.startsWith('HSK')
+              ? (l.level.match(/HSK\s*\d+/)?.[0] || l.level)
+              : (l.level.split(' ')[0] || l.level)
+            return normalizedLvl.startsWith(selectedLevel) || l.level.toLowerCase().includes(selectedLevel.toLowerCase())
+          })
 
     baseList.forEach((l) => {
       const prog = lessonProgressMap[l.id]
-      if (prog && (prog.isCompleted || (prog.progressPercent || 0) >= 100)) {
+      const doneViaPlan =
+        selectedLevel === 'today_plan' && Boolean(studyPlan?.completedShadowingIds?.includes(l.id))
+      if (doneViaPlan || (prog && (prog.isCompleted || (prog.progressPercent || 0) >= 100))) {
         completed++
       } else if (prog && prog.hasViewed) {
         inProgress++
@@ -1179,14 +1474,17 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
       completed,
       completionPercent,
     }
-  }, [lessons, lessonProgressMap, selectedLevel])
+  }, [lessons, lessonProgressMap, selectedLevel, todayPlanLessons, studyPlan])
 
-  // Group lessons by level
+  // Group lessons by level (excluding pinned Today Plan lessons when shown separately above)
   const groupedLessonsByLevel = useMemo(() => {
     const groups: { levelKey: string; lessons: Lesson[] }[] = []
     const map = new Map<string, Lesson[]>()
 
+    const excludePinned = showPinnedTodaySection && todayPlanLessons.length > 0
+
     filteredLessons.forEach((l: Lesson) => {
+      if (excludePinned && todayPlanLessonIdSet.has(l.id)) return
       const lvlKey = l.level.startsWith('HSK')
         ? (l.level.match(/HSK\s*\d+/)?.[0] || l.level)
         : (l.level.split(' ')[0] || l.level || 'Khác')
@@ -1235,7 +1533,7 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
     })
 
     return groups
-  }, [filteredLessons, currentLang])
+  }, [filteredLessons, currentLang, showPinnedTodaySection, todayPlanLessons.length, todayPlanLessonIdSet])
 
   // Callback when a new lesson with native audio is created
   const handleLessonCreated = (newLesson: Lesson) => {
@@ -1342,12 +1640,19 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
   }
 
   // Render Compact Playlist Lesson Card (no repeated sentence list inside Sidebar)
-  const renderLessonCard = (l: Lesson) => {
+  const renderLessonCard = (
+    l: Lesson,
+    opts?: { isTodayPlan?: boolean; isPlanDone?: boolean }
+  ) => {
     const isActive = l.id === activeLessonId
     const hasOriginal = Boolean(l.originalAudioUrl || l.videoUrl || l.audioBlobId)
     const lvlClass = getLevelBadgeClass(l.level)
     const progress = lessonProgressMap[l.id]
-    const isCompleted = Boolean(progress?.isCompleted || (progress?.progressPercent ?? 0) >= 100)
+    const inTodayPlan = opts?.isTodayPlan ?? todayPlanLessonIdSet.has(l.id)
+    const isPlanDone = opts?.isPlanDone ?? (inTodayPlan && isPlanLessonCompleted(l.id))
+    const isCompleted = Boolean(
+      progress?.isCompleted || (progress?.progressPercent ?? 0) >= 100 || isPlanDone
+    )
     const hasPracticed = Boolean((progress?.practicedCount ?? 0) > 0)
     const hasViewed = Boolean(progress?.hasViewed)
     const progressPercent = progress?.progressPercent ?? 0
@@ -1360,6 +1665,8 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
         className={`p-2.5 rounded-2xl border text-left cursor-pointer transition-all duration-150 flex items-start gap-2.5 ${
           isActive
             ? 'bg-emerald-500/15 border-emerald-500/60 shadow-sm ring-1 ring-emerald-500/30'
+            : inTodayPlan && !isCompleted
+            ? 'bg-amber-500/5 hover:bg-amber-500/10 border-amber-500/35 hover:border-amber-500/50'
             : 'bg-slate-950/60 hover:bg-slate-800/60 border-slate-800/80 hover:border-slate-700'
         }`}
       >
@@ -1411,8 +1718,19 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
             {l.title}
           </h4>
 
-          {/* Metadata single line: Level · Category · Count · Media icon */}
+          {/* Metadata single line: Today Plan · Level · Category · Count · Media icon */}
           <div className="flex items-center gap-1.5 mt-1 text-[10px] text-slate-400 min-w-0">
+            {inTodayPlan && (
+              <span
+                className={`font-bold px-1.5 py-0.2 rounded-md border shrink-0 ${
+                  isCompleted
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                    : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                }`}
+              >
+                {isCompleted ? '✓ Plan' : 'Hôm nay'}
+              </span>
+            )}
             <span className={`font-bold px-1.5 py-0.2 rounded-md border shrink-0 ${lvlClass}`}>
               {l.level || 'Bài đọc'}
             </span>
@@ -1638,6 +1956,19 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
                         <PlusCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                         <span>Soạn bài đọc chữ</span>
                       </button>
+                      {onOpenStudyPlan && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowAddMenu(false)
+                            onOpenStudyPlan()
+                          }}
+                          className="w-full flex items-center gap-2 px-2.5 py-2 rounded-xl text-xs font-semibold text-amber-300 hover:bg-slate-800 text-left cursor-pointer border-t border-slate-800 mt-1 pt-2"
+                        >
+                          <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                          <span>Kế hoạch học (Study Plan)</span>
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1708,6 +2039,29 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
 
               {/* Tier 2: Horizontal Level Selector Strip */}
               <div className="flex gap-1 overflow-x-auto pb-0.5 scrollbar-none">
+                {todayPlanLessons.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedLevel('today_plan')}
+                    className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all shrink-0 cursor-pointer inline-flex items-center gap-1 ${
+                      selectedLevel === 'today_plan'
+                        ? 'bg-emerald-500 text-slate-950 shadow-sm shadow-emerald-500/20'
+                        : 'bg-amber-500/15 text-amber-300 border border-amber-500/35 hover:bg-amber-500/25'
+                    }`}
+                    title="Lọc nhanh các bài học cần hoàn thành hôm nay theo Study Plan"
+                  >
+                    <Target className="w-3 h-3 shrink-0" />
+                    <span>Hôm nay</span>
+                    <span
+                      className={`text-[10px] font-mono ${
+                        selectedLevel === 'today_plan' ? 'text-slate-900 font-bold' : 'opacity-90'
+                      }`}
+                    >
+                      {todayPlanDoneCount}/{todayPlanLessons.length}
+                    </span>
+                  </button>
+                )}
+
                 {availableLevels.map((lvl: string) => {
                   const isSel = selectedLevel === lvl
                   const count =
@@ -1874,6 +2228,94 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
               ref={sidebarListRef}
               className="flex-1 min-h-0 overflow-y-auto space-y-1.5 pr-1 scroll-smooth"
             >
+              {/* Pinned Today's Study Plan Lessons (shown above all other lessons when plan active) */}
+              {showPinnedTodaySection && todayPlanDay && studyPlan && (
+                todayPlanLessons.length > 0 ? (
+                  <div className="p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-2 mb-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <Target className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                        <span className="text-[11px] font-extrabold text-amber-300 truncate">
+                          Hôm nay • Ngày {todayPlanDay.dayIndex}/{studyPlan.totalDays}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span
+                          className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md border ${
+                            todayPlanDoneCount === todayPlanLessons.length
+                              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                              : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                          }`}
+                        >
+                          {todayPlanDoneCount}/{todayPlanLessons.length}
+                        </span>
+                        {onOpenStudyPlan && (
+                          <button
+                            type="button"
+                            onClick={onOpenStudyPlan}
+                            className="text-[10px] font-semibold text-amber-300 hover:underline cursor-pointer"
+                            title="Mở trang xem chi tiết kế hoạch học tập"
+                          >
+                            Xem Plan
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="w-full bg-slate-900 rounded-full h-1 overflow-hidden border border-slate-800">
+                      <div
+                        className="bg-gradient-to-r from-amber-400 to-emerald-400 h-full rounded-full transition-all duration-300"
+                        style={{
+                          width: `${Math.round(
+                            (todayPlanDoneCount / Math.max(1, todayPlanLessons.length)) * 100
+                          )}%`,
+                        }}
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      {todayPlanLessons.map((l: Lesson) =>
+                        renderLessonCard(l, {
+                          isTodayPlan: true,
+                          isPlanDone: isPlanLessonCompleted(l.id),
+                        })
+                      )}
+                    </div>
+                  </div>
+                ) : (todayPlanDay.isReviewDay || todayPlanDay.isRestDay) ? (
+                  <div
+                    className={`p-2.5 rounded-2xl border mb-2 flex items-center justify-between gap-2 text-xs ${
+                      todayPlanDay.isReviewDay
+                        ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-300'
+                        : 'bg-slate-800/60 border-slate-700 text-slate-300'
+                    }`}
+                  >
+                    <span className="font-semibold truncate">
+                      {todayPlanDay.isReviewDay
+                        ? `📚 Ngày ${todayPlanDay.dayIndex}: Ngày ôn tập theo Plan`
+                        : `☕ Ngày ${todayPlanDay.dayIndex}: Ngày nghỉ theo Plan`}
+                    </span>
+                    {onOpenStudyPlan && (
+                      <button
+                        type="button"
+                        onClick={onOpenStudyPlan}
+                        className="text-[10px] font-semibold hover:underline shrink-0 cursor-pointer"
+                      >
+                        Xem Plan
+                      </button>
+                    )}
+                  </div>
+                ) : null
+              )}
+
+              {showPinnedTodaySection &&
+                todayPlanLessons.length > 0 &&
+                filteredLessons.some((l) => !todayPlanLessonIdSet.has(l.id)) && (
+                  <div className="px-1 pt-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    Bài học khác
+                  </div>
+                )}
+
               {filteredLessons.length === 0 ? (
                 <div className="p-5 text-center text-xs text-slate-400 border border-dashed border-slate-800 rounded-2xl space-y-2">
                   <div className="text-base">
@@ -1931,7 +2373,10 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
                 })
               ) : (
                 <div className="space-y-1.5">
-                  {filteredLessons.map((l: Lesson) => renderLessonCard(l))}
+                  {(showPinnedTodaySection && todayPlanLessons.length > 0
+                    ? filteredLessons.filter((l) => !todayPlanLessonIdSet.has(l.id))
+                    : filteredLessons
+                  ).map((l: Lesson) => renderLessonCard(l))}
                 </div>
               )}
             </div>
@@ -2150,6 +2595,31 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
                       <span>Lặp câu: {isLoopSentence ? 'Bật' : 'Tắt'}</span>
                     </button>
 
+                    {/* Quick Practice (Shadowing Modal) Button */}
+                    <button
+                      type="button"
+                      disabled={!activeLesson?.sentences?.length}
+                      onClick={() => openWebcamModalForSentence(currentSentenceIdx)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm transition-all active:scale-95 cursor-pointer disabled:opacity-40 disabled:pointer-events-none ${
+                        isRecording
+                          ? 'bg-rose-500 hover:bg-rose-600 text-white animate-pulse'
+                          : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950'
+                      }`}
+                      title={`Luyện tập Shadowing (Câu ${currentSentenceIdx + 1})`}
+                    >
+                      {isRecording ? (
+                        <>
+                          <Radio className="w-3.5 h-3.5 animate-pulse" />
+                          <span>REC {recordingSeconds}s</span>
+                        </>
+                      ) : (
+                        <>
+                          <Mic className="w-3.5 h-3.5" />
+                          <span>Luyện tập</span>
+                        </>
+                      )}
+                    </button>
+
                     {/* Auto Scroll Switch */}
                     <button
                       type="button"
@@ -2269,7 +2739,7 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
                       <div className="flex items-center gap-1.5 min-w-0">
                         <Trophy className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                         <span className="font-bold text-slate-200 truncate">
-                          Tiến độ ({selectedLevel === 'all' ? 'Tất cả' : selectedLevel})
+                          Tiến độ ({selectedLevel === 'today_plan' ? 'Hôm nay' : selectedLevel === 'all' ? 'Tất cả' : selectedLevel})
                         </span>
                       </div>
                       <span className="font-bold text-emerald-400 font-mono shrink-0">
@@ -2678,33 +3148,73 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
         </div>
       )}
 
-      {/* Modal: Webcam & Shadowing Studio */}
+      {/* Modal: Unified Webcam & Shadowing Studio */}
       {showWebcamModal && (
         <div
           onClick={handleCloseWebcamModal}
-          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 max-w-2xl w-full shadow-2xl max-h-[92vh] overflow-y-auto space-y-4"
+            className="bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 max-w-2xl w-full shadow-2xl max-h-[94vh] overflow-y-auto space-y-3.5"
           >
-            {/* Modal Header */}
-            <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-800 flex-wrap">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-emerald-500/15 text-emerald-400">
-                  <Video className="w-5 h-5" />
+            {/* 1. Compact Single-Row Header */}
+            <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-slate-800 flex-wrap">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+                  <button
+                    type="button"
+                    disabled={isRecording || currentSentenceIdx <= 0}
+                    onClick={handleModalPrevSentence}
+                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none text-slate-300 transition-colors cursor-pointer"
+                    title="Câu trước"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                  </button>
+                  <span className="text-xs font-bold text-emerald-400 px-2 font-mono whitespace-nowrap">
+                    Câu {currentSentenceIdx + 1} / {activeLesson?.sentences.length || 1}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={
+                      isRecording ||
+                      !activeLesson ||
+                      currentSentenceIdx >= activeLesson.sentences.length - 1
+                    }
+                    onClick={handleModalNextSentence}
+                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none text-slate-300 transition-colors cursor-pointer"
+                    title={
+                      isCurrentSentenceFailed
+                        ? `Cần đạt ≥ ${PASS_SCORE}đ để mở khóa câu tiếp theo`
+                        : 'Câu kế tiếp'
+                    }
+                  >
+                    {isCurrentSentenceFailed &&
+                    activeLesson &&
+                    currentSentenceIdx < activeLesson.sentences.length - 1 ? (
+                      <Lock className="w-3.5 h-3.5 text-rose-400" />
+                    ) : (
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    )}
+                  </button>
                 </div>
-                <div>
-                  <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-                    <span>Webcam &amp; Shadowing Studio</span>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-mono">
-                      Câu {currentSentenceIdx + 1} / {activeLesson?.sentences.length || 1}
-                    </span>
-                  </h3>
-                  <p className="text-xs text-slate-400 truncate max-w-xs sm:max-w-sm">
-                    {activeLesson?.title}
-                  </p>
-                </div>
+
+                {typeof currentSentenceScore === 'number' && (
+                  <span
+                    className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full border font-mono shrink-0 ${
+                      isCurrentSentencePassed
+                        ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                        : 'bg-rose-500/15 text-rose-300 border-rose-500/30'
+                    }`}
+                  >
+                    {isCurrentSentencePassed ? (
+                      <CheckCircle2 className="w-3 h-3" />
+                    ) : (
+                      <Lock className="w-3 h-3" />
+                    )}
+                    <span>{currentSentenceScore}đ</span>
+                  </span>
+                )}
               </div>
 
               <div className="flex items-center gap-2">
@@ -2713,8 +3223,11 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
                   <button
                     type="button"
                     disabled={isRecording}
-                    onClick={() => setRecordMode('video')}
-                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg font-semibold transition-colors cursor-pointer disabled:opacity-50 ${
+                    onClick={() => {
+                      if (modalScoreResult) clearModalResult()
+                      setRecordMode('video')
+                    }}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg font-semibold transition-colors cursor-pointer disabled:opacity-50 ${
                       recordMode === 'video'
                         ? 'bg-emerald-500 text-slate-950 font-bold'
                         : 'text-slate-400 hover:text-slate-200'
@@ -2728,10 +3241,11 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
                     type="button"
                     disabled={isRecording}
                     onClick={() => {
+                      if (modalScoreResult) clearModalResult()
                       stopCamPreview()
                       setRecordMode('audio')
                     }}
-                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg font-semibold transition-colors cursor-pointer disabled:opacity-50 ${
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg font-semibold transition-colors cursor-pointer disabled:opacity-50 ${
                       recordMode === 'audio'
                         ? 'bg-emerald-500 text-slate-950 font-bold'
                         : 'text-slate-400 hover:text-slate-200'
@@ -2748,168 +3262,337 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
                   type="button"
                   onClick={handleCloseWebcamModal}
                   className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
-                  title="Đóng cửa sổ"
+                  title="Đóng cửa sổ (Esc)"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
-            {/* Target Sentence Card inside Modal */}
-            <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+            {/* 2. Smart Target Sentence Card (Sample + Inline Color Word Feedback) */}
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
               <div className="flex items-center justify-between gap-2 flex-wrap">
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    disabled={isRecording || currentSentenceIdx <= 0}
-                    onClick={() => setCurrentSentenceIdx((prev) => Math.max(0, prev - 1))}
-                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none text-slate-300 transition-colors cursor-pointer"
-                    title="Câu trước"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  <span className="text-xs font-bold text-emerald-400 px-1">
-                    Câu {currentSentenceIdx + 1} / {activeLesson?.sentences.length || 1}
-                  </span>
-                  <button
-                    type="button"
-                    disabled={
-                      isRecording ||
-                      !activeLesson ||
-                      currentSentenceIdx >= activeLesson.sentences.length - 1
-                    }
-                    onClick={() =>
-                      setCurrentSentenceIdx((prev) =>
-                        activeLesson ? Math.min(activeLesson.sentences.length - 1, prev + 1) : prev
-                      )
-                    }
-                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none text-slate-300 transition-colors cursor-pointer"
-                    title="Câu kế tiếp"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-
-                {currentSentence && (
-                  <button
-                    type="button"
-                    disabled={isRecording}
-                    onClick={() => handlePlaySentenceAudio(currentSentence, currentSentenceIdx)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200 text-xs font-semibold transition-colors cursor-pointer"
-                  >
-                    <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Nghe mẫu</span>
-                  </button>
+                {modalScoreResult ? (
+                  <div className="flex items-center gap-3 text-[11px] font-medium text-slate-400">
+                    <span className="flex items-center gap-1 text-emerald-400">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" /> Chuẩn
+                    </span>
+                    <span className="flex items-center gap-1 text-amber-400">
+                      <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" /> Gần đúng
+                    </span>
+                    <span className="flex items-center gap-1 text-rose-400">
+                      <span className="w-2 h-2 rounded-full bg-rose-400 inline-block" /> Sai/Thiếu
+                    </span>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-slate-400 truncate max-w-[200px] sm:max-w-xs">
+                    {activeLesson?.title}
+                  </p>
                 )}
+
+                <div className="flex items-center gap-1.5 ml-auto">
+                  {(currentSentence?.mouthShape ||
+                    currentSentence?.tonguePosition ||
+                    currentSentence?.breathGuide) && (
+                    <button
+                      type="button"
+                      onClick={() => setShowModalMouthGuide((prev) => !prev)}
+                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-semibold transition-colors cursor-pointer border ${
+                        showModalMouthGuide
+                          ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
+                          : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
+                      }`}
+                      title="Xem hướng dẫn khẩu hình, vị trí lưỡi và luồng hơi"
+                    >
+                      <span>👄</span>
+                      <span>Mẹo</span>
+                    </button>
+                  )}
+
+                  {currentSentence && (
+                    <button
+                      type="button"
+                      disabled={isRecording}
+                      onClick={() => handlePlaySentenceAudio(currentSentence, currentSentenceIdx)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200 text-xs font-semibold transition-colors cursor-pointer"
+                    >
+                      <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Nghe mẫu</span>
+                    </button>
+                  )}
+                </div>
               </div>
 
-              <div className="text-lg sm:text-xl font-bold text-white leading-loose font-sans">
-                <FuriganaText
-                  text={currentSentence?.text || 'Chưa chọn câu'}
-                  furigana={currentSentence?.furigana}
-                  lang={currentLang}
-                  showFurigana={showFurigana}
-                />
-              </div>
+              {modalScoreResult ? (
+                <div className="flex flex-wrap gap-1.5 text-base sm:text-lg leading-relaxed pt-0.5">
+                  {modalScoreResult.wordBreakdown.map((item, idx) => {
+                    let chipClass = 'bg-slate-800 text-slate-200 border border-slate-700'
+                    if (item.status === 'correct') {
+                      chipClass = 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                    } else if (item.status === 'close') {
+                      chipClass = 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                    } else if (item.status === 'missed') {
+                      chipClass =
+                        'bg-rose-500/20 text-rose-300 border border-rose-500/30 line-through decoration-rose-500'
+                    }
+                    return (
+                      <span
+                        key={idx}
+                        className={`px-2 py-0.5 rounded-lg font-semibold ${chipClass}`}
+                      >
+                        {item.word}
+                      </span>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="text-lg sm:text-xl font-bold text-white leading-relaxed font-sans">
+                  <FuriganaText
+                    text={currentSentence?.text || 'Chưa chọn câu'}
+                    furigana={currentSentence?.furigana}
+                    lang={currentLang}
+                    showFurigana={showFurigana}
+                  />
+                </div>
+              )}
 
               {currentSentence?.phonetic && (
                 <div className="text-xs font-mono text-emerald-400/90">{currentSentence.phonetic}</div>
               )}
 
               {currentSentence?.translation && (
-                <p className="text-xs text-slate-400 leading-relaxed">
+                <p className="text-xs text-slate-400 leading-snug">
                   <span className="font-semibold text-slate-300 mr-1">Dịch:</span>
                   {currentSentence.translation}
                 </p>
               )}
 
-              {(currentSentence?.mouthShape ||
-                currentSentence?.tonguePosition ||
-                currentSentence?.breathGuide) && (
-                <div className="pt-2 border-t border-slate-800/80 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-indigo-300">
-                  {currentSentence.mouthShape && (
-                    <span>👄 {currentSentence.mouthShape}</span>
-                  )}
-                  {currentSentence.tonguePosition && (
-                    <span>👅 {currentSentence.tonguePosition}</span>
-                  )}
-                  {currentSentence.breathGuide && (
-                    <span>💨 {currentSentence.breathGuide}</span>
-                  )}
-                </div>
-              )}
+              {showModalMouthGuide &&
+                (currentSentence?.mouthShape ||
+                  currentSentence?.tonguePosition ||
+                  currentSentence?.breathGuide) && (
+                  <div className="pt-2 border-t border-slate-800/80 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-indigo-300">
+                    {currentSentence.mouthShape && (
+                      <span>👄 {currentSentence.mouthShape}</span>
+                    )}
+                    {currentSentence.tonguePosition && (
+                      <span>👅 {currentSentence.tonguePosition}</span>
+                    )}
+                    {currentSentence.breathGuide && (
+                      <span>💨 {currentSentence.breathGuide}</span>
+                    )}
+                  </div>
+                )}
             </div>
 
-            {/* Webcam / Audio Visualizer Box */}
-            <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center">
-              {recordMode === 'video' ? (
+            {/* 3. Center Stage: Ready / Recording / Inline Playback (videoRef stays mounted) */}
+            <div className="group/video relative w-full aspect-video rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center">
+              <video
+                ref={videoRef}
+                autoPlay
+                muted
+                playsInline
+                className={`w-full h-full object-cover transform -scale-x-100 ${
+                  recordMode !== 'video' || Boolean(modalScoreResult)
+                    ? 'hidden'
+                    : !isRecording && !isPreviewCam
+                    ? 'opacity-70'
+                    : 'opacity-100'
+                }`}
+              />
+
+              {!modalScoreResult ? (
                 <>
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    muted
-                    playsInline
-                    className={`w-full h-full object-cover transform -scale-x-100 ${
-                      !isRecording && !isPreviewCam ? 'opacity-70' : 'opacity-100'
-                    }`}
-                  />
-                  {!isRecording && !isPreviewCam && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/70 p-3 text-center">
-                      <Video className="w-8 h-8 text-slate-400 mb-1 opacity-60" />
-                      <p className="text-xs text-slate-200 font-semibold">Webcam xem khẩu hình</p>
-                      <p className="text-[10px] text-slate-400 mt-0.5 mb-2.5">
-                        Quan sát khẩu hình miệng khi nói
-                      </p>
-                      <button
-                        type="button"
-                        onClick={toggleCamPreview}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md transition-all cursor-pointer"
-                      >
-                        <Camera className="w-3.5 h-3.5" />
-                        Bật xem trước
-                      </button>
+                  {recordMode === 'video' ? (
+                    <>
+                      {!isRecording && !isPreviewCam && (
+                        <>
+                          <div className="absolute inset-0 bg-black/40 pointer-events-none" />
+                          <div className="absolute top-2.5 left-2.5 z-20 flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={toggleCamPreview}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-semibold shadow-md transition-all cursor-pointer"
+                            >
+                              <Camera className="w-3.5 h-3.5" />
+                              <span>Bật xem trước</span>
+                            </button>
+                          </div>
+                        </>
+                      )}
+                      {!isRecording && isPreviewCam && (
+                        <div className="absolute top-2.5 left-2.5 z-20 flex items-center gap-1.5">
+                          <span
+                            className="flex items-center gap-1 bg-emerald-500/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md backdrop-blur-sm"
+                            style={{ color: '#ffffff' }}
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                            Xem trước
+                          </span>
+                          <button
+                            type="button"
+                            onClick={toggleCamPreview}
+                            className="p-0.5 rounded-full bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700 text-[10px] flex items-center gap-1 px-1.5 cursor-pointer"
+                            title="Tắt xem trước"
+                          >
+                            <CameraOff className="w-3 h-3 text-rose-400" />
+                            <span>Tắt</span>
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      {isRecording && (
+                        <div className="absolute inset-0 bg-rose-500/10 animate-pulse pointer-events-none" />
+                      )}
+                      <div className="absolute top-2.5 left-2.5 z-20 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900/90 border border-slate-700/80 text-slate-200 text-[11px] font-semibold backdrop-blur-sm">
+                        <Mic className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Ghi âm qua Micro</span>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Centered Play / Pause Shadowing Overlay */}
+                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 pointer-events-none">
+                    {!isRecording ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={handleStartRecording}
+                          title={`Bắt đầu Shadowing (Câu ${currentSentenceIdx + 1})`}
+                          aria-label={`Bắt đầu Shadowing (Câu ${currentSentenceIdx + 1})`}
+                          className="pointer-events-auto w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-2xl shadow-emerald-500/35 ring-4 ring-emerald-400/30 flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer"
+                        >
+                          <Play className="w-7 h-7 sm:w-8 sm:h-8 fill-current ml-1" />
+                        </button>
+                        <span className="px-3.5 py-1 rounded-full bg-slate-900/90 border border-slate-700/80 text-slate-100 text-xs font-bold shadow-lg backdrop-blur-sm">
+                          Bắt đầu Shadowing (Space)
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={handleStopRecording}
+                          title="Dừng & Chấm điểm (Space)"
+                          aria-label="Dừng & Chấm điểm"
+                          className={`pointer-events-auto w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-rose-500 hover:bg-rose-600 text-white shadow-2xl shadow-rose-500/35 ring-4 ring-rose-400/30 flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer ${
+                            recordMode === 'video'
+                              ? 'opacity-65 group-hover/video:opacity-100'
+                              : 'opacity-95 hover:opacity-100'
+                          }`}
+                        >
+                          <Pause className="w-7 h-7 sm:w-8 sm:h-8 fill-current" />
+                        </button>
+                        <span
+                          className={`px-3.5 py-1 rounded-full bg-slate-900/90 border border-rose-500/40 text-slate-100 text-xs font-bold shadow-lg backdrop-blur-sm transition-opacity ${
+                            recordMode === 'video'
+                              ? 'opacity-75 group-hover/video:opacity-100'
+                              : 'opacity-100'
+                          }`}
+                        >
+                          Dừng &amp; Chấm điểm (Space)
+                        </span>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Top-Right REC Badge */}
+                  {isRecording && (
+                    <div
+                      className="absolute top-2.5 right-2.5 z-20 flex items-center gap-1.5 bg-rose-500/90 text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full shadow-md backdrop-blur-sm animate-pulse"
+                      style={{ color: '#ffffff' }}
+                    >
+                      <div className="w-2 h-2 rounded-full bg-white" />
+                      <span>REC {recordingSeconds}s</span>
                     </div>
                   )}
-                  {!isRecording && isPreviewCam && (
-                    <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
-                      <span className="flex items-center gap-1 bg-emerald-500/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md backdrop-blur-sm">
-                        <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
-                        Xem trước
-                      </span>
-                      <button
-                        type="button"
-                        onClick={toggleCamPreview}
-                        className="p-0.5 rounded-full bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700 text-[10px] flex items-center gap-1 px-1.5 cursor-pointer"
-                        title="Tắt xem trước"
-                      >
-                        <CameraOff className="w-3 h-3 text-rose-400" />
-                        <span>Tắt</span>
-                      </button>
+
+                  {/* Bottom Recording HUD (Realtime STT + Slim VU Meter) */}
+                  {isRecording && (
+                    <div className="absolute bottom-2.5 inset-x-3 z-20 pointer-events-none space-y-1.5">
+                      {(realtimeTranscript || speechStatus) && (
+                        <div className="px-3 py-1 rounded-xl bg-slate-900/90 border border-slate-700/80 text-emerald-300 text-xs font-medium truncate backdrop-blur-sm shadow">
+                          {realtimeTranscript
+                            ? realtimeTranscript
+                            : speechStatus === 'sound' || speechStatus === 'speech'
+                            ? 'Đang nghe thấy giọng nói...'
+                            : 'Micro đã mở — hãy đọc câu mẫu'}
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 bg-black/50 h-1.5 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-amber-400 transition-all duration-75"
+                            style={{ width: `${audioLevel}%` }}
+                          />
+                        </div>
+                        <span
+                          className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-black/60"
+                          style={{ color: '#6ee7b7' }}
+                        >
+                          {audioLevel}%
+                        </span>
+                      </div>
                     </div>
                   )}
                 </>
               ) : (
-                <div className="flex flex-col items-center justify-center p-4 text-center">
-                  <div
-                    className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-200 ${
-                      isRecording
-                        ? 'bg-rose-500/20 text-rose-400 scale-105 shadow-md shadow-rose-500/20 animate-pulse'
-                        : 'bg-slate-800 text-slate-400'
-                    }`}
-                  >
-                    <Mic className="w-8 h-8" />
-                  </div>
-                  <p className="text-sm text-slate-200 mt-2.5 font-semibold">Ghi âm qua Micro</p>
-                  <p className="text-xs text-slate-400 mt-0.5">Tập trung vào ngữ điệu câu nói</p>
-                </div>
-              )}
+                <>
+                  {modalRecordingUrl && modalRecordingType === 'video' ? (
+                    <>
+                      <video
+                        key={modalRecordingUrl}
+                        src={modalRecordingUrl}
+                        controls
+                        className="w-full h-full object-contain bg-black"
+                      />
+                      <div className="absolute top-2.5 left-2.5 z-20 pointer-events-none px-2.5 py-1 rounded-full bg-slate-900/90 border border-slate-700/80 text-slate-100 text-[11px] font-semibold backdrop-blur-sm">
+                        Xem lại khẩu hình vừa ghi
+                      </div>
+                    </>
+                  ) : (
+                    <div className="w-full max-w-md mx-4 rounded-2xl bg-slate-900/90 border border-slate-700/80 p-4 sm:p-5 flex flex-col items-center gap-3 text-center shadow-xl backdrop-blur-sm">
+                      <div className="w-11 h-11 rounded-2xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center">
+                        <Mic className="w-5 h-5" />
+                      </div>
+                      <p className="text-xs font-semibold text-slate-200">
+                        Nghe lại giọng nói của bạn
+                      </p>
+                      {modalRecordingUrl && (
+                        <audio
+                          key={modalRecordingUrl}
+                          src={modalRecordingUrl}
+                          controls
+                          className="w-full"
+                        />
+                      )}
+                    </div>
+                  )}
 
-              {/* Recording indicator badge */}
-              {isRecording && (
-                <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 bg-rose-500/90 text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full shadow-md backdrop-blur-sm animate-pulse">
-                  <div className="w-2 h-2 rounded-full bg-white" />
-                  <span>REC {recordingSeconds}s</span>
-                </div>
+                  {/* Top-Right Score Pill */}
+                  <div
+                    className={`absolute top-2.5 right-2.5 z-20 pointer-events-none flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full shadow-md backdrop-blur-sm ${
+                      modalScoreResult.overallScore >= PASS_SCORE
+                        ? 'bg-emerald-600/95'
+                        : 'bg-rose-600/95'
+                    }`}
+                    style={{ color: '#ffffff' }}
+                  >
+                    {modalScoreResult.overallScore >= PASS_SCORE ? (
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                    ) : (
+                      <Lock className="w-3.5 h-3.5" />
+                    )}
+                    <span>
+                      {modalScoreResult.overallScore}đ •{' '}
+                      {modalScoreResult.overallScore >= PASS_SCORE
+                        ? 'Đạt chuẩn'
+                        : `Cần ≥ ${PASS_SCORE}đ`}
+                    </span>
+                  </div>
+                </>
               )}
             </div>
 
@@ -2926,54 +3609,150 @@ export const ShadowingStudio: React.FC<ShadowingStudioProps> = ({
               </div>
             )}
 
-            {/* Live Mic Audio Level VU Meter */}
-            {isRecording && (
-              <div className="space-y-1">
-                <div className="flex justify-between text-[11px] text-slate-400">
-                  <span>Âm lượng giọng:</span>
-                  <span className="font-mono text-emerald-400 font-bold">{audioLevel}%</span>
-                </div>
-                <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+            {/* Whisper Processing / STT Diagnostic Banner */}
+            {isTranscribingWhisper && (
+              <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs flex items-center gap-2">
+                <Sparkles className="w-3.5 h-3.5 text-indigo-400 animate-spin shrink-0" />
+                <span className="font-semibold">Đang nhận diện giọng nói bằng OpenAI Whisper...</span>
+              </div>
+            )}
+
+            {speechError && !mediaPermissionError && (
+              <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-start gap-2">
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                <p className="text-[11px] leading-relaxed">{speechError}</p>
+              </div>
+            )}
+
+            {/* 4. Compact Score Summary & Seamless Action Bar */}
+            {modalScoreResult && !isRecording && (
+              <div className="space-y-3">
+                <div
+                  className={`p-3 rounded-2xl border flex items-center gap-3 ${
+                    modalScoreResult.overallScore >= PASS_SCORE
+                      ? 'bg-emerald-500/10 border-emerald-500/30'
+                      : 'bg-rose-500/10 border-rose-500/30'
+                  }`}
+                >
                   <div
-                    className="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-amber-400 transition-all duration-75"
-                    style={{ width: `${audioLevel}%` }}
-                  />
+                    className={`w-14 h-14 rounded-2xl border-2 shrink-0 flex flex-col items-center justify-center font-mono ${
+                      modalScoreResult.overallScore >= PASS_SCORE
+                        ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
+                        : 'bg-rose-500/15 border-rose-500/40 text-rose-300'
+                    }`}
+                  >
+                    <span className="text-xl font-extrabold leading-none">
+                      {modalScoreResult.overallScore}
+                    </span>
+                    <span className="text-[9px] font-bold uppercase mt-0.5">/100đ</span>
+                  </div>
+
+                  <div className="flex-1 min-w-0 space-y-0.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span
+                        className={`text-sm font-extrabold flex items-center gap-1 ${
+                          modalScoreResult.overallScore >= PASS_SCORE
+                            ? 'text-emerald-300'
+                            : 'text-rose-300'
+                        }`}
+                      >
+                        {modalScoreResult.overallScore >= PASS_SCORE
+                          ? 'Đạt chuẩn!'
+                          : `Chưa đủ điểm đỗ (cần ≥ ${PASS_SCORE}đ)`}
+                        {modalScoreResult.overallScore >= 85 && (
+                          <Trophy className="w-4 h-4 text-amber-400 fill-amber-400" />
+                        )}
+                      </span>
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-900 border border-slate-800 text-[11px] font-semibold text-slate-300">
+                        <Sparkles className="w-3 h-3 text-emerald-400" />
+                        <span>Chính xác {modalScoreResult.accuracyPercent}%</span>
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-300 leading-snug">{modalScoreResult.feedback}</p>
+                    <p className="text-[11px] text-slate-400 truncate">
+                      <span className="font-semibold">Bạn nói: </span>
+                      <span className="font-mono">
+                        {modalScoreResult.spokenText || '(Không nhận diện rõ âm thanh)'}
+                      </span>
+                    </p>
+                  </div>
+
+                  {modalLocalPath && Boolean(window.electronAPI?.isElectron) && (
+                    <button
+                      type="button"
+                      onClick={() => window.electronAPI?.openRecordingFolder?.()}
+                      className="shrink-0 hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition-colors cursor-pointer"
+                      title={modalLocalPath}
+                    >
+                      <FolderOpen className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Mở thư mục</span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between gap-2.5 flex-wrap">
+                  {modalScoreResult.overallScore < PASS_SCORE ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          currentSentence &&
+                          handlePlaySentenceAudio(currentSentence, currentSentenceIdx)
+                        }
+                        className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-semibold transition-colors cursor-pointer"
+                      >
+                        <Volume2 className="w-4 h-4 text-emerald-400" />
+                        <span>Nghe lại mẫu</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleRetryRecordingNow}
+                        className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs sm:text-sm font-extrabold shadow-lg shadow-emerald-500/20 transition-all active:scale-95 cursor-pointer"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                        <span>Làm lại ngay (Space)</span>
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handleRetryRecordingNow}
+                        className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-semibold transition-colors cursor-pointer"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                        <span>Đọc lại</span>
+                      </button>
+
+                      {!isLastSentenceOfLesson ? (
+                        <button
+                          type="button"
+                          onClick={handleModalNextSentence}
+                          className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs sm:text-sm font-extrabold shadow-lg shadow-emerald-500/20 transition-all active:scale-95 cursor-pointer"
+                        >
+                          <span>Câu tiếp theo</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const doneTitle = activeLesson?.title || ''
+                            handleCloseWebcamModal()
+                            triggerToast(`🎉 Hoàn thành bài "${doneTitle}"!`)
+                          }}
+                          className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs sm:text-sm font-extrabold shadow-lg shadow-emerald-500/20 transition-all active:scale-95 cursor-pointer"
+                        >
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>Hoàn thành bài</span>
+                        </button>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
             )}
-
-            {/* Realtime STT transcript preview */}
-            {isRecording && realtimeTranscript && (
-              <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs">
-                <span className="text-slate-400 block text-[10px] font-semibold uppercase mb-0.5">
-                  Nhận diện trực tiếp:
-                </span>
-                <span className="text-emerald-300 font-medium text-xs">{realtimeTranscript}</span>
-              </div>
-            )}
-
-            {/* Big Action Buttons */}
-            <div>
-              {!isRecording ? (
-                <button
-                  type="button"
-                  onClick={handleStartRecording}
-                  className="w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500 hover:opacity-95 text-slate-950 font-extrabold text-sm flex items-center justify-center gap-2 shadow-md shadow-emerald-500/20 transition-transform active:scale-[0.99] cursor-pointer"
-                >
-                  <Radio className="w-4 h-4 animate-pulse" />
-                  <span>BẮT ĐẦU SHADOWING (CÂU {currentSentenceIdx + 1})</span>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleStopRecording}
-                  className="w-full py-3 rounded-2xl bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-md shadow-rose-500/20 transition-transform active:scale-[0.99] animate-pulse cursor-pointer"
-                >
-                  <CheckCircle className="w-4 h-4" />
-                  <span>DỪNG &amp; CHẤM ĐIỂM</span>
-                </button>
-              )}
-            </div>
           </div>
         </div>
       )}

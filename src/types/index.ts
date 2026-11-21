@@ -134,6 +134,63 @@ export interface UserSchedule {
   history: Record<string, DayProgress> // keyed by YYYY-MM-DD
 }
 
+export interface StudyPlanDayItem {
+  dayIndex: number             // 1 .. totalDays
+  date: string                 // YYYY-MM-DD
+  shadowingLessonIds: string[]
+  grammarPatternIds: string[]
+  isReviewDay?: boolean
+  isRestDay?: boolean
+  estimatedMinutes: number
+}
+
+export interface StudyPlanConfig {
+  language: Language
+  startDate: string            // YYYY-MM-DD
+  totalDays: number            // 7 .. 365
+  studyDaysPerWeek: number     // 5 | 6 | 7
+  selectedLevels: string[]     // ['all'] hoặc mảng các level
+  includeShadowing: boolean
+  includeGrammar: boolean
+  includeReviewDays: boolean
+  skipCompleted: boolean
+  syncDailyGoal: boolean
+}
+
+export interface StudyPlan {
+  id: string
+  language: Language
+  title: string
+  startDate: string            // YYYY-MM-DD
+  endDate: string              // YYYY-MM-DD
+  totalDays: number
+  activeStudyDays: number
+  studyDaysPerWeek: number
+  selectedLevels: string[]
+  includeShadowing: boolean
+  includeGrammar: boolean
+  includeReviewDays: boolean
+  skipCompleted: boolean
+  totalShadowingCount: number
+  totalGrammarCount: number
+  avgShadowingPerDay: number
+  avgGrammarPerDay: number
+  estimatedMinutesPerDay: number
+  days: StudyPlanDayItem[]
+  completedShadowingIds: string[]
+  completedGrammarIds: string[]
+  createdAt: string
+}
+
+export interface GrammarQuizRecord {
+  patternId: string
+  passed: boolean
+  bestPercent: number
+  correctCount: number
+  totalCount: number
+  updatedAt: string
+}
+
 export interface ElectronAPI {
   isElectron: boolean
   getRecordingsDir: () => Promise<string>

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, nativeTheme } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog, shell, nativeTheme, session } = require('electron')
 const path = require('path')
 const fs = require('fs')
 const os = require('os')
@@ -287,6 +287,24 @@ ipcMain.handle('check-voicestudio-status', async (event, endpoint) => {
 })
 
 app.whenReady().then(() => {
+  const allowedPermissions = new Set([
+    'media',
+    'audioCapture',
+    'microphone',
+    'videoCapture',
+    'mediaKeySystem',
+    'clipboard-read',
+    'clipboard-sanitized-write',
+  ])
+
+  session.defaultSession.setPermissionCheckHandler((webContents, permission) => {
+    return allowedPermissions.has(permission)
+  })
+
+  session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
+    callback(allowedPermissions.has(permission))
+  })
+
   createWindow()
 
   app.on('activate', () => {
