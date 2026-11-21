@@ -90,10 +90,12 @@ ipcMain.handle('select-recording-folder', async () => {
 
 ipcMain.handle('select-audio-file', async () => {
   const result = await dialog.showOpenDialog(mainWindow, {
-    title: 'Chọn file nghe gốc (MP3, WAV, M4A, OGG, WebM)',
+    title: 'Chọn file video hoặc file nghe gốc (MP4, WebM, MP3, WAV, M4A, MKV)',
     properties: ['openFile'],
     filters: [
-      { name: 'Audio Files', extensions: ['mp3', 'wav', 'm4a', 'aac', 'ogg', 'webm', 'flac'] },
+      { name: 'Media Files (Video & Audio)', extensions: ['mp4', 'webm', 'mkv', 'mov', 'mp3', 'wav', 'm4a', 'aac', 'ogg', 'flac'] },
+      { name: 'Video Files', extensions: ['mp4', 'webm', 'mkv', 'mov'] },
+      { name: 'Audio Files', extensions: ['mp3', 'wav', 'm4a', 'aac', 'ogg', 'flac'] },
       { name: 'All Files', extensions: ['*'] }
     ]
   })
@@ -103,15 +105,18 @@ ipcMain.handle('select-audio-file', async () => {
     const fileBuffer = await fs.promises.readFile(filePath)
     const ext = path.extname(filePath).slice(1).toLowerCase()
     const mimeMap = {
+      mp4: 'video/mp4',
+      webm: 'video/webm',
+      mkv: 'video/x-matroska',
+      mov: 'video/quicktime',
       mp3: 'audio/mpeg',
       wav: 'audio/wav',
       m4a: 'audio/mp4',
       aac: 'audio/aac',
       ogg: 'audio/ogg',
-      webm: 'audio/webm',
       flac: 'audio/flac'
     }
-    const mime = mimeMap[ext] || 'audio/mpeg'
+    const mime = mimeMap[ext] || (['mp4', 'webm', 'mkv', 'mov'].includes(ext) ? 'video/mp4' : 'audio/mpeg')
     const base64 = fileBuffer.toString('base64')
     const dataUrl = `data:${mime};base64,${base64}`
 

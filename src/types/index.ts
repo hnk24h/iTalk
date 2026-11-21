@@ -32,8 +32,10 @@ export interface Lesson {
   category: string
   description?: string
   sentences: LessonSentence[]
-  audioSourceType?: 'tts' | 'audio-file'
-  originalAudioUrl?: string     // base64 data URL or blob URL
+  audioSourceType?: 'tts' | 'audio-file' | 'video-file'
+  mediaType?: 'audio' | 'video'
+  originalAudioUrl?: string     // base64 data URL or blob URL (also used for video)
+  videoUrl?: string
   originalAudioFileName?: string
   audioBlobId?: string           // Key in IndexedDB
   audioDuration?: number        // Total seconds

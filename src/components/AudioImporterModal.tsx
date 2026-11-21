@@ -187,16 +187,20 @@ export const AudioImporterModal: React.FC<AudioImporterModalProps> = ({
       }
     }
 
+    const isVideo = audioFileName ? /\.(mp4|webm|mkv|mov|avi)$/i.test(audioFileName) : false
+
     const newLesson: Lesson = {
       id: lessonId,
       language: selectedLang,
       title: title.trim(),
       level: level.trim() || 'Nâng cao',
-      category: category.trim() || 'File nghe gốc',
-      description: `Nạp từ file gốc: ${audioFileName || 'Audio tự chọn'}`,
+      category: category.trim() || (isVideo ? 'Video gốc' : 'File nghe gốc'),
+      description: `Nạp từ file gốc: ${audioFileName || (isVideo ? 'Video tự chọn' : 'Audio tự chọn')}`,
       sentences: sentences.filter((s) => s.text.trim().length > 0),
-      audioSourceType: audioUrl ? 'audio-file' : 'tts',
+      audioSourceType: audioUrl ? (isVideo ? 'video-file' : 'audio-file') : 'tts',
+      mediaType: isVideo ? 'video' : 'audio',
       originalAudioUrl: audioUrl,
+      videoUrl: isVideo ? audioUrl : undefined,
       originalAudioFileName: audioFileName,
       audioBlobId: blobId,
       audioDuration,
@@ -303,7 +307,7 @@ export const AudioImporterModal: React.FC<AudioImporterModalProps> = ({
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
                   <FileAudio className="w-4 h-4 text-indigo-400" />
-                  File nghe gốc bản xứ (MP3, WAV, M4A, OGG)
+                  File video / âm thanh gốc (MP4, WebM, MP3, WAV, M4A)
                 </span>
                 {audioFileName && (
                   <span className="text-xs font-mono text-emerald-400 font-semibold truncate max-w-xs">
@@ -320,14 +324,14 @@ export const AudioImporterModal: React.FC<AudioImporterModalProps> = ({
                       className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white font-bold text-xs shadow-md transition-colors"
                     >
                       <FolderOpen className="w-4 h-4" />
-                      <span>Chọn file audio từ máy tính</span>
+                      <span>Chọn file video / audio từ máy tính</span>
                     </button>
                   ) : (
                     <>
                       <input
                         ref={fileInputRef}
                         type="file"
-                        accept="audio/*"
+                        accept="audio/*,video/*"
                         className="hidden"
                         onChange={handleSelectAudioWeb}
                       />
@@ -336,7 +340,7 @@ export const AudioImporterModal: React.FC<AudioImporterModalProps> = ({
                         className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white font-bold text-xs shadow-md transition-colors"
                       >
                         <UploadCloud className="w-4 h-4" />
-                        <span>Tải file audio từ máy tính</span>
+                        <span>Tải file video / audio từ máy tính</span>
                       </button>
                     </>
                   )}
